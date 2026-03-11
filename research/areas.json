@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Alter-G EMG Study",
+    "summary": "Interactive visualizations from uphill/downhill Alter-G treadmill running data.",
+    "path": "research/alter-g-emg.html",
+    "status": "Live"
+  },
+  {
+    "title": "Future Area 1",
+    "summary": "Add your next project here (for example: ACL rehabilitation, tendon loading, or return-to-sport analytics).",
+    "status": "Coming Soon"
+  },
+  {
+    "title": "Future Area 2",
+    "summary": "Use this slot for another domain and link it to a dedicated page when content is ready.",
+    "status": "Coming Soon"
+  }
+]
