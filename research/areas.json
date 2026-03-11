@@ -6,9 +6,10 @@
     "status": "Live"
   },
   {
-    "title": "Future Area 1",
-    "summary": "Add your next project here (for example: ACL rehabilitation, tendon loading, or return-to-sport analytics).",
-    "status": "Coming Soon"
+    "title": "APA SPEX Shoulder Course",
+    "summary": "Educational shoulder course chapters, topic pages, and reference library.",
+    "path": "education/apa-spex-shoulder-course/index.html",
+    "status": "Live"
   },
   {
     "title": "Future Area 2",
