@@ -35,6 +35,21 @@ h1 {
   color: #4b5563;
 }
 
+.top-nav {
+  margin-top: 0.75rem;
+}
+
+.top-nav a {
+  color: #1f2937;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.top-nav a:hover,
+.top-nav a:focus-visible {
+  text-decoration: underline;
+}
+
 main {
   padding: 2rem 0 3rem;
 }
