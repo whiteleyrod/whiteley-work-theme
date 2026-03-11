@@ -49,6 +49,14 @@ www.whiteley.work
 
 4. Commit and push. The homepage card appears automatically.
 
+## Research paper PDFs for educational content
+
+This site will also host a folder of PDF research papers that support upcoming educational content.
+
+- Store PDFs in `papers/` at repo root.
+- Use clear filenames (for example: `author-year-topic.pdf`).
+- Link these PDFs from relevant research pages or future education pages.
+
 ## Local preview
 
 Open with any static server from repo root, for example:
