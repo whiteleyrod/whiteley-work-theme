@@ -72,11 +72,29 @@ The folder **Word Documnets** is treated as the source/reference set for educati
 1. Add or update files in **Word Documnets** for a topic.
 2. Copy new/updated references into the matching topic folder under `education/apa-spex-shoulder-course/references/`.
 3. Update the associated education page (`.../<topic>/index.html`) so links and summary content reflect the latest references.
+4. Update `education/apa-spex-shoulder-course/references/index.html` for the new/updated topic:
+	- add a **content section** (`<h2 id="...">`) with a link to the topic reference folder index,
+	- add the same topic link in **both** right-side Table of Contents blocks (`md-nav--secondary` appears twice in this file),
+	- keep ordering consistent with existing sections (alphabetical by section title unless intentionally grouped).
 4. Run a local preview (`python -m http.server 8080`) and verify:
 	- page renders correctly,
 	- all new links open,
+	- topic appears in `references/` page content and right-side TOC,
 	- no stale/removed references remain on the page.
 5. Commit and push to deploy.
+
+### Critical checklist for adding a new section
+
+When creating a new topic/section page, include all of the following in the same commit:
+
+1. Topic page created/updated (for example `education/apa-spex-shoulder-course/<topic>/index.html`).
+2. Topic references folder created/updated under `education/apa-spex-shoulder-course/references/`.
+3. Topic entry added to `education/apa-spex-shoulder-course/references/index.html`:
+	- section heading + link to folder index,
+	- TOC entry in both `md-nav--secondary` TOC blocks,
+	- correct relative links and ordering.
+4. Mapping row added/updated in `education/apa-spex-shoulder-course/topic-mapping-template.csv`.
+5. Local QA confirms no missing links and no duplicate/misplaced TOC items.
 
 ### Best-practice conventions
 
