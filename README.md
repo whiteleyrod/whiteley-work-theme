@@ -75,7 +75,8 @@ The folder **Word Documnets** is treated as the source/reference set for educati
 3. Copy new/updated Word docs into `education/apa-spex-shoulder-course/source-documents/files/`.
 4. Update `education/apa-spex-shoulder-course/source-documents/index.html` so the file list and notes stay accurate.
 5. Update the associated education page (`.../<topic>/index.html`) so links and summary content reflect the latest references.
-   - if the page is a hand-authored/static HTML page rather than an exported MkDocs page, include the Material palette support used by `source-documents/index.html` so the page respects saved light/dark theme selection.
+	- if the page is a hand-authored/static HTML page rather than an exported MkDocs page, include the Material palette support used by `source-documents/index.html` so the page respects saved light/dark theme selection.
+	- set the palette storage scope to the education-course root (matching the existing `__md_scope` pattern) so users set dark/light mode once and the preference carries across all course pages and manual subpages.
 6. Update `education/apa-spex-shoulder-course/references/index.html` for the new/updated topic:
 	- add a **content section** (`<h2 id="...">`) with a link to the topic reference folder index,
 	- add the same topic link in **both** right-side Table of Contents blocks (`md-nav--secondary` appears twice in this file),
@@ -111,6 +112,7 @@ When creating a new topic/section page, include all of the following in the same
 - If filename changes are required, update page links in the same commit.
 - Keep one page ↔ one references folder mapping to make maintenance predictable.
 - When creating manual HTML pages, copy the palette/state snippet from `education/apa-spex-shoulder-course/source-documents/index.html` or another theme-compliant manual page so the page inherits the user's saved light/dark theme and still exposes the toggle.
+- Apply the same pattern to manual reference-folder `index.html` pages, not only teaching/module pages.
 
 ### Suggested scaling approach
 
