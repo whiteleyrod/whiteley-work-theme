@@ -75,6 +75,7 @@ The folder **Word Documnets** is treated as the source/reference set for educati
 3. Copy new/updated Word docs into `education/apa-spex-shoulder-course/source-documents/files/`.
 4. Update `education/apa-spex-shoulder-course/source-documents/index.html` so the file list and notes stay accurate.
 5. Update the associated education page (`.../<topic>/index.html`) so links and summary content reflect the latest references.
+   - if the page is a hand-authored/static HTML page rather than an exported MkDocs page, include the Material palette support used by `source-documents/index.html` so the page respects saved light/dark theme selection.
 6. Update `education/apa-spex-shoulder-course/references/index.html` for the new/updated topic:
 	- add a **content section** (`<h2 id="...">`) with a link to the topic reference folder index,
 	- add the same topic link in **both** right-side Table of Contents blocks (`md-nav--secondary` appears twice in this file),
@@ -101,6 +102,7 @@ When creating a new topic/section page, include all of the following in the same
 	- correct relative links and ordering.
 5. Mapping row added/updated in `education/apa-spex-shoulder-course/topic-mapping-template.csv`.
 6. Local QA confirms no missing links and no duplicate/misplaced TOC items.
+7. For any manually created HTML page, confirm it includes the site palette script + toggle controls so saved dark/light mode carries across pages.
 
 ### Best-practice conventions
 
@@ -108,6 +110,7 @@ When creating a new topic/section page, include all of the following in the same
 - Prefer replacing existing files in-place when a paper is revised (stable links), unless you need version history in filename.
 - If filename changes are required, update page links in the same commit.
 - Keep one page ↔ one references folder mapping to make maintenance predictable.
+- When creating manual HTML pages, copy the palette/state snippet from `education/apa-spex-shoulder-course/source-documents/index.html` or another theme-compliant manual page so the page inherits the user's saved light/dark theme and still exposes the toggle.
 
 ### Suggested scaling approach
 
