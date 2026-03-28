@@ -12,8 +12,9 @@
     "status": "Live"
   },
   {
-    "title": "Future Area 2",
-    "summary": "Use this slot for another domain and link it to a dedicated page when content is ready.",
-    "status": "Coming Soon"
+    "title": "Tools",
+    "summary": "Utility pages and workflow helpers, starting with the PDF harvester.",
+    "path": "research/tools.html",
+    "status": "Live"
   }
 ]
