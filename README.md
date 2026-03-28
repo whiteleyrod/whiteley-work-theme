@@ -77,6 +77,7 @@ The folder **Word Documnets** is treated as the source/reference set for educati
 5. Update the associated education page (`.../<topic>/index.html`) so links and summary content reflect the latest references.
 	- if the page is a hand-authored/static HTML page rather than an exported MkDocs page, include the Material palette support used by `source-documents/index.html` so the page respects saved light/dark theme selection.
 	- set the palette storage scope to the education-course root (matching the existing `__md_scope` pattern) so users set dark/light mode once and the preference carries across all course pages and manual subpages.
+	- if the change adds a brand-new top-level module (for example `elbow/`), also update the visible course entry points you maintain: home summary text, edited manual-page tab bars, and sitemap.
 6. Update `education/apa-spex-shoulder-course/references/index.html` for the new/updated topic:
 	- add a **content section** (`<h2 id="...">`) with a link to the topic reference folder index,
 	- add the same topic link in **both** right-side Table of Contents blocks (`md-nav--secondary` appears twice in this file),
@@ -104,6 +105,7 @@ When creating a new topic/section page, include all of the following in the same
 5. Mapping row added/updated in `education/apa-spex-shoulder-course/topic-mapping-template.csv`.
 6. Local QA confirms no missing links and no duplicate/misplaced TOC items.
 7. For any manually created HTML page, confirm it includes the site palette script + toggle controls so saved dark/light mode carries across pages.
+8. If this is a new top-level module rather than a subsection, confirm the home page, sitemap, and edited manual-page tab bars expose the new module.
 
 ### Best-practice conventions
 
