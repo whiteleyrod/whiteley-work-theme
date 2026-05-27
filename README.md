@@ -59,18 +59,18 @@ This site will also host a folder of PDF research papers that support upcoming e
 
 ## Education pages update workflow (Word Documnets)
 
-The folder **Word Documnets** is treated as the source/reference set for education content pages.
+The folder **Word Documents** is treated as the source/reference set for education content pages.
 
 ### Source of truth
 
-- Source docs: `Word Documnets` (your working reference documents per topic/page).
+- Source docs: `Word Documents` (your working reference documents per topic/page).
 - Published site: `education/apa-spex-shoulder-course/`.
 - Page-linked references: `education/apa-spex-shoulder-course/references/`.
 - Published Word-doc archive page: `education/apa-spex-shoulder-course/source-documents/`.
 
 ### Recommended update cycle
 
-1. Add or update files in **Word Documnets** for a topic.
+1. Add or update files in **Word Documents** for a topic.
 2. Copy new/updated references into the matching topic folder under `education/apa-spex-shoulder-course/references/`.
 3. Copy new/updated Word docs into `education/apa-spex-shoulder-course/source-documents/files/`.
 4. Update `education/apa-spex-shoulder-course/source-documents/index.html` so the file list and notes stay accurate.
