@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ResearchAreas",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "title": { "type": "string" },
+      "summary": { "type": "string" },
+      "path": { "type": "string", "pattern": "^[a-z0-9][a-z0-9/_-]*\\.html$" },
+      "status": { "type": "string", "enum": ["Live", "Draft", "Archived"] }
+    },
+    "required": ["title", "summary", "path", "status"],
+    "additionalProperties": false
+  }
+}
