@@ -11,6 +11,65 @@ Static GitHub Pages rebuild scaffold for `whiteley.work`.
 - `scripts/main.js` — renders cards from `research/areas.json`.
 - `.github/workflows/deploy-pages.yml` — deploys to GitHub Pages on push to `main` or `master`.
 
+## Current published topics
+
+APA SPEX Shoulder Course — `education/apa-spex-shoulder-course/`
+
+### Shoulder
+| Topic | Slug |
+|---|---|
+| ACJ Injury | `acj-injury` |
+| Anterior Instability | `anterior-instability` |
+| Calcifying Tendinopathy | `calcifying-tendinopathy` |
+| Clavicle Fractures | `clavicle-fractures` |
+| Distal Clavicular Osteolysis | `distal-clavicular-osteolysis` |
+| Frozen Shoulder | `frozen-shoulder` |
+| Glenohumeral Osteoarthritis | `glenohumeral-osteoarthritis` |
+| SLAP / Labral Injury | `slap-labral-injury` |
+| Subacromial Impingement | `subacromial-impingement` |
+| Swimmer's Shoulder | `swimmers-shoulder-NEW` |
+| Throwing Shoulder | `throwing-shoulder` |
+
+### Elbow
+| Topic | Slug |
+|---|---|
+| Elbow | `elbow` |
+
+### Hip & Groin
+| Topic | Slug |
+|---|---|
+| Hip and Groin | `hip-groin` |
+| Hip Pain in Children and Adolescents | `hip-pain-children-adolescents` |
+| Lateral Hip Pain (Adults) | `lateral-hip-pain` |
+
+### Knee
+| Topic | Slug |
+|---|---|
+| Knee (overview) | `knee` |
+| Knee Cartilage and Meniscal Injury | `knee/knee-cartilage-and-meniscal-injury` |
+| Patellar Tendinopathy | `knee/patellar-tendinopathy` |
+| Patellofemoral Pain | `knee/patellofemoral-pain` |
+
+### Foot & Ankle
+| Topic | Slug |
+|---|---|
+| Foot & Ankle Overview | `foot-ankle-overview` |
+| Lateral Ankle Sprain | `lateral-ankle-sprain` |
+| Plantar Fasciopathy | `plantar-fasciopathy` |
+| Syndesmosis | `syndesmosis` |
+
+### Other / General
+| Topic | Slug |
+|---|---|
+| Achilles Tendinopathy | `achilles-tendinopathy` |
+| Posterior Instability | `posterior-instability` |
+| Tendon Basic Science | `tendon-basic-science` |
+| Thoracic Outlet | `thoracic-outlet` |
+
+Full topic → reference folder mapping: `education/apa-spex-shoulder-course/topic-mapping-template.csv`
+
+---
+
 ## Deploy to GitHub Pages
 
 1. Push this repository to GitHub.
