@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tendon cross-link explorer</title>
+<style>
+  :root{
+    --bg:#14171d; --panel:#1c2027; --panel2:#232a33; --line:#2c333d;
+    --ink:#e9ecf1; --muted:#9aa4b2; --dim:#6b7482;
+    --teal:#2dd4a7; --tealdk:#0f6e56;
+    --copper:#d98a4f; --copperdk:#B87333;
+    --coral:#e0663c; --coraldk:#993c1d;
+    --scar:#8a93a0;
+    --danger:#e0504a;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--sans);
+    line-height:1.5; padding:20px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px 20px;margin-bottom:4px}
+  h1{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0}
+  .sub{color:var(--muted);font-size:13px;margin:2px 0 16px}
+  .copper{color:var(--copper)}
+
+  .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+  .seg button{
+    font-family:var(--sans);font-size:13px;font-weight:500;color:var(--muted);
+    background:transparent;border:0;border-radius:7px;padding:7px 14px;cursor:pointer;
+    transition:background .12s,color .12s;
+  }
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--panel2);color:var(--ink)}
+  .seg button.on[data-p="healthy"]{color:var(--teal)}
+  .seg button.on[data-p="aged"]{color:var(--coral)}
+  .seg button.on[data-p="scar"]{color:var(--ink)}
+
+  .verdict{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:500;
+    padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--panel);white-space:nowrap}
+
+  .grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin-bottom:14px}
+  .col{display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .card h2{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 10px}
+  .card svg{display:block;width:100%;height:auto}
+
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;align-items:center}
+  .ctl{display:flex;flex-direction:column;gap:5px}
+  .ctl .lab{display:flex;justify-content:space-between;font-size:13px}
+  .ctl .lab .name{font-weight:500}
+  .ctl .lab .val{font-family:var(--mono);color:var(--muted)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;
+    background:var(--line);outline:none;margin:6px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+    background:var(--ink);cursor:pointer;border:2px solid var(--bg)}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--ink);
+    cursor:pointer;border:2px solid var(--bg)}
+  #enz{accent-color:var(--copper)} #age{accent-color:var(--coral)} #csa{accent-color:var(--muted)}
+  #enz::-webkit-slider-thumb{background:var(--copper)} #age::-webkit-slider-thumb{background:var(--coral)}
+  #enz::-moz-range-thumb{background:var(--copper)} #age::-moz-range-thumb{background:var(--coral)}
+
+  .runbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:2px}
+  .runbar .strainwrap{flex:1;min-width:220px;display:flex;flex-direction:column;gap:5px}
+  .btn{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--bg);background:var(--ink);
+    border:0;border-radius:9px;padding:9px 16px;cursor:pointer}
+  .btn:hover{opacity:.9}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500}
+  .btn.ghost:hover{background:var(--panel2)}
+
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+  .tile{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+  .tile .k{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+  .tile .v{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:2px}
+  .tile .u{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400}
+
+  .note{font-size:12.5px;color:var(--muted);margin-top:10px;min-height:18px}
+  .note b{color:var(--copper);font-weight:600}
+  .toggle{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .toggle input{accent-color:var(--coral)}
+  .legend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);margin-top:8px}
+  .ramp{height:8px;flex:1;border-radius:4px;
+    background:linear-gradient(90deg,#2b6cb0,#2dd4a7,#e0a13c,#e0504a)}
+  :focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+  @media (max-width:820px){ .grid{grid-template-columns:1fr} .controls{grid-template-columns:1fr} .tiles{grid-template-columns:repeat(3,1fr)} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Tendon cross-link explorer</h1>
+    </div>
+    <div class="seg" id="presets" role="group" aria-label="Behaviour preset">
+      <button data-p="scar">Immature / scar</button>
+      <button data-p="healthy" class="on">Healthy (enzymatic)</button>
+      <button data-p="aged">Aged (AGE)</button>
+    </div>
+    <div class="verdict" id="verdict">—</div>
+  </header>
+  <p class="sub">Enzymatic (<span class="copper">lysyl&nbsp;oxidase</span>) versus non-enzymatic (AGE) cross-linking, and how each reshapes the stress–strain response, fascicular sliding, and internal load distribution.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Stress–strain response</h2>
+      <svg id="scope" viewBox="0 0 560 360" role="img" aria-label="Stress strain curve"></svg>
+    </div>
+    <div class="col">
+      <div class="card">
+        <h2>Fascicles &amp; cross-links</h2>
+        <svg id="fibrils" viewBox="0 0 360 200" role="img" aria-label="Fascicle and cross-link animation"></svg>
+      </div>
+      <div class="card">
+        <h2>Cross-section — load distribution</h2>
+        <svg id="heat" viewBox="0 0 300 168" role="img" aria-label="Cross section stress heat map"></svg>
+        <div class="legend"><span>low stress</span><span class="ramp"></span><span>high</span></div>
+        <label class="toggle" style="margin-top:8px"><input type="checkbox" id="lesion"> Show a stress-shielded lesion</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <div class="ctl">
+        <div class="lab"><span class="name" style="color:var(--copper)">Enzymatic cross-links</span><span class="val" id="enzv">—</span></div>
+        <input type="range" id="enz" min="0" max="100" value="90">
+      </div>
+      <div class="ctl">
+        <div class="lab"><span class="name" style="color:var(--coral)">AGE cross-links (glycation)</span><span class="val" id="agev">—</span></div>
+        <input type="range" id="age" min="0" max="100" value="10">
+      </div>
+      <div class="ctl">
+        <div class="lab"><span class="name">Cross-sectional area</span><span class="val" id="csav">—</span></div>
+        <input type="range" id="csa" min="30" max="130" value="60">
+      </div>
+      <div class="runbar">
+        <div class="strainwrap">
+          <div class="lab" style="display:flex;justify-content:space-between;font-size:13px">
+            <span class="name">Applied strain</span><span class="val" id="strainv" style="font-family:var(--mono);color:var(--muted)">0.0 %</span>
+          </div>
+          <input type="range" id="strain" min="0" max="160" value="0">
+        </div>
+        <button class="btn" id="pull">Pull to failure</button>
+        <button class="btn ghost" id="reset">Unload</button>
+        <button class="btn ghost" id="fresh">Fresh specimen</button>
+      </div>
+    </div>
+
+    <div class="tiles" style="margin-top:14px">
+      <div class="tile"><div class="k">Young's modulus</div><div class="v"><span id="mMod">—</span> <span class="u">MPa</span></div></div>
+      <div class="tile"><div class="k">Ultimate strength</div><div class="v"><span id="mUts">—</span> <span class="u">MPa</span></div></div>
+      <div class="tile"><div class="k">Yield strain</div><div class="v"><span id="mYld">—</span> <span class="u">%</span></div></div>
+      <div class="tile"><div class="k">Failure strain</div><div class="v"><span id="mEps">—</span> <span class="u">%</span></div></div>
+      <div class="tile"><div class="k">Energy to failure</div><div class="v"><span id="mTuf">—</span> <span class="u">MJ/m³</span></div></div>
+      <div class="tile"><div class="k">Residual strain</div><div class="v"><span id="mRes">—</span> <span class="u">%</span></div></div>
+      <div class="tile"><div class="k">Structural stiffness</div><div class="v"><span id="mStf">—</span> <span class="u">N/mm</span></div></div>
+      <div class="tile"><div class="k">Peak force</div><div class="v"><span id="mFor">—</span> <span class="u">kN</span></div></div>
+      <div class="tile"><div class="k">Fibres failed</div><div class="v"><span id="mDmg">—</span> <span class="u">%</span></div></div>
+    </div>
+    <div class="note" id="note"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp = (a,b,t)=>a+(b-a)*t;
+
+/* ---- Mechanical model -------------------------------------------------
+   E = enzymatic cross-link density (0..1)   A = AGE density (0..1)
+   Strain in %, stress in MPa/100 internally then scaled for display.     */
+const PRESETS = {
+  scar:    {E:0.20, A:0.10},
+  healthy: {E:0.90, A:0.10},
+  aged:    {E:0.90, A:0.85},
+};
+function model(E,A){
+  const k   = 3 + 9*E + 7*A;                       // slope, "MPa" per % strain (x100 for display)
+  const toe = clamp(4.5 - 2*E - 1.5*A, 0.8, 5);    // % strain where linear region begins
+  const epsF= clamp(6 + 6*E - 8*A, toe+1.4, 16);   // macroscopic failure strain %
+  const sigToe = 0.25*k*toe;
+  const ey  = toe + 0.55*(epsF-toe);               // yield: onset of plastic (fibre) failure
+  const sigYield = sigToe + k*(ey-toe);
+  const epk = ey + 0.35*(epsF-ey);                 // strain at ultimate stress (peak)
+  const sigPeak = sigYield*1.06;                   // small rise into plastic before rollover
+  const UTS = sigPeak;
+  const toughness = sigToe*toe/3 + 0.5*(sigToe+sigYield)*(ey-toe)
+                  + 0.5*(sigYield+sigPeak)*(epk-ey) + 0.5*sigPeak*(epsF-epk);
+  return {k,toe,epsF,sigToe,ey,sigYield,epk,sigPeak,UTS,toughness};
+}
+// pristine envelope: toe -> linear -> rounded peak -> descending limb -> 0
+function stressEnv(eps,m){
+  if(eps<=0) return 0;
+  if(eps<=m.toe) return m.sigToe*Math.pow(eps/m.toe,2);
+  if(eps<=m.ey)  return m.sigToe + m.k*(eps-m.toe);
+  if(eps<=m.epk){ const t=(eps-m.ey)/(m.epk-m.ey); return m.sigYield + (m.sigPeak-m.sigYield)*(1-Math.pow(1-t,2)); }
+  if(eps<=m.epsF){ const t=(eps-m.epk)/(m.epsF-m.epk); return m.sigPeak*(1-t*t); }
+  return 0;
+}
+// damage from the strain high-water mark (fraction of fibres failed)
+function damageOf(m,maxStrain){ return maxStrain<=m.ey ? 0 : clamp((maxStrain-m.ey)/(m.epsF-m.ey),0,1); }
+function residualOf(m,maxStrain,D){ return maxStrain<=m.ey ? 0 : clamp(0.35*D*maxStrain,0,maxStrain-0.3); }
+// damaged specimen state: reduced toe from residual strain, softened rise back to envelope
+function damageState(){
+  const m=model(state.E,state.A), mx=state.maxStrain;
+  const D=damageOf(m,mx);
+  if(D<=0) return {D:0,m,mx};
+  const er=residualOf(m,mx,D);
+  const sMax=stressEnv(mx,m);
+  const toeDmg=Math.max(0.4, m.toe*(1-0.55*D));    // toe persists but shortens (crimp partly lost)
+  const toeEnd=Math.min(mx-0.3, er+toeDmg);
+  const sigToeDmg=0.14*sMax;
+  const slope=(sMax-sigToeDmg)/Math.max(0.2,(mx-toeEnd)); // softened linear-region modulus
+  return {D,m,mx,er,sMax,toeDmg,toeEnd,sigToeDmg,slope};
+}
+function reloadStress(eps,ds){
+  if(eps<=ds.er) return 0;
+  if(eps<=ds.toeEnd){ const t=(eps-ds.er)/Math.max(0.01,(ds.toeEnd-ds.er)); return ds.sigToeDmg*t*t; } // reduced toe
+  if(eps<=ds.mx) return ds.sigToeDmg + ds.slope*(eps-ds.toeEnd);
+  return stressEnv(eps,ds.m);
+}
+function currentStress(eps){
+  const ds=damageState();
+  if(ds.D<=0 || eps>=ds.mx) return stressEnv(eps,ds.m);
+  return reloadStress(eps,ds);
+}
+
+/* ---- State ---- */
+const state = {E:0.90, A:0.10, CSA:60, strain:0, maxStrain:0, failed:false, failProg:0, playing:false, lesion:false};
+const L0 = 100; // notional gauge length (mm) for structural stiffness
+
+/* ---- Colour helpers ---- */
+function stressColor(frac){
+  frac = clamp(frac,0,1);
+  const stops=[[0,[43,108,176]],[0.4,[45,212,167]],[0.72,[224,161,60]],[1,[224,80,74]]];
+  for(let i=0;i<stops.length-1;i++){
+    const [p0,c0]=stops[i],[p1,c1]=stops[i+1];
+    if(frac<=p1){const t=(frac-p0)/(p1-p0);
+      return `rgb(${c0.map((c,j)=>Math.round(lerp(c,c1[j],t))).join(',')})`;}
+  }
+  return 'rgb(224,80,74)';
+}
+function activeColor(){
+  if(state.A>0.5 && state.E>0.35) return getComputedStyle(document.documentElement).getPropertyValue('--coral').trim();
+  if(state.E>0.5) return getComputedStyle(document.documentElement).getPropertyValue('--teal').trim();
+  return getComputedStyle(document.documentElement).getPropertyValue('--scar').trim();
+}
+
+/* ---- Cross-section cell layout (fixed hex packing) ---- */
+const CELLS = (()=>{
+  const cells=[]; const R=3, step=1;
+  for(let q=-R;q<=R;q++) for(let r=-R;r<=R;r++){
+    const s=-q-r; if(Math.abs(s)>R) continue;
+    const x=(q + r/2)*step, y=r*Math.sqrt(3)/2*step;
+    if(Math.hypot(x,y)<=R+0.05) cells.push({x,y});
+  }
+  // deterministic per-cell weight for concentration
+  let seed=7;
+  cells.forEach(c=>{ seed=(seed*9301+49297)%233280; c.w=seed/233280; c.dist=Math.hypot(c.x,c.y); });
+  return cells;
+})();
+const CELLS_BY_WEIGHT = CELLS.map((c,i)=>i).sort((a,b)=>CELLS[b].w-CELLS[a].w); // hottest fail first
+
+/* ---- Fibril population for the animation panel (4 fascicles x 3 fibrils) ---- */
+const FASC_CY = [42,74,106,138];
+const FIBRILS = (()=>{
+  const nF=FASC_CY.length, per=3, list=[]; let seed=101;
+  for(let f=0;f<nF;f++){
+    for(let r=0;r<per;r++){
+      seed=(seed*9301+49297)%233280; const rr=seed/233280;
+      seed=(seed*9301+49297)%233280; const jit=(seed/233280-0.5)*24;
+      list.push({fasc:f, cy:FASC_CY[f]+(r-1)*9, r:rr, jit});
+    }
+  }
+  return {list, nF};
+})();
+
+/* ================= Rendering ================= */
+const SC = {ml:52,mt:16,pw:480,ph:300, sMax:16, yMax:90}; // scope plot geometry
+const sx = strain => SC.ml + (strain/SC.sMax)*SC.pw;
+const sy = stress => SC.mt + SC.ph - (stress/SC.yMax)*SC.ph;
+
+function envPath(m,fromE,toE){
+  let d=''; const N=54;
+  for(let i=0;i<=N;i++){ const e=fromE+(toE-fromE)*(i/N); const s=stressEnv(e,m);
+    d += (i===0?'M':'L') + sx(e).toFixed(1) + ' ' + sy(s).toFixed(1) + ' '; }
+  return d;
+}
+function drawScope(){
+  const g=[]; const {ml,mt,pw,ph,sMax,yMax}=SC;
+  for(let v=0;v<=yMax;v+=20){const y=mt+ph-(v/yMax)*ph;
+    g.push(`<line x1="${ml}" y1="${y}" x2="${ml+pw}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`);
+    g.push(`<text x="${ml-8}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--dim)" font-family="var(--mono)">${v}</text>`);}
+  for(let v=0;v<=sMax;v+=2){const x=ml+(v/sMax)*pw;
+    g.push(`<line x1="${x}" y1="${mt}" x2="${x}" y2="${mt+ph}" stroke="var(--line)" stroke-width="1"/>`);
+    g.push(`<text x="${x}" y="${mt+ph+16}" text-anchor="middle" font-size="10" fill="var(--dim)" font-family="var(--mono)">${v}</text>`);}
+  g.push(`<text x="${ml+pw/2}" y="${mt+ph+32}" text-anchor="middle" font-size="11" fill="var(--muted)">strain (%)</text>`);
+  g.push(`<text x="14" y="${mt+ph/2}" text-anchor="middle" font-size="11" fill="var(--muted)" transform="rotate(-90 14 ${mt+ph/2})">stress (MPa)</text>`);
+
+  const ghost={scar:'--scar',healthy:'--teal',aged:'--coral'};
+  for(const key in PRESETS){
+    const gm=model(PRESETS[key].E,PRESETS[key].A);
+    g.push(`<path d="${envPath(gm,0,gm.epsF)}" fill="none" stroke="var(${ghost[key]})" stroke-width="1.3" opacity="0.16"/>`);
+  }
+
+  const m=model(state.E,state.A);
+  const col=activeColor();
+  const ds=damageState();
+  const mx=state.maxStrain, D=ds.D, er=ds.er||0;
+
+  if(D>0){
+    g.push(`<path d="${envPath(m,0,m.epsF)}" fill="none" stroke="${col}" stroke-width="1.4" opacity="0.30" stroke-dasharray="4 4"/>`);
+    let d=''; const N=44;
+    for(let i=0;i<=N;i++){ const e=er+(mx-er)*(i/N); d+=(i===0?'M':'L')+sx(e).toFixed(1)+' '+sy(reloadStress(e,ds)).toFixed(1)+' '; }
+    g.push(`<path d="${d}" fill="none" stroke="var(--coral)" stroke-width="2.6"/>`);
+    if(mx<m.epsF) g.push(`<path d="${envPath(m,mx,m.epsF)}" fill="none" stroke="var(--coral)" stroke-width="2" opacity="0.55" stroke-dasharray="5 4"/>`);
+    g.push(`<line x1="${sx(er).toFixed(1)}" y1="${sy(0)}" x2="${sx(er).toFixed(1)}" y2="${sy(0)-24}" stroke="var(--coral)" stroke-width="1" stroke-dasharray="3 3"/>`);
+    g.push(`<text x="${sx(er).toFixed(1)}" y="${sy(0)-28}" text-anchor="middle" font-size="9.5" fill="var(--coral)" font-family="var(--mono)">residual</text>`);
+  } else {
+    g.push(`<path d="${envPath(m,0,m.epsF)}" fill="none" stroke="${col}" stroke-width="2.6"/>`);
+  }
+
+  g.push(`<circle cx="${sx(m.ey).toFixed(1)}" cy="${sy(m.sigYield).toFixed(1)}" r="3.5" fill="#EF9F27"/>`);
+  g.push(`<text x="${sx(m.ey).toFixed(1)}" y="${(sy(m.sigYield)-8).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#EF9F27" font-family="var(--mono)">yield</text>`);
+
+  const e=clamp(state.strain,0,m.epsF);
+  const s=currentStress(e);
+  const dx=sx(e), dy=sy(s);
+  if(state.failed){
+    g.push(`<g stroke="var(--danger)" stroke-width="2">
+      <line x1="${dx-6}" y1="${dy-6}" x2="${dx+6}" y2="${dy+6}"/>
+      <line x1="${dx+6}" y1="${dy-6}" x2="${dx-6}" y2="${dy+6}"/></g>`);
+    g.push(`<text x="${dx.toFixed(1)}" y="${(dy-12).toFixed(1)}" text-anchor="middle" font-size="11" fill="var(--danger)" font-family="var(--mono)">rupture</text>`);
+  }else{
+    g.push(`<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="5.5" fill="${col}"/>`);
+    g.push(`<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="10" fill="none" stroke="${col}" stroke-width="1" opacity="0.4"/>`);
+  }
+  $('scope').innerHTML=g.join('');
+}
+
+function drawFibrils(){
+  const m=model(state.E,state.A);
+  const e=clamp(state.strain,0,m.epsF);
+  const D=damageOf(m,state.maxStrain);
+  const prog = e/m.epsF;
+  const uncrimp = clamp(e/m.toe,0,1);
+  const slideProg = clamp((e-m.toe)/((m.epsF-m.toe)||1),0,1);
+  const slideMag = (1-state.A) * slideProg * 20;
+  const g=[]; const x0=26, x1=300;
+  const grip = x1 + prog*16;
+  const span = grip - x0;
+  const amp = lerp(5,0.5,uncrimp);
+  const macro = state.failed;                  // whole-bundle rupture
+  const brittle = state.A>0.5;
+  const fpAll = macro ? state.failProg : 0;
+  const recoil = brittle ? 30 : 16;
+  const nF = FIBRILS.nF, cc=(nF-1)/2;
+  const shearMag = slideMag * (macro ? (1-fpAll) : 1);
+  function shear(x,yFrac){ const u=clamp((x-x0)/span,0,1); return yFrac*0.5*shearMag*Math.sin(Math.PI*u); }
+  function disp(x,bx,fpRow){
+    if(x<=bx){ const f=(x-x0)/Math.max(1,(bx-x0)); return -recoil*fpRow*f; }
+    const f=(grip-x)/Math.max(1,(grip-bx)); return recoil*fpRow*f;
+  }
+
+  // grips
+  g.push(`<rect x="8" y="24" width="10" height="132" rx="3" fill="var(--panel2)" stroke="var(--line)"/>`);
+  g.push(`<rect x="${grip.toFixed(1)}" y="24" width="10" height="132" rx="3" fill="var(--panel2)" stroke="var(--line)"/>`);
+
+  // slip-plane bands (between the 4 fascicles)
+  const planeYs=[58,90,122];
+  planeYs.forEach(py=>{ g.push(`<rect x="${x0}" y="${py-3}" width="${span.toFixed(1)}" height="6" fill="${brittle?'rgba(224,102,60,.10)':'rgba(45,212,167,.08)'}"/>`); });
+
+  // fibrils — anchored at both clamps; individual fibres fail as damage accrues
+  FIBRILS.list.forEach((fb,idx)=>{
+    const yFrac=(fb.fasc-cc)/cc;
+    const failed = macro || (D>fb.r);
+    const fpRow = macro ? fpAll : (failed?1:0);
+    const bx = failed ? clamp(x0+span*0.5+fb.jit, x0+20, grip-20) : 0;
+    const curlAmp = brittle ? 2 : 5;
+    const segs=24;
+    let left='', right='';
+    for(let i=0;i<=segs;i++){
+      const x = x0 + span*(i/segs);
+      let xd = x + shear(x,yFrac);
+      let yd = fb.cy + Math.sin(i*0.9 + fb.fasc*0.4)*amp*(1-prog*0.3);
+      if(failed){
+        xd += disp(x,bx,fpRow);
+        const prox = 1 - clamp(Math.abs(x-bx)/40,0,1);
+        yd += fpRow*curlAmp*prox*Math.sin(x*0.4+idx);
+      }
+      const pt = `${xd.toFixed(1)} ${yd.toFixed(1)} `;
+      if(!failed){ left += (i===0?'M':'L')+pt; }
+      else if(x<=bx){ left += (left===''?'M':'L')+pt; }
+      else { right += (right===''?'M':'L')+pt; }
+    }
+    const col = failed ? 'var(--coral)' : 'var(--scar)';
+    const op = failed ? 0.6 : 0.85;
+    g.push(`<path d="${left}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linecap="round" opacity="${op}"/>`);
+    if(failed && right) g.push(`<path d="${right}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linecap="round" opacity="${op}"/>`);
+  });
+
+  // slip-plane shear markers (pre-rupture)
+  if(!macro && shearMag>1){
+    for(let k=0;k<5;k++){
+      const xk=x0+span*((k+0.5)/5);
+      planeYs.forEach((py,pi)=>{
+        const yfA=(pi-cc)/cc, yfB=((pi+1)-cc)/cc;
+        g.push(`<line x1="${(xk+shear(xk,yfA)).toFixed(1)}" y1="${py-8}" x2="${(xk+shear(xk,yfB)).toFixed(1)}" y2="${py+8}" stroke="var(--dim)" stroke-width="1" opacity="0.4"/>`);
+      });
+    }
+  }
+
+  // enzymatic copper rungs — within each fascicle, in register
+  const nEnz=Math.round(state.E*6);
+  for(let f=0;f<nF;f++){
+    const yFrac=(f-cc)/cc; const cy0=FASC_CY[f];
+    const fpRow=macro?fpAll:0;
+    for(let i=0;i<nEnz;i++){
+      const base=x0+span*((i+0.6)/(nEnz+0.2));
+      let xx=base+shear(base,yFrac);
+      if(macro) xx+=disp(base,x0+span*0.5,fpRow);
+      g.push(`<line x1="${xx.toFixed(1)}" y1="${cy0-9}" x2="${xx.toFixed(1)}" y2="${cy0+9}" stroke="var(--copper)" stroke-width="2.4" stroke-linecap="round" opacity="${macro?(1-fpAll).toFixed(2):1}"/>`);
+    }
+  }
+
+  // AGE bridges — span random slip-planes, skew under shear, tear at rupture
+  const nAge=Math.round(state.A*10); let sd=17;
+  for(let i=0;i<nAge;i++){
+    sd=(sd*9301+49297)%233280; const t=sd/233280;
+    sd=(sd*9301+49297)%233280; const pl=Math.floor((sd/233280)*3);
+    const base=x0+span*(0.08+0.84*t);
+    const cyTop=FASC_CY[pl], cyBot=FASC_CY[pl+1];
+    const y1=cyTop+9, y2=cyBot-9;
+    const yfA=(pl-cc)/cc, yfB=((pl+1)-cc)/cc;
+    if(macro && Math.abs(base-(x0+span*0.5))<22){
+      const s=fpAll*(brittle?14:8), my=(y1+y2)/2, op=(0.9-0.4*fpAll).toFixed(2);
+      g.push(`<line x1="${(base-s).toFixed(1)}" y1="${y1}" x2="${(base-s+2).toFixed(1)}" y2="${(my-3).toFixed(1)}" stroke="var(--coral)" stroke-width="2" stroke-linecap="round" opacity="${op}"/>`);
+      g.push(`<line x1="${(base+s).toFixed(1)}" y1="${y2}" x2="${(base+s-2).toFixed(1)}" y2="${(my+3).toFixed(1)}" stroke="var(--coral)" stroke-width="2" stroke-linecap="round" opacity="${op}"/>`);
+    } else {
+      const rec=macro?disp(base,x0+span*0.5,fpAll):0;
+      const xt=base+shear(base,yfA)+rec, xb=base+shear(base,yfB)+rec;
+      g.push(`<line x1="${xt.toFixed(1)}" y1="${y1}" x2="${xb.toFixed(1)}" y2="${y2}" stroke="var(--coral)" stroke-width="2" stroke-linecap="round" opacity="0.9"/>`);
+    }
+  }
+
+  // status caption
+  const nTot=FIBRILS.list.length, nFailed=macro?nTot:Math.round(D*nTot);
+  let cap, ccol='var(--muted)';
+  if(macro){ cap='complete rupture'; ccol='var(--danger)'; }
+  else if(nFailed>0){ cap=`${nFailed} of ${nTot} fibres failed — ${Math.round(D*100)}% damage`; ccol='var(--coral)'; }
+  else cap = state.A>0.5 ? 'sliding locked by AGE bridges' : (state.E>0.5?'fascicles slide freely':'few links — bundle peels apart');
+  g.push(`<text x="180" y="188" text-anchor="middle" font-size="11" fill="${ccol}">${cap}</text>`);
+  $('fibrils').innerHTML=g.join('');
+}
+
+function drawHeat(){
+  const m=model(state.E,state.A);
+  const e=clamp(state.strain,0,m.epsF);
+  const D=damageOf(m,state.maxStrain);
+  const sigNow=currentStress(e);              // current stress accounting for damage
+  const avgFrac = clamp(sigNow/(m.UTS||1),0,1.2);
+  const spread = state.A;
+  const cx=84, cy=84, scale=11.5*Math.sqrt(state.CSA/60), r=scale*0.46;
+  const g=[];
+  const RR=(3+0.6)*scale;
+  g.push(`<circle cx="${cx}" cy="${cy}" r="${RR.toFixed(1)}" fill="none" stroke="var(--line)" stroke-width="1"/>`);
+
+  const nFail=state.failed?CELLS.length:Math.round(D*CELLS.length);
+  const failedIdx=new Set(CELLS_BY_WEIGHT.slice(0,nFail));
+  const boost = D<0.98 ? 1/(1-D) : 1;         // survivors carry the lost load
+  let hot={frac:-1,idx:-1};
+  CELLS.forEach((c,idx)=>{
+    const x=cx+c.x*scale, y=cy+c.y*scale;
+    if(failedIdx.has(idx)){
+      g.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="var(--panel2)" stroke="var(--line)" stroke-width="0.5"/>`);
+      g.push(`<line x1="${(x-r*0.45).toFixed(1)}" y1="${(y-r*0.45).toFixed(1)}" x2="${(x+r*0.45).toFixed(1)}" y2="${(y+r*0.45).toFixed(1)}" stroke="var(--dim)" stroke-width="1"/>`);
+      return;
+    }
+    let local = avgFrac * boost * (1 + spread*(c.w-0.5)*3);
+    if(state.lesion){
+      if(c.dist<1.2) local = avgFrac*0.15;
+      else local = avgFrac*boost*(1.35 + spread*(c.w-0.5)*2);
+    }
+    local=clamp(local,0,1.15);
+    if(local>hot.frac){hot={frac:local,idx};}
+    g.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${stressColor(local)}" stroke="rgba(0,0,0,.25)" stroke-width="0.5"/>`);
+  });
+
+  // side readouts
+  g.push(`<text x="180" y="40" font-size="11" fill="var(--muted)">avg stress</text>`);
+  g.push(`<text x="180" y="58" font-size="16" font-family="var(--mono)" fill="var(--ink)">${sigNow.toFixed(0)} <tspan font-size="11" fill="var(--muted)">MPa</tspan></text>`);
+  g.push(`<text x="180" y="86" font-size="11" fill="var(--muted)">concentration</text>`);
+  const clabel = spread<0.3?'even':spread<0.6?'moderate':'severe';
+  const ccol = spread<0.3?'var(--teal)':spread<0.6?'var(--copper)':'var(--coral)';
+  g.push(`<text x="180" y="104" font-size="16" font-family="var(--mono)" fill="${ccol}">${clabel}</text>`);
+  if(D>0){
+    g.push(`<text x="180" y="132" font-size="11" fill="var(--muted)">fibres lost</text>`);
+    g.push(`<text x="180" y="150" font-size="16" font-family="var(--mono)" fill="var(--coral)">${Math.round(D*100)}%</text>`);
+  } else if(state.lesion){
+    g.push(`<text x="180" y="134" font-size="10.5" fill="var(--muted)">core shielded —</text>`);
+    g.push(`<text x="180" y="148" font-size="10.5" fill="var(--muted)">no repair signal</text>`);
+  }
+  $('heat').innerHTML=g.join('');
+}
+
+/* ---- Readouts + verdict ---- */
+function fmt(n,d=0){return n.toLocaleString('en',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function updateReadouts(){
+  const m=model(state.E,state.A);
+  const mx=state.maxStrain, D=damageOf(m,mx), er=residualOf(m,mx,D);
+  const modBase=m.k*100;
+  let modEff=modBase;
+  if(D>0){ const ds=damageState(); modEff=ds.slope*100; }
+  const utsRem = mx<=m.epk ? m.sigPeak : stressEnv(mx,m);
+  const stiff = modEff*state.CSA/L0;          // N/mm
+  const peakF = utsRem*state.CSA/1000;        // kN
+  $('mMod').textContent=fmt(modEff);
+  $('mUts').textContent=fmt(utsRem);
+  $('mYld').textContent=fmt(m.ey,1);
+  $('mEps').textContent=fmt(m.epsF,1);
+  $('mTuf').textContent=fmt(m.toughness/100,2);
+  $('mRes').textContent=fmt(er,1);
+  $('mStf').textContent=fmt(stiff);
+  $('mFor').textContent=fmt(peakF,1);
+  $('mDmg').textContent=fmt(D*100);
+
+  // verdict
+  let text,col;
+  if(D>=0.999){text='RUPTURED';col='var(--danger)';}
+  else if(D>0){text='DAMAGED — plastic, weaker';col='var(--coral)';}
+  else if(state.A>0.5 && state.E>0.35){text='STIFFER BUT WEAKER — brittle';col='var(--coral)';}
+  else if(state.E>0.5 && state.A<=0.5){text='STIFF, STRONG & TOUGH — healthy';col='var(--teal)';}
+  else if(state.E<=0.5 && state.A<=0.5){text='COMPLIANT & WEAK — scar';col='var(--scar)';}
+  else {text='MIXED — glycated, low integrity';col='var(--copper)';}
+  const v=$('verdict'); v.textContent=text; v.style.color=col; v.style.borderColor=col;
+
+  // teaching note (damage takes priority)
+  let note='';
+  if(D>0 && D<0.999){
+    note='<b>Damaged:</b> permanently longer and more compliant — at the same working load it now sits at a higher strain, the set-up for progressive micro-damage. Enzymatic links can rebuild it; overload cannot.';
+  }else if(state.CSA>85 && modBase<900){
+    note='<b>CSA masking:</b> structural stiffness reads high while Young\u2019s modulus is low — swelling is hiding degraded material.';
+  }else if(state.lesion){
+    note='A compliant lesion in parallel with stiff healthy fibres is <b>stress-shielded</b> — its cells never feel the strain needed to trigger repair.';
+  }else if(state.A>0.5 && state.E>0.35){
+    note='Both moduli rose, yet peak stress and failure strain fell: AGEs weld the slip-planes and seed stress risers.';
+  }else if(state.E>0.5 && state.A<=0.5){
+    note='Enzymatic links reinforce the load path in register — the curve is steep, tall, and encloses a large area (tough).';
+  }
+  $('note').innerHTML=note;
+}
+
+/* ---- Master render ---- */
+function render(){ drawScope(); drawFibrils(); drawHeat(); updateReadouts(); }
+
+/* ================= Interaction ================= */
+function setStrainSliderMax(){
+  const m=model(state.E,state.A);
+  $('strain').max = Math.round(m.epsF*10);
+}
+function syncStrainLabel(){ $('strainv').textContent=(state.strain).toFixed(1)+' %'; }
+
+function applyPreset(p){
+  state.E=PRESETS[p].E; state.A=PRESETS[p].A;
+  $('enz').value=Math.round(state.E*100); $('age').value=Math.round(state.A*100);
+  document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  onParamsChanged(true);
+}
+function matchPreset(){
+  let match=null;
+  for(const p in PRESETS){ if(Math.abs(PRESETS[p].E-state.E)<0.02 && Math.abs(PRESETS[p].A-state.A)<0.02) match=p; }
+  document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('on',b.dataset.p===match));
+}
+function onParamsChanged(fromPreset){
+  $('enzv').textContent=Math.round(state.E*100);
+  $('agev').textContent=Math.round(state.A*100);
+  $('csav').textContent=state.CSA+' mm\u00B2';
+  if(!fromPreset) matchPreset();
+  const m=model(state.E,state.A);
+  state.maxStrain=clamp(state.maxStrain,0,m.epsF);
+  state.strain=clamp(state.strain,0,m.epsF);
+  state.failed=state.strain>=m.epsF && state.strain>0;
+  state.failProg = state.failed ? 1 : 0;
+  stopFailAnim();
+  setStrainSliderMax();
+  $('strain').value=Math.round(state.strain*10);
+  syncStrainLabel();
+  render();
+}
+
+$('presets').addEventListener('click',e=>{const b=e.target.closest('button'); if(b) applyPreset(b.dataset.p);});
+$('enz').addEventListener('input',e=>{state.E=+e.target.value/100; onParamsChanged(false);});
+$('age').addEventListener('input',e=>{state.A=+e.target.value/100; onParamsChanged(false);});
+$('csa').addEventListener('input',e=>{state.CSA=+e.target.value; onParamsChanged(false);});
+$('lesion').addEventListener('change',e=>{state.lesion=e.target.checked; render();});
+$('strain').addEventListener('input',e=>{
+  stopPull();
+  const m=model(state.E,state.A);
+  const was=state.failed;
+  state.strain=clamp(+e.target.value/10,0,m.epsF);
+  state.maxStrain=Math.max(state.maxStrain,state.strain);   // damage accumulates
+  state.failed = state.strain>=m.epsF && state.strain>0;
+  syncStrainLabel();
+  if(state.failed && !was){ startFailAnim(); }
+  else { if(!state.failed){ stopFailAnim(); state.failProg=0; } render(); }
+});
+
+/* ---- Pull-to-failure animation ---- */
+let raf=null, t0=null;
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function stopPull(){ state.playing=false; if(raf){cancelAnimationFrame(raf);raf=null;} $('pull').textContent='Pull to failure'; }
+
+/* ---- Rupture (pull-apart) animation ---- */
+let failRaf=null, failT0=null;
+function stopFailAnim(){ if(failRaf){cancelAnimationFrame(failRaf);failRaf=null;} }
+function startFailAnim(){
+  stopFailAnim(); state.failProg=0;
+  if(reduce){ state.failProg=1; render(); return; }
+  const brittle=state.A>0.5; const dur=brittle?360:680; failT0=null;
+  function step(ts){
+    if(failT0===null)failT0=ts;
+    const p=clamp((ts-failT0)/dur,0,1);
+    state.failProg = brittle ? 1-Math.pow(1-p,3) : 1-Math.pow(1-p,2); // ease-out snap
+    render();
+    if(p<1){ failRaf=requestAnimationFrame(step); } else { state.failProg=1; failRaf=null; render(); }
+  }
+  failRaf=requestAnimationFrame(step);
+}
+function pull(){
+  const m=model(state.E,state.A);
+  if(state.playing){ stopPull(); return; }
+  state.failed=false; state.failProg=0; state.strain=0; state.playing=true; t0=null; stopFailAnim(); $('pull').textContent='Stop';
+  const dur = reduce?1:2600;
+  function step(ts){
+    if(t0===null)t0=ts;
+    const p=clamp((ts-t0)/dur,0,1);
+    state.strain=p*m.epsF;
+    state.maxStrain=Math.max(state.maxStrain,state.strain);
+    $('strain').value=Math.round(state.strain*10); syncStrainLabel(); render();
+    if(p<1){ raf=requestAnimationFrame(step); }
+    else{ state.failed=true; state.playing=false; raf=null; $('pull').textContent='Pull to failure'; startFailAnim(); }
+  }
+  raf=requestAnimationFrame(step);
+}
+function reset(){ stopPull(); stopFailAnim(); state.strain=0; state.failed=false; state.failProg=0; $('strain').value=0; syncStrainLabel(); render(); }
+function fresh(){ stopPull(); stopFailAnim(); state.strain=0; state.maxStrain=0; state.failed=false; state.failProg=0; $('strain').value=0; syncStrainLabel(); render(); }
+$('pull').addEventListener('click',pull);
+$('reset').addEventListener('click',reset);
+$('fresh').addEventListener('click',fresh);
+
+/* ---- init ---- */
+onParamsChanged(true);
+</script>
+</body>
+</html>
