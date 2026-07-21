@@ -220,6 +220,42 @@ When removing/renaming a topic:
 2. Update or remove the matching CSV row.
 3. Confirm no stale links remain.
 
+## Updating the EDA Explorer tool
+
+The EDA Explorer hosted at `research/eda/` is a pre-built React/Vite app. Its source lives in a separate repository:
+
+- **GitHub:** https://github.com/whiteleyrod/exploratory-data-analysis-explorer
+- **Local source:** `C:\Users\rod_w\OneDrive - aspirezone.qa\Python_Stuff\ExploratoryDataAnalysis`
+
+After making and committing changes to the EDA tool source, update the website copy:
+
+1. Open a terminal in the EDA source directory:
+
+```powershell
+cd "C:\Users\rod_w\OneDrive - aspirezone.qa\Python_Stuff\ExploratoryDataAnalysis"
+```
+
+2. Build the tool:
+
+```powershell
+npm run build
+```
+
+3. Copy the output over the old build (overwrite everything):
+
+```powershell
+Copy-Item -Path "dist\*" -Destination "C:\Users\rod_w\OneDrive\PythonStuff\Whiteley-Work-Theme\whiteley-work-theme\research\eda" -Recurse -Force
+```
+
+4. Commit and push the website repo. The updated tool goes live automatically via GitHub Actions.
+
+**Notes:**
+- The Vite config in the EDA source already sets `base: '/research/eda/'`, so no path changes are needed after copying.
+- The JS bundle filename is content-hashed and will change with each build — this is normal and intentional (cache busting). The `index.html` always references the correct filename.
+- Do not edit any files inside `research/eda/` by hand — they are generated output and will be overwritten on the next update.
+
+---
+
 ## Local preview
 
 Open with any static server from repo root, for example:

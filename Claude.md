@@ -19,5 +19,20 @@
 2. Update the left-nav section (`__nav_*`) in `education/apa-spex-shoulder-course/index.html` — remember the Double TOC rule above.
 3. Update `topic-mapping-template.csv` with the new row.
 
+## Updating the EDA Explorer (`research/eda/`)
+
+When the user asks to update or redeploy the EDA tool, follow these exact steps — do not edit files in `research/eda/` by hand, as they are generated output.
+
+**Source locations:**
+- Local source: `C:\Users\rod_w\OneDrive - aspirezone.qa\Python_Stuff\ExploratoryDataAnalysis`
+- GitHub: https://github.com/whiteleyrod/exploratory-data-analysis-explorer
+
+**Update steps:**
+1. Run `npm run build` inside the EDA source directory.
+2. Copy `dist\*` to `whiteley-work-theme\research\eda\` with `-Recurse -Force` (overwrite everything).
+3. Commit and push the website repo.
+
+The Vite config in the EDA source sets `base: '/research/eda/'` — no path adjustments are needed after copying. The JS bundle filename is content-hashed and changes each build; the generated `index.html` always references the correct filename, so no manual edits are required.
+
 ## Adding a New Homepage Card
 1. Add an entry to `research/areas.json` — the schema at `scripts/schemas/areas.schema.json` will validate it in VS Code.
