@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Achilles Stress Shielding: Heel Lift &amp; Haglund's | Rod Whiteley</title>
+  <meta name="description" content="Interactive sagittal model of the distal Achilles tendon exploring heel lift and Haglund's morphology effects on fibre strain and stress shielding.">
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    :root {
+      --surface-1: #ffffff;
+      --surface-2: #eef1f5;
+      --text-primary: #1f2937;
+      --text-secondary: #4b5563;
+      --text-muted: #9ca3af;
+      --text-accent: #185fa5;
+      --border: #e5e7eb;
+      --border-strong: #cbd5e1;
+    }
+    .figure-panel {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-top: 1.25rem;
+    }
+    .tg{position:relative;width:32px;height:18px;background:var(--border-strong);border-radius:9px;transition:background .2s;display:inline-block;flex:none}
+    .tg:has(input:checked){background:var(--text-accent)}
+    .tg input:checked+span{transform:translateX(14px)}
+    .tgl{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-secondary);cursor:pointer;user-select:none}
+    #play{display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary);background:var(--surface-1);border:1px solid var(--border-strong);border-radius:6px;height:36px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>Achilles Stress Shielding</h1>
+      <p class="subtitle">Heel lift &amp; Haglund's morphology — interactive sagittal model</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <p><a href="tools.html">← Back to tools</a></p>
+
+    <section class="intro">
+      <h2>Overview</h2>
+      <p>Adjust shank lean to move the ankle through plantarflexion and dorsiflexion, toggle a 12&nbsp;mm heel lift to see how it offloads the tendon, and toggle Haglund's morphology to see how altered calcaneal contact geometry changes wrap angle and compression at the enthesis.</p>
+    </section>
+
+    <section class="figure-panel" aria-label="Interactive Achilles tendon model">
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Interactive sagittal view of the distal Achilles tendon. A heel lift toggle tilts the calcaneus into relative plantarflexion under a vertical tibia; a Haglund's toggle alters the calcaneal contact geometry.</h2>
+
+<div style="padding:0.5rem 0 0">
+<svg width="100%" viewBox="0 0 680 380" id="scene" role="img">
+<title>Distal Achilles tendon with heel lift and Haglund's variants</title>
+<desc>Sagittal schematic with a strain-coloured fibre grid wrapping the calcaneal tuberosity.</desc>
+<defs>
+<marker id="cmp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<line x1="150" y1="329" x2="640" y2="329" stroke="var(--border-strong)" stroke-width="0.5"/>
+<path id="wedge" d="" fill="#9FE1CB" stroke="var(--border-strong)" stroke-width="0.5" opacity="0"/>
+<g id="foot">
+<g id="tibia"><path id="tibiapath" d="M312 12 L372 12 L376 168 L358 186 L308 186 L306 20 Z" fill="var(--surface-1)" stroke="var(--border-strong)" stroke-width="0.5"/></g>
+<circle cx="330" cy="190" r="28" fill="var(--surface-1)" stroke="var(--border-strong)" stroke-width="0.5"/>
+<path id="ghost" d="" fill="none" stroke="var(--text-muted)" stroke-width="0.5" stroke-dasharray="4 3" opacity="0"/>
+<path id="calc" d="" fill="var(--surface-1)" stroke="var(--border-strong)" stroke-width="0.5"/>
+<path d="M442 292 L560 300 L600 314 L600 328 L380 328 L372 312 Z" fill="var(--surface-1)" stroke="var(--border-strong)" stroke-width="0.5"/>
+<g id="tendonbody"></g>
+<g id="ticks"></g>
+<g id="lanes"></g>
+<g id="arrows"></g>
+<ellipse id="bursa" cx="270" cy="199" rx="9" ry="5" fill="#85B7EB" opacity="0.5" stroke="var(--border)" stroke-width="0.5"/>
+</g>
+<g id="leads" stroke="var(--text-muted)" stroke-width="0.5" stroke-dasharray="3 3" fill="none"></g>
+<text x="48" y="122" font-size="12" fill="var(--text-secondary)">Superficial (posterior) fibres</text>
+<text x="48" y="203" font-size="12" fill="var(--text-secondary)">Retrocalcaneal bursa</text>
+<text x="48" y="251" font-size="12" fill="var(--text-secondary)">Deep (anterior) fibres</text>
+<text x="48" y="294" font-size="12" fill="var(--text-secondary)">Enthesis</text>
+<text x="470" y="42" font-size="12" fill="var(--text-secondary)">Ankle angle</text>
+<text x="470" y="62" font-size="14" font-weight="500" fill="var(--text-primary)" id="ankout">—</text>
+<text x="470" y="92" font-size="12" fill="var(--text-secondary)">Wrap angle</text>
+<text x="470" y="112" font-size="14" font-weight="500" fill="var(--text-primary)" id="wrapout">—</text>
+<text x="470" y="142" font-size="12" fill="var(--text-secondary)">Morphology</text>
+<text x="470" y="162" font-size="14" font-weight="500" fill="var(--text-primary)" id="morphout">Normal</text>
+</svg>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;margin:0.75rem 0 0.75rem">
+<button id="play" aria-label="Play" style="width:36px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
+<label style="font-size:14px;color:var(--text-secondary);white-space:nowrap">Shank lean</label>
+<input type="range" id="ang" min="-20" max="25" step="1" value="-20" style="flex:1"/>
+<span id="angout" style="font-size:14px;font-weight:500;min-width:74px;text-align:right">−20°</span>
+</div>
+
+<div style="display:flex;gap:28px;flex-wrap:wrap;margin:0 0 1.25rem">
+<label class="tgl"><span class="tg"><input type="checkbox" id="lifton" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;margin:0"><span style="position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none"></span></span>Heel lift (12 mm)</label>
+<label class="tgl"><span class="tg"><input type="checkbox" id="hagon" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;margin:0"><span style="position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none"></span></span>Haglund's morphology</label>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.25rem">
+<div style="background:var(--surface-2);border-radius:8px;padding:1rem"><div style="font-size:13px;color:var(--text-secondary)">Superficial arc</div><div style="font-size:24px;font-weight:500" id="m1">—</div></div>
+<div style="background:var(--surface-2);border-radius:8px;padding:1rem"><div style="font-size:13px;color:var(--text-secondary)">Deep arc</div><div style="font-size:24px;font-weight:500" id="m2">—</div></div>
+<div style="background:var(--surface-2);border-radius:8px;padding:1rem"><div style="font-size:13px;color:var(--text-secondary)">Path difference</div><div style="font-size:24px;font-weight:500" id="m3">—</div></div>
+<div style="background:var(--surface-2);border-radius:8px;padding:1rem"><div style="font-size:13px;color:var(--text-secondary)">Compression index</div><div style="font-size:24px;font-weight:500" id="m4">—</div></div>
+</div>
+
+<svg width="100%" viewBox="0 0 680 210" role="img">
+<title>Axial strain against ankle angle</title>
+<desc>Schematic traces: superficial strain rises with dorsiflexion, deep strain stays flat then trends negative.</desc>
+<rect id="band" x="640" y="16" width="0" height="148" fill="#9FE1CB" opacity="0.28"/>
+<line x1="70" y1="20" x2="70" y2="160" stroke="var(--border-strong)" stroke-width="0.5"/>
+<line x1="70" y1="140" x2="640" y2="140" stroke="var(--border-strong)" stroke-width="0.5"/>
+<text x="60" y="24" font-size="12" fill="var(--text-secondary)" text-anchor="end">7%</text>
+<text x="60" y="144" font-size="12" fill="var(--text-secondary)" text-anchor="end">0</text>
+<text x="60" y="164" font-size="12" fill="var(--text-secondary)" text-anchor="end">−2%</text>
+<text x="70" y="186" font-size="12" fill="var(--text-secondary)">20° PF</text>
+<text x="323" y="186" font-size="12" fill="var(--text-secondary)" text-anchor="middle">neutral ankle</text>
+<text x="640" y="186" font-size="12" fill="var(--text-secondary)" text-anchor="end">25° DF</text>
+<polyline id="trS" fill="none" stroke="#D85A30" stroke-width="2"/>
+<polyline id="trD" fill="none" stroke="#378ADD" stroke-width="2" stroke-dasharray="6 4"/>
+<line id="mk" x1="70" y1="16" x2="70" y2="164" stroke="var(--text-muted)" stroke-width="0.5"/>
+<circle id="dS" cx="70" cy="140" r="4" fill="#D85A30"/>
+<circle id="dD" cx="70" cy="140" r="4" fill="#378ADD"/>
+<text x="70" y="205" font-size="12" fill="#993C1D">Superficial (solid)</text>
+<text x="230" y="205" font-size="12" fill="#185FA5">Deep (dashed) — schematic, after Lyman 2004</text>
+</svg>
+
+<script>
+(function(){
+const A={x:330,y:190},H=16,BINS=110,MM=0.5,LIFT=5,FX=600,FY=328;
+const NORM={x:286,y:222,r:24},HAG={x:272,y:214,r:20};
+const P0={x:300,y:30},TIP={x:290,y:278};
+const rad=d=>d*Math.PI/180;
+let M=NORM,fr=0;
+function rotp(p,t,ox,oy){const s=Math.sin(rad(t)),c=Math.cos(rad(t)),vx=p.x-ox,vy=p.y-oy;return{x:ox+vx*c-vy*s,y:oy+vx*s+vy*c};}
+const rot=(p,t)=>rotp(p,t,A.x,A.y);
+const frot=p=>fr?rotp(p,fr,FX,FY):p;
+function tb(P,r,m){const ux=P.x-m.x,uy=P.y-m.y,d=Math.hypot(ux,uy);let b=(Math.atan2(uy,ux)-Math.acos(Math.min(1,r/d)))*180/Math.PI;while(b<0)b+=360;return b;}
+function on(r,b,m){return{x:m.x+r*Math.cos(rad(b)),y:m.y+r*Math.sin(rad(b))};}
+function bound(t,deep,m){let P=rot(P0,t);if(!deep)P={x:P.x-H*Math.cos(rad(t)),y:P.y-H*Math.sin(rad(t))};const r=deep?m.r:m.r+H,b=tb(P,r,m),pts=[P];for(let a=b;a>BINS;a-=3)pts.push(on(r,a,m));pts.push(on(r,BINS,m));pts.push(TIP);return{pts:pts,beta:b};}
+function samp(pts,n){const L=[0];for(let i=1;i<pts.length;i++)L.push(L[i-1]+Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y));const T=L[L.length-1],o=[];for(let k=0;k<=n;k++){const d=T*k/n;let i=1;while(i<L.length-1&&L[i]<d)i++;const f=(d-L[i-1])/((L[i]-L[i-1])||1);o.push({x:pts[i-1].x+(pts[i].x-pts[i-1].x)*f,y:pts[i-1].y+(pts[i].y-pts[i-1].y)*f});}return o;}
+const hx=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+function mix(a,b,f){const x=hx(a),y=hx(b);return'rgb('+Math.round(x[0]+(y[0]-x[0])*f)+','+Math.round(x[1]+(y[1]-x[1])*f)+','+Math.round(x[2]+(y[2]-x[2])*f)+')';}
+function col(e){if(e<0)return mix('#B4B2A9','#185FA5',Math.min(1,-e/1.5));if(e<2)return mix('#B4B2A9','#EF9F27',e/2);return mix('#EF9F27','#D85A30',Math.min(1,(e-2)/4));}
+const NL=5,NS=44,NT=13,el=i=>document.getElementById(i);
+const REF=rad(bound(25,true,NORM).beta-BINS)/NORM.r;
+function strains(t){const f=Math.max(0,Math.min(1,(t+20)/45));return{s:6.2*Math.pow(f,1.25),d:1.4*f-2.6*Math.pow(f,2.4)};}
+function bone(m){const a=on(m.r,250,m),b=on(m.r,100,m);return'M '+a.x.toFixed(1)+' '+a.y.toFixed(1)+' A '+m.r+' '+m.r+' 0 0 0 '+b.x.toFixed(1)+' '+b.y.toFixed(1)+' L 294 292 L 306 306 L 370 312 L 428 302 L 442 274 L 404 256 L 356 244 L 316 232 L '+(a.x+18).toFixed(1)+' '+(a.y+16).toFixed(1)+' Z';}
+const X=v=>70+570*(Math.max(-20,Math.min(25,v))+20)/45,Y=v=>140-20*v;
+function lead(y,p){const q=frot(p);return'<line x1="196" y1="'+y+'" x2="'+q.x.toFixed(1)+'" y2="'+q.y.toFixed(1)+'"/>';}
+function draw(lean){
+const t=lean-fr;
+const D=bound(t,true,M),S=bound(t,false,M),ds=samp(D.pts,NS),ss=samp(S.pts,NS),st=strains(t),al=D.beta-BINS;
+let poly='';for(const p of ds)poly+=p.x.toFixed(1)+','+p.y.toFixed(1)+' ';for(let i=ss.length-1;i>=0;i--)poly+=ss[i].x.toFixed(1)+','+ss[i].y.toFixed(1)+' ';
+el('tendonbody').innerHTML='<polygon points="'+poly+'" fill="var(--surface-2)" stroke="var(--border-strong)" stroke-width="0.5" opacity="0.95"/>';
+let ln='';for(let i=0;i<NL;i++){const g=i/(NL-1),e=st.d+(st.s-st.d)*g;let p='';for(let k=0;k<=NS;k++)p+=(ds[k].x+(ss[k].x-ds[k].x)*g).toFixed(1)+','+(ds[k].y+(ss[k].y-ds[k].y)*g).toFixed(1)+' ';ln+='<polyline points="'+p+'" fill="none" stroke="'+col(e)+'" stroke-width="2.6" stroke-linecap="round"/>';}
+el('lanes').innerHTML=ln;
+let tk='';for(let k=1;k<NT;k++){const j=Math.round(NS*k/NT);tk+='<line x1="'+ds[j].x.toFixed(1)+'" y1="'+ds[j].y.toFixed(1)+'" x2="'+ss[j].x.toFixed(1)+'" y2="'+ss[j].y.toFixed(1)+'" stroke="var(--text-muted)" stroke-width="0.5" opacity="0.55"/>';}
+el('ticks').innerHTML=tk;
+const ci=(rad(al)/M.r)/REF,op=Math.max(0,Math.min(1,(ci-0.5)/0.9));
+let ar='';for(let k=0;k<5;k++){const b=BINS+al*(0.12+0.76*k/4),o=on(M.r+13+9*op,b,M),i2=on(M.r+2,b,M);ar+='<line x1="'+o.x.toFixed(1)+'" y1="'+o.y.toFixed(1)+'" x2="'+i2.x.toFixed(1)+'" y2="'+i2.y.toFixed(1)+'" stroke="#185FA5" stroke-width="'+(1+1.4*op).toFixed(2)+'" opacity="'+(0.25+0.7*op).toFixed(2)+'" marker-end="url(#cmp)"/>';}
+el('arrows').innerHTML=ar;
+const bu=on(M.r+7,235,M);el('bursa').setAttribute('cx',bu.x.toFixed(1));el('bursa').setAttribute('cy',bu.y.toFixed(1));
+el('calc').setAttribute('d',bone(M));
+el('tibiapath').setAttribute('transform','rotate('+t.toFixed(2)+' '+A.x+' '+A.y+')');
+el('leads').innerHTML=lead(122,ss[9])+lead(203,bu)+lead(251,ds[35])+lead(294,TIP);
+el('ankout').textContent=t<-0.5?Math.abs(t).toFixed(0)+'° PF':(t>0.5?t.toFixed(0)+'° DF':'neutral');
+el('wrapout').textContent=Math.round(al)+'°';
+el('m1').textContent=((M.r+H)*rad(al)*MM).toFixed(1)+' mm';
+el('m2').textContent=(M.r*rad(al)*MM).toFixed(1)+' mm';
+el('m3').textContent='+'+(H*rad(al)*MM).toFixed(1)+' mm';
+el('m4').textContent=Math.round(100*ci)+'%';
+el('angout').textContent=(lean>0?'+':'')+Math.round(lean)+'°';
+let ps='',pd='';for(let v=-20;v<=25;v++){const s2=strains(v);ps+=X(v).toFixed(1)+','+Y(s2.s).toFixed(1)+' ';pd+=X(v).toFixed(1)+','+Y(s2.d).toFixed(1)+' ';}
+el('trS').setAttribute('points',ps);el('trD').setAttribute('points',pd);
+el('mk').setAttribute('x1',X(t));el('mk').setAttribute('x2',X(t));
+el('dS').setAttribute('cx',X(t));el('dS').setAttribute('cy',Y(st.s));
+el('dD').setAttribute('cx',X(t));el('dD').setAttribute('cy',Y(st.d));
+}
+let playing=false,dir=1,cur=-20,last=0,raf=null;
+const ICON_PLAY='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+const ICON_PAUSE='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+function step(ts){if(!playing)return;if(!last)last=ts;const dt=(ts-last)/1000;last=ts;cur+=dir*22*dt;if(cur>=25){cur=25;dir=-1;}if(cur<=-20){cur=-20;dir=1;}el('ang').value=Math.round(cur);draw(cur);raf=requestAnimationFrame(step);}
+el('play').addEventListener('click',function(){playing=!playing;this.innerHTML=playing?ICON_PAUSE:ICON_PLAY;this.setAttribute('aria-label',playing?'Pause':'Play');last=0;if(playing)raf=requestAnimationFrame(step);else if(raf)cancelAnimationFrame(raf);});
+el('ang').addEventListener('input',function(){playing=false;el('play').innerHTML=ICON_PLAY;el('play').setAttribute('aria-label','Play');cur=+this.value;draw(cur);});
+el('lifton').addEventListener('change',function(){fr=this.checked?LIFT:0;el('foot').setAttribute('transform',fr?'rotate('+fr+' '+FX+' '+FY+')':'');const h=frot({x:311,y:328});el('wedge').setAttribute('d','M '+h.x.toFixed(1)+' '+h.y.toFixed(1)+' L '+FX+' '+FY+' L '+h.x.toFixed(1)+' 328 Z');el('wedge').setAttribute('opacity',this.checked?0.8:0);el('band').setAttribute('x',X(25-LIFT));el('band').setAttribute('width',this.checked?(640-X(25-LIFT)).toFixed(1):0);draw(cur);});
+el('hagon').addEventListener('change',function(){M=this.checked?HAG:NORM;el('morphout').textContent=this.checked?"Haglund's":'Normal';el('ghost').setAttribute('d',bone(NORM));el('ghost').setAttribute('opacity',this.checked?0.7:0);draw(cur);});
+draw(-20);
+})();
+</script>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 Rod Whiteley</p>
+    </div>
+  </footer>
+</body>
+</html>
