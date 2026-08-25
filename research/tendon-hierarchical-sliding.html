@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendon micromechanics — sliding across the hierarchy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0D131B; --panel:#141C26; --panel-2:#1A2431; --rule:#263444;
+  --text:#E7EDF3; --muted:#8C9EB2; --dim:#5F7186;
+  --collagen:#E9B65C; --collagen-deep:#B9822C;
+  --matrix:#46A79C; --shear:#F0728E; --ghost:#465A70;
+  --maxw:1560px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink); color:var(--text);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-weight:300; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+/* ---------- masthead ---------- */
+header.masthead{padding:26px 0 18px;display:flex;gap:38px;align-items:flex-end;flex-wrap:wrap}
+.mh-left{flex:1 1 460px;min-width:0}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--matrix);margin:0 0 10px
+}
+h1{
+  font-family:"Space Grotesk",sans-serif;font-weight:700;
+  font-size:clamp(1.5rem,2.9vw,2.35rem);line-height:1.05;letter-spacing:-.025em;
+  margin:0 0 8px;max-width:22ch;
+}
+h1 em{font-style:normal;color:var(--collagen)}
+.standfirst{color:var(--muted);font-size:.92rem;max-width:66ch;margin:0}
+
+/* ---------- controls ---------- */
+.controls{
+  position:sticky;top:0;z-index:20;background:rgba(13,19,27,.94);
+  backdrop-filter:blur(9px);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+}
+.controls .inner{
+  max-width:var(--maxw);margin:0 auto;padding:11px 24px;
+  display:flex;gap:24px;align-items:center;flex-wrap:wrap;
+}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.ctl > label{
+  font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);
+}
+.strainctl{flex:1 1 230px;min-width:200px}
+.strainrow{display:flex;align-items:baseline;gap:9px}
+.strainval{font-family:"IBM Plex Mono",monospace;font-size:1.15rem;font-weight:500;color:var(--collagen);min-width:4.2ch}
+.zone{font-size:.71rem;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:3px;
+  background:var(--rule);border-radius:2px;outline:none;margin:7px 0 0;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--collagen);cursor:grab;border:3px solid var(--ink);
+  box-shadow:0 0 0 1px var(--collagen-deep);
+}
+input[type=range]::-moz-range-thumb{
+  width:15px;height:15px;border-radius:50%;background:var(--collagen);
+  cursor:grab;border:3px solid var(--ink);
+}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--matrix)}
+.seg{display:flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.seg button{
+  font-family:"IBM Plex Sans",sans-serif;font-size:.75rem;font-weight:400;
+  background:transparent;color:var(--muted);border:0;padding:6px 12px;cursor:pointer;
+  white-space:nowrap;transition:background .15s,color .15s;
+}
+.seg button + button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--matrix);color:#08110F;font-weight:500}
+.seg button:focus-visible{outline:2px solid var(--collagen);outline-offset:-2px}
+.playbtn{
+  font-family:"IBM Plex Sans",sans-serif;font-size:.78rem;background:var(--panel-2);
+  border:1px solid var(--rule);color:var(--text);padding:7px 15px;border-radius:3px;
+  cursor:pointer;min-width:92px;
+}
+.playbtn:hover{border-color:var(--collagen)}
+.playbtn:focus-visible{outline:2px solid var(--collagen);outline-offset:2px}
+.checkline{display:flex;gap:13px;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--muted);cursor:pointer}
+.chk input{accent-color:var(--matrix);width:13px;height:13px}
+
+/* ---------- board: three vertical columns + rail ---------- */
+.board{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr)) 288px;
+  gap:16px;margin:20px 0 0;align-items:start;
+}
+.col{display:flex;flex-direction:column;min-width:0}
+.colhead{margin-bottom:8px;min-height:66px}
+.colhead h2{
+  font-family:"Space Grotesk",sans-serif;font-weight:500;font-size:1.02rem;
+  margin:0 0 3px;letter-spacing:-.01em;
+}
+.scale{
+  display:block;font-family:"IBM Plex Mono",monospace;font-size:.68rem;
+  color:var(--matrix);letter-spacing:.04em;margin-bottom:5px;
+}
+.colsub{color:var(--dim);font-size:.78rem;margin:0;line-height:1.4}
+.stage{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:5px}
+canvas{display:block;width:100%;height:auto}
+.readout{
+  display:flex;flex-direction:column;gap:3px;margin-top:9px;
+  font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--dim);
+}
+.readout > span{display:flex;justify-content:space-between;gap:10px;
+  border-bottom:1px dotted var(--rule);padding-bottom:2px}
+.readout b{color:var(--text);font-weight:500}
+.readout .sh b{color:var(--shear)}
+
+/* ---------- rail ---------- */
+.rail{display:flex;flex-direction:column;gap:16px;min-width:0}
+.thesis{
+  padding:16px 18px;background:linear-gradient(150deg,var(--panel) 0%,var(--panel-2) 100%);
+  border-left:3px solid var(--collagen);border-radius:2px;
+}
+.thesis .big{
+  font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:3rem;
+  line-height:.88;color:var(--collagen);letter-spacing:-.03em;
+}
+.thesis .big span{font-size:.4em;color:var(--collagen-deep)}
+.thesis p{margin:7px 0 0;color:var(--muted);font-size:.79rem;line-height:1.45}
+.thesis p strong{color:var(--text);font-weight:500}
+.railbox h3{
+  font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--matrix);margin:0 0 9px;font-weight:400;
+}
+.ladder{display:flex;flex-direction:column;gap:7px}
+.rung{display:grid;grid-template-columns:8ch 1fr 6.4ch;gap:8px;align-items:center}
+.rung .nm{font-family:"IBM Plex Mono",monospace;font-size:.69rem;color:var(--muted);text-align:right}
+.track{display:block;height:13px;background:var(--panel-2);border-radius:2px;position:relative;overflow:hidden}
+.fill{display:block;height:13px;width:0;border-radius:2px;transition:width .09s linear}
+.shr{
+  position:absolute;right:5px;top:0;line-height:13px;
+  font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--muted);
+  pointer-events:none;
+}
+.rung .vl{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--text)}
+.ladcap{margin:9px 0 0;font-size:.68rem;color:var(--dim);line-height:1.4}
+.ladcap span{font-family:"IBM Plex Mono",monospace;color:var(--muted)}
+
+/* ---------- notes ---------- */
+.notes{margin:44px 0 0;border-top:1px solid var(--rule);padding-top:24px}
+.notes h2{font-family:"Space Grotesk",sans-serif;font-weight:500;font-size:1.1rem;margin:0 0 16px}
+.notegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:26px}
+.notegrid h3{
+  font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--matrix);margin:0 0 7px;font-weight:400;
+}
+.notegrid p{margin:0;font-size:.86rem;color:var(--muted)}
+.notegrid strong{color:var(--text);font-weight:500}
+.refs{margin:32px 0 0;font-size:.79rem;color:var(--dim)}
+.refs h3{
+  font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--matrix);font-weight:400;margin:0 0 6px;
+}
+.refs ol{padding-left:1.3em;margin:8px 0;columns:2;column-gap:36px}
+.refs li{margin-bottom:7px;break-inside:avoid}
+.caveat{margin-top:20px;padding:14px 17px;border:1px dashed var(--rule);
+  border-radius:3px;font-size:.81rem;color:var(--muted)}
+footer{padding:38px 0 52px;color:var(--dim);font-size:.75rem;font-family:"IBM Plex Mono",monospace}
+
+@media (max-width:1240px){
+  .board{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .rail{grid-column:1 / -1;flex-direction:row;flex-wrap:wrap;gap:22px}
+  .rail > *{flex:1 1 240px}
+}
+@media (max-width:860px){
+  .board{grid-template-columns:1fr}
+  .rail{grid-column:auto;flex-direction:column}
+  .colhead{min-height:0}
+  .refs ol{columns:1}
+}
+@media (prefers-reduced-motion:reduce){ *{transition-duration:.01ms !important} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="mh-left">
+      <p class="eyebrow">Tendon micromechanics</p>
+      <h1>A tendon lengthens mostly by <em>sliding</em>, not by stretching.</h1>
+      <p class="standfirst">Load the tendon and watch the fiducial lines. At rest they run straight across each bundle. Under load they break into a staircase — at every level of the hierarchy — because neighbouring units shear past one another through the matrix between them.</p>
+    </div>
+  </header>
+</div>
+
+<div class="controls">
+  <div class="inner">
+    <div class="ctl strainctl">
+      <label for="strain">Applied tendon strain</label>
+      <div class="strainrow">
+        <span class="strainval" id="strainVal">0.0%</span>
+        <span class="zone" id="zoneVal">unloaded</span>
+      </div>
+      <input type="range" id="strain" min="0" max="80" value="0" step="0.5">
+    </div>
+    <div class="ctl">
+      <label>Cycle</label>
+      <button class="playbtn" id="playBtn" aria-pressed="false">Load cycle</button>
+    </div>
+    <div class="ctl">
+      <label>Tendon function</label>
+      <div class="seg" role="group" aria-label="Tendon function">
+        <button id="btnES" aria-pressed="true">Energy-storing</button>
+        <button id="btnPOS" aria-pressed="false">Positional</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label>Interfascicular matrix</label>
+      <div class="seg" role="group" aria-label="Matrix state">
+        <button id="btnYoung" aria-pressed="true">Healthy</button>
+        <button id="btnAged" aria-pressed="false">Aged / stiffened</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label>Display</label>
+      <div class="checkline">
+        <label class="chk"><input type="checkbox" id="cbFid" checked> Fiducial lines</label>
+        <label class="chk"><input type="checkbox" id="cbShear" checked> Matrix shear</label>
+        <label class="chk"><input type="checkbox" id="cbExag" checked> Exaggerate ×6</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="board">
+
+    <!-- LEVEL 1 -->
+    <div class="col">
+      <div class="colhead">
+        <h2>Tendon → fascicles</h2>
+        <span class="scale">fascicle ⌀ ≈ 100–500 µm · endotenon</span>
+        <p class="colsub">Extension is imposed at the ends. Each fascicle stretches less, so fascicles translate past their neighbours and the interfascicular matrix shears.</p>
+      </div>
+      <div class="stage"><canvas id="c1"></canvas></div>
+      <div class="readout">
+        <span>applied <b id="r1a">0.00%</b></span>
+        <span>fascicle strain <b id="r1b">0.00%</b></span>
+        <span class="sh">interfascicular sliding <b id="r1c">0.00 mm</b></span>
+        <span>strain transmitted <b id="r1d">—</b></span>
+      </div>
+    </div>
+
+    <!-- LEVEL 2 -->
+    <div class="col">
+      <div class="colhead">
+        <h2>Fascicle → fibres</h2>
+        <span class="scale">fibre ⌀ ≈ 10–50 µm · interfibre matrix</span>
+        <p class="colsub">Inside one fascicle the same thing happens again: fibre strain is roughly half the fascicle strain, and the deficit appears as interfibre sliding.</p>
+      </div>
+      <div class="stage"><canvas id="c2"></canvas></div>
+      <div class="readout">
+        <span>fascicle <b id="r2a">0.00%</b></span>
+        <span>fibre strain <b id="r2b">0.00%</b></span>
+        <span class="sh">interfibre sliding <b id="r2c">0.00 mm</b></span>
+        <span>strain transmitted <b id="r2d">—</b></span>
+      </div>
+    </div>
+
+    <!-- LEVEL 3 -->
+    <div class="col">
+      <div class="colhead">
+        <h2>Fibre → fibrils</h2>
+        <span class="scale">fibril ⌀ ≈ 50–500 nm · D-period ≈ 67 nm</span>
+        <p class="colsub">Fibrils do genuinely stretch — the D-banding spreads — but they also slide through the proteoglycan-rich interfibrillar matrix.</p>
+      </div>
+      <div class="stage"><canvas id="c3"></canvas></div>
+      <div class="readout">
+        <span>fibre <b id="r3a">0.00%</b></span>
+        <span>fibril strain <b id="r3b">0.00%</b></span>
+        <span class="sh">interfibrillar sliding <b id="r3c">0.00 mm</b></span>
+        <span>D-period <b id="r3d">67.00 nm</b></span>
+      </div>
+    </div>
+
+    <!-- RAIL -->
+    <div class="rail">
+      <div class="thesis">
+        <div class="big" id="slidePct">—<span>%</span></div>
+        <p>of total extension is accommodated by <strong>sliding and matrix shear</strong> rather than material stretch of the fibrils. Change the tendon function or stiffen the matrix and watch it move.</p>
+      </div>
+      <div class="railbox">
+        <h3>Strain down the hierarchy</h3>
+        <div class="ladder" id="ladder"></div>
+        <p class="ladcap">Bar length is each level's strain as a proportion of the applied tendon strain. Figures on the right are absolute strain; <span>%</span> inside each bar is the proportion transmitted.</p>
+      </div>
+      <div class="railbox">
+        <h3>Where you are on the curve</h3>
+        <div class="stage"><canvas id="c4"></canvas></div>
+      </div>
+    </div>
+
+  </div>
+
+  <section class="notes">
+    <h2>Teaching notes</h2>
+    <div class="notegrid">
+      <div>
+        <h3>Why the staircase matters</h3>
+        <p>If a tendon extended purely by stretching its collagen, fibril strain would equal tissue strain and fibrils would rupture well inside the physiological range. <strong>Sliding is the protective mechanism</strong> — it lets the tissue lengthen while keeping fibril-level strain low.</p>
+      </div>
+      <div>
+        <h3>Energy-storing vs positional</h3>
+        <p>Energy-storing tendons (Achilles, equine SDFT) have a more extensible, more fatigue-resistant interfascicular matrix and rely heavily on interfascicular sliding. Positional tendons transmit strain more directly to the fascicles. <strong>Switch the toggle and compare the ladder.</strong></p>
+      </div>
+      <div>
+        <h3>What ageing changes</h3>
+        <p>The interfascicular matrix stiffens and loses sliding capacity with age and with non-enzymatic cross-linking. Extension previously absorbed by shear now has to be taken up as material strain. <strong>The same joint excursion delivers higher fibril strain.</strong></p>
+      </div>
+      <div>
+        <h3>Using this in the clinic</h3>
+        <p>It reframes tendon loading: rehabilitation is not only about fibril tensile capacity, but about the shear behaviour of the matrix between bundles. It also explains why fatigue loading damages the matrix before it damages the collagen.</p>
+      </div>
+    </div>
+
+    <div class="refs">
+      <h3>Underlying evidence</h3>
+      <ol>
+        <li>Screen HRC, Lee DA, Bader DL, Shelton JC. An investigation into the effects of the hierarchical structure of tendon fascicles on micromechanical properties. <em>Proc Inst Mech Eng H</em>. 2004;218(2):109–19. — fibre sliding dominates fascicle extension.</li>
+        <li>Thorpe CT, Udeze CP, Birch HL, Clegg PD, Screen HRC. Specialization of tendon mechanical properties results from interfascicular differences. <em>J R Soc Interface</em>. 2012;9(76):3108–17. — the interfascicular matrix is more extensible in energy-storing tendon.</li>
+        <li>Thorpe CT, Riley GP, Birch HL, Clegg PD, Screen HRC. Fascicles and the interfascicular matrix show adaptation to fatigue loading. <em>Acta Biomater</em>. 2016;42:308–15. — matrix, not fascicle, is the fatigue-sensitive compartment.</li>
+        <li>Fratzl P, Misof K, Zizak I, et al. Fibrillar structure and mechanical properties of collagen. <em>J Struct Biol</em>. 1998;122(1–2):119–22. — fibril strain is a fraction of tissue strain.</li>
+        <li>Sasaki N, Odajima S. Elongation mechanism of collagen fibrils and force–strain relations of tendon at each level of structural hierarchy. <em>J Biomech</em>. 1996;29(9):1131–6. — molecular strain roughly a tenth of tissue strain.</li>
+        <li>Screen HRC, Berk DE, Kadler KE, Ramirez F, Young MF. Tendon functional extracellular matrix. <em>J Orthop Res</em>. 2015;33(6):793–9. — review of matrix roles in load transfer.</li>
+      </ol>
+    </div>
+
+    <div class="caveat">
+      <strong style="color:var(--text);font-weight:500">Read the numbers as illustrative, not measured.</strong> The model uses fixed strain-transmission ratios drawn from the sources above (fascicle/tendon 0.55 energy-storing or 0.80 positional; fibre/fascicle 0.55; fibril/fascicle 0.40; molecule/fascicle 0.10). Real values vary by species, tendon, region and test method. Visual displacement is exaggerated ×6 by default so sliding is visible — turn that off to see true scale. Reference details were written from recall and should be checked against the originals before you put them in front of a course cohort.
+    </div>
+  </section>
+
+  <footer>Interactive teaching model · drag the strain slider or run the load cycle</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ STATE & MODEL ============ */
+var S = { eps:0, mode:"ES", matrix:"young", fid:true, shear:true, exag:true, playing:false, t0:0 };
+var GAUGE_MM = 60, D_PERIOD = 67;
+
+function ratios(){
+  var fasc = (S.mode === "ES") ? 0.55 : 0.80;
+  if (S.matrix === "aged") fasc = Math.min(0.95, fasc * 1.32);
+  return { fasc:fasc, fibre:0.55, fibril:0.40, mol:0.10 };
+}
+function strains(){
+  var r = ratios(), e = S.eps, eF = e * r.fasc;
+  return { tendon:e, fasc:eF, fibre:eF*r.fibre, fibril:eF*r.fibril, mol:eF*r.mol, r:r };
+}
+function zoneOf(e){
+  if (e <= 0.0005) return ["unloaded","var(--dim)"];
+  if (e < 0.02) return ["toe region · crimp straightening","var(--matrix)"];
+  if (e < 0.04) return ["linear region · physiological","var(--collagen)"];
+  if (e < 0.06) return ["beyond typical physiological range","var(--collagen)"];
+  return ["microdamage range","var(--shear)"];
+}
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+/* panel height scales to the viewport so the whole board fits in landscape */
+function panelH(){
+  return Math.round(Math.min(600, Math.max(320, window.innerHeight - 300)));
+}
+
+function shareFactors(n, seed){
+  var out=[], x=seed;
+  for (var i=0;i<n;i++){ x=(x*9301+49297)%233280; out.push(0.82+(x/233280)*0.36); }
+  return out;
+}
+
+/* ============ VERTICAL CANVAS SETUP ============ */
+/* Logical space: X runs ALONG the tendon, Y runs ACROSS it.
+   A +90 rotation maps logical (lx,ly) -> screen (cssW - ly, lx),
+   so the tendon axis runs top-to-bottom down the panel.            */
+function setupVertical(cv, cssH){
+  var dpr = window.devicePixelRatio || 1;
+  var cssW = Math.max(150, cv.parentNode.clientWidth - 10);
+  cv.style.width = "100%";
+  cv.style.height = cssH + "px";
+  cv.width  = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  var ctx = cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+  ctx.translate(cssW, 0);
+  ctx.rotate(Math.PI/2);
+  return { ctx:ctx, W:cssH, H:cssW };   // W = along tendon, H = across
+}
+/* draw upright screen text inside the rotated frame */
+function vtext(ctx, lx, ly, str, font, color, align){
+  ctx.save();
+  ctx.translate(lx, ly);
+  ctx.rotate(-Math.PI/2);
+  ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align || "center";
+  ctx.fillText(str, 0, 0);
+  ctx.restore();
+}
+
+/* ============ CORE RENDERER ============ */
+/* Shear-lag: each unit's CENTRE follows the imposed affine field of the
+   level above; its own LENGTH grows only by its (smaller) material strain.
+   Wherever units overlap they must therefore slide relative to each other. */
+function drawLevel(cv, cfg){
+  var f = setupVertical(cv, cfg.cssH), ctx = f.ctx, W = f.W, H = f.H;
+
+  var padA = 42, padB = 26;            // along-tendon padding (anchor end / free end)
+  var Lpx = W - padA - padB;
+  var n = cfg.spans.length;
+  var band = (H - 30) / n;
+  var unitH = band * cfg.fillRatio;
+
+  var vx = S.exag ? 6 : 1;
+  var Eo = cfg.epsOuter * vx, Ei = cfg.epsInner * vx, k = cfg.k;
+
+  var U = [];
+  for (var i=0;i<n;i++){
+    var a0 = cfg.spans[i][0], b0 = cfg.spans[i][1];
+    var len0 = b0 - a0;
+    var len  = len0 * (1 + Ei * k[i]);
+    var c    = ((a0+b0)/2) * (1 + Eo);
+    U.push({ a0:a0, b0:b0, len0:len0, a:c-len/2, len:len,
+             y: 15 + band*i + band/2, phase:(i*1.9)%(Math.PI*2) });
+  }
+  function px(t){ return padA + t*Lpx; }
+  function X(i,t){ var u=U[i]; return px(u.a + (t-u.a0)/u.len0 * u.len); }
+  function has(i,t){ return t >= U[i].a0 && t <= U[i].b0; }
+
+  var crimpFade = Math.max(0, 1 - S.eps/0.02);
+  var amp = cfg.crimpAmp * crimpFade;
+  var lam = cfg.crimpLam * (1 + Eo*0.6);
+  function yOf(u,t){
+    if (amp < 0.05) return u.y;
+    return u.y + amp * Math.sin((t/lam)*Math.PI*2 + u.phase);
+  }
+
+  /* anchor band across the top of the panel */
+  ctx.fillStyle = css("--panel-2");
+  ctx.fillRect(0, 0, padA - 12, H);
+  ctx.strokeStyle = css("--rule"); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padA-12, 0); ctx.lineTo(padA-12, H); ctx.stroke();
+  vtext(ctx, 17, H/2, cfg.anchorLabel, "10px 'IBM Plex Mono', monospace", css("--dim"), "center");
+
+  /* matrix shear between units */
+  if (S.shear){
+    for (var i=0;i<n-1;i++){
+      var yA = U[i].y + unitH/2, yB = U[i+1].y - unitH/2;
+      for (var s=0.04; s<=0.98; s+=0.045){
+        if (!has(i,s) || !has(i+1,s)) continue;
+        var xa = X(i,s), xb = X(i+1,s), d = Math.abs(xb-xa);
+        ctx.strokeStyle = d > 1.2 ? "rgba(240,114,142," + Math.min(0.85, 0.16+d/26) + ")"
+                                  : "rgba(70,167,156,0.28)";
+        ctx.lineWidth = d > 1.2 ? 1.4 : 1;
+        ctx.beginPath(); ctx.moveTo(xa,yA); ctx.lineTo(xb,yB); ctx.stroke();
+      }
+    }
+  }
+
+  /* the units */
+  for (var i=0;i<n;i++){
+    var u = U[i], steps = 130, taper = 0.10;
+    ctx.beginPath();
+    for (var s=0; s<=steps; s++){
+      var t = u.a0 + (u.b0-u.a0)*(s/steps), f0 = s/steps;
+      var th = unitH/2 * Math.min(1, Math.min(f0, 1-f0)/taper);
+      var xx = X(i,t), yy = yOf(u,t);
+      if (s===0) ctx.moveTo(xx, yy-th); else ctx.lineTo(xx, yy-th);
+    }
+    for (var s=steps; s>=0; s--){
+      var t = u.a0 + (u.b0-u.a0)*(s/steps), f0 = s/steps;
+      var th = unitH/2 * Math.min(1, Math.min(f0, 1-f0)/taper);
+      ctx.lineTo(X(i,t), yOf(u,t)+th);
+    }
+    ctx.closePath();
+    var g = ctx.createLinearGradient(0, u.y-unitH/2, 0, u.y+unitH/2);
+    g.addColorStop(0, cfg.colTop); g.addColorStop(0.45, cfg.colMid); g.addColorStop(1, cfg.colBot);
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = "rgba(185,130,44,0.55)"; ctx.lineWidth = 0.8; ctx.stroke();
+
+    if (cfg.dBand){
+      ctx.strokeStyle = "rgba(13,19,27,0.42)"; ctx.lineWidth = 1;
+      for (var t=u.a0+0.02; t<u.b0-0.02; t+=cfg.dBand){
+        var xx2 = X(i,t), yy2 = yOf(u,t);
+        ctx.beginPath();
+        ctx.moveTo(xx2, yy2-unitH*0.42); ctx.lineTo(xx2, yy2+unitH*0.42); ctx.stroke();
+      }
+    }
+  }
+
+  /* fiducial lines: straight at rest, staircase under load */
+  if (S.fid){
+    cfg.fiducials.forEach(function(tf){
+      ctx.strokeStyle = css("--ghost"); ctx.setLineDash([3,4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(px(tf), 8); ctx.lineTo(px(tf), H-8); ctx.stroke();
+      ctx.setLineDash([]);
+      var pts = [];
+      for (var i=0;i<n;i++){ if (has(i,tf)) pts.push({x:X(i,tf), y:yOf(U[i],tf)}); }
+      if (!pts.length) return;
+      ctx.strokeStyle = css("--shear"); ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      pts.forEach(function(p,j){ j===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y); });
+      ctx.stroke();
+      ctx.fillStyle = css("--shear");
+      pts.forEach(function(p){ ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,Math.PI*2); ctx.fill(); });
+    });
+  }
+
+  /* extension bracket down the right-hand edge of the panel */
+  var yEdge = 7, xR = px(1), xE = px(1*(1+Eo));
+  ctx.strokeStyle = css("--matrix"); ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(xR, yEdge-4); ctx.lineTo(xR, yEdge+4);
+  ctx.moveTo(xR, yEdge);   ctx.lineTo(xE, yEdge);
+  ctx.moveTo(xE, yEdge-4); ctx.lineTo(xE, yEdge+4);
+  ctx.stroke();
+}
+
+/* ============ STRESS–STRAIN CURVE (stays horizontal) ============ */
+function drawCurve(){
+  var cv = document.getElementById("c4");
+  var dpr = window.devicePixelRatio || 1;
+  var W = Math.max(200, cv.parentNode.clientWidth - 10), H = 200;
+  cv.style.width = "100%"; cv.style.height = H + "px";
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  var ctx = cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  var L=42,R=12,T=14,B=30, pw=W-L-R, ph=H-T-B;
+  var E  = (S.mode==="ES") ? 1000 : 1500;
+  var et = (S.mode==="ES") ? 0.025 : 0.015;
+  var maxE=0.08, maxS=100;
+  function sig(e){ return e<et ? E*e*e/(2*et) : E*(e-et/2); }
+  function sx(e){ return L + (e/maxE)*pw; }
+  function sy(s){ return T + ph - Math.min(1, s/maxS)*ph; }
+
+  [[0,0.02,"rgba(70,167,156,0.10)"],[0.02,0.04,"rgba(233,182,92,0.10)"],
+   [0.04,0.06,"rgba(233,182,92,0.05)"],[0.06,0.08,"rgba(240,114,142,0.11)"]]
+  .forEach(function(z){ ctx.fillStyle=z[2]; ctx.fillRect(sx(z[0]),T,sx(z[1])-sx(z[0]),ph); });
+
+  ctx.strokeStyle=css("--rule"); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,T+ph); ctx.lineTo(L+pw,T+ph); ctx.stroke();
+  ctx.fillStyle=css("--dim"); ctx.font="9px 'IBM Plex Mono', monospace"; ctx.textAlign="center";
+  [0,2,4,6,8].forEach(function(p){ ctx.fillText(p+"%", sx(p/100), T+ph+14); });
+  ctx.textAlign="right";
+  [0,50,100].forEach(function(v){ ctx.fillText(v, L-6, sy(v)+3); });
+  ctx.save(); ctx.translate(11,T+ph/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign="center"; ctx.fillText("stress (MPa)",0,0); ctx.restore();
+
+  ctx.strokeStyle=css("--collagen"); ctx.lineWidth=2; ctx.beginPath();
+  for (var e=0;e<=maxE+1e-9;e+=0.0008){
+    var x=sx(e), y=sy(sig(e)); e===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle="rgba(70,167,156,0.5)"; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(sx(et),T); ctx.lineTo(sx(et),T+ph); ctx.stroke();
+  ctx.setLineDash([]);
+
+  var e0=Math.min(S.eps,maxE), mx=sx(e0), my=sy(sig(e0));
+  ctx.strokeStyle="rgba(240,114,142,0.45)"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(mx,T); ctx.lineTo(mx,T+ph); ctx.stroke();
+  ctx.fillStyle=css("--shear");
+  ctx.beginPath(); ctx.arc(mx,my,4.5,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=css("--ink"); ctx.lineWidth=1.5; ctx.stroke();
+
+  ctx.fillStyle=css("--dim"); ctx.font="8.5px 'IBM Plex Mono', monospace"; ctx.textAlign="left";
+  ctx.fillText("toe", sx(0.003), T+10);
+  ctx.fillText("linear", sx(et)+4, T+10);
+}
+
+/* ============ LADDER ============ */
+var LADDER=[{key:"tendon",nm:"tendon",col:"var(--collagen)"},
+            {key:"fasc",nm:"fascicle",col:"var(--collagen)"},
+            {key:"fibre",nm:"fibre",col:"var(--collagen-deep)"},
+            {key:"fibril",nm:"fibril",col:"var(--matrix)"},
+            {key:"mol",nm:"molecule",col:"var(--matrix)"}];
+(function(){
+  var el=document.getElementById("ladder");
+  LADDER.forEach(function(L){
+    var d=document.createElement("div"); d.className="rung";
+    d.innerHTML='<span class="nm">'+L.nm+'</span>'+
+      '<span class="track"><span class="fill" id="fill-'+L.key+'" style="background:'+L.col+'"></span>'+
+      '<span class="shr" id="sh-'+L.key+'">—</span></span>'+
+      '<span class="vl" id="vl-'+L.key+'">0.00%</span>';
+    el.appendChild(d);
+  });
+})();
+
+/* ============ SPANS ============ */
+var SP1=[[-0.12,0.90],[0.04,1.12],[-0.16,1.06],[0.13,0.94],[-0.06,1.14]];
+var SP2=[[-0.10,0.95],[0.09,1.10],[-0.15,0.88],[0.05,1.13],[-0.04,1.02],[0.16,1.09]];
+var SP3=[[-0.08,1.05],[0.07,0.92],[-0.13,1.10],[0.11,1.06],[-0.02,0.96],[0.14,1.12],[-0.11,1.01]];
+var K1=shareFactors(SP1.length,7717), K2=shareFactors(SP2.length,3391), K3=shareFactors(SP3.length,5023);
+
+/* ============ RENDER ============ */
+function pct(x){ return (x*100).toFixed(2)+"%"; }
+
+function render(){
+  var st = strains(), PH = panelH();
+
+  drawLevel(document.getElementById("c1"), {
+    cssH:PH, spans:SP1, k:K1, fillRatio:0.70,
+    epsOuter:st.tendon, epsInner:st.fasc,
+    crimpAmp:5.5, crimpLam:0.115,
+    colTop:"#F2C877", colMid:"#E9B65C", colBot:"#B9822C",
+    fiducials:[0.30,0.66], anchorLabel:"ENTHESIS", dBand:0 });
+
+  drawLevel(document.getElementById("c2"), {
+    cssH:PH, spans:SP2, k:K2, fillRatio:0.66,
+    epsOuter:st.fasc, epsInner:st.fibre,
+    crimpAmp:4.2, crimpLam:0.085,
+    colTop:"#EFC98A", colMid:"#E0A94E", colBot:"#A87526",
+    fiducials:[0.34,0.70], anchorLabel:"FASCICLE END", dBand:0 });
+
+  drawLevel(document.getElementById("c3"), {
+    cssH:PH, spans:SP3, k:K3, fillRatio:0.62,
+    epsOuter:st.fibre, epsInner:st.fibril,
+    crimpAmp:2.4, crimpLam:0.065,
+    colTop:"#EAC98F", colMid:"#D9AE63", colBot:"#9C6E28",
+    fiducials:[0.38,0.74], anchorLabel:"FIBRE END", dBand:0.052 });
+
+  drawCurve();
+
+  document.getElementById("slidePct").innerHTML =
+    Math.round((1 - st.r.fasc*st.r.fibril)*100) + "<span>%</span>";
+  document.getElementById("strainVal").textContent = (S.eps*100).toFixed(1)+"%";
+  var z = zoneOf(S.eps), zv = document.getElementById("zoneVal");
+  zv.textContent = z[0]; zv.style.color = z[1];
+
+  var ext = GAUGE_MM * S.eps;
+  document.getElementById("r1a").textContent = pct(st.tendon);
+  document.getElementById("r1b").textContent = pct(st.fasc);
+  document.getElementById("r1c").textContent = (ext*(1-st.r.fasc)).toFixed(2)+" mm";
+  document.getElementById("r1d").textContent = Math.round(st.r.fasc*100)+"%";
+  document.getElementById("r2a").textContent = pct(st.fasc);
+  document.getElementById("r2b").textContent = pct(st.fibre);
+  document.getElementById("r2c").textContent = (ext*st.r.fasc*(1-st.r.fibre)).toFixed(2)+" mm";
+  document.getElementById("r2d").textContent = Math.round(st.r.fibre*100)+"%";
+  document.getElementById("r3a").textContent = pct(st.fibre);
+  document.getElementById("r3b").textContent = pct(st.fibril);
+  document.getElementById("r3c").textContent =
+    Math.max(0, ext*st.r.fasc*(st.r.fibre-st.r.fibril)).toFixed(2)+" mm";
+  document.getElementById("r3d").textContent = (D_PERIOD*(1+st.fibril)).toFixed(2)+" nm";
+
+  /* bars are scaled to the applied tendon strain, so the top bar always fills
+     the track and every bar below it is a true proportion of the value above */
+  var ref = st.tendon;
+  LADDER.forEach(function(L){
+    var w = (ref > 1e-6) ? (st[L.key] / ref) * 100 : 0;
+    document.getElementById("fill-"+L.key).style.width = w.toFixed(1)+"%";
+    document.getElementById("vl-"+L.key).textContent = pct(st[L.key]);
+    document.getElementById("sh-"+L.key).textContent =
+      (ref > 1e-6) ? Math.round(w)+"%" : "—";
+  });
+}
+
+/* ============ INTERACTION ============ */
+var slider = document.getElementById("strain");
+slider.addEventListener("input", function(){ stop(); S.eps = parseFloat(slider.value)/1000; render(); });
+
+function seg(idA,idB,set){
+  var a=document.getElementById(idA), b=document.getElementById(idB);
+  function pick(w){ a.setAttribute("aria-pressed", w==="a"); b.setAttribute("aria-pressed", w==="b"); set(w); render(); }
+  a.addEventListener("click", function(){ pick("a"); });
+  b.addEventListener("click", function(){ pick("b"); });
+}
+seg("btnES","btnPOS", function(w){ S.mode = (w==="a") ? "ES":"POS"; });
+seg("btnYoung","btnAged", function(w){ S.matrix = (w==="a") ? "young":"aged"; });
+
+document.getElementById("cbFid").addEventListener("change", function(e){ S.fid=e.target.checked; render(); });
+document.getElementById("cbShear").addEventListener("change", function(e){ S.shear=e.target.checked; render(); });
+document.getElementById("cbExag").addEventListener("change", function(e){ S.exag=e.target.checked; render(); });
+
+var raf=null, playBtn=document.getElementById("playBtn");
+function tick(ts){
+  if (!S.playing) return;
+  if (!S.t0) S.t0 = ts;
+  var p = ((ts-S.t0)/4200)%1;
+  S.eps = (0.5 - 0.5*Math.cos(p*Math.PI*2)) * 0.065;
+  slider.value = (S.eps*1000).toFixed(1);
+  render();
+  raf = requestAnimationFrame(tick);
+}
+function stop(){
+  S.playing=false; S.t0=0;
+  if (raf) cancelAnimationFrame(raf);
+  playBtn.textContent="Load cycle"; playBtn.setAttribute("aria-pressed","false");
+}
+playBtn.addEventListener("click", function(){
+  if (S.playing){ stop(); return; }
+  S.playing=true; S.t0=0;
+  playBtn.textContent="Pause"; playBtn.setAttribute("aria-pressed","true");
+  raf = requestAnimationFrame(tick);
+});
+
+var rt;
+window.addEventListener("resize", function(){ clearTimeout(rt); rt=setTimeout(render,90); });
+
+render();
+})();
+</script>
+</body>
+</html>
