@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Harvester</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #ff4d6d;
+    --accent2: #7b61ff;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --success: #00d68f;
+    --warn: #ffd166;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 10%, rgba(123,97,255,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(255,77,109,0.10) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 720px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    margin-bottom: 48px;
+    text-align: center;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 30px rgba(123,97,255,0.4);
+  }
+
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 30%, var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: #3a3a5a; }
+
+  .card-label {
+    font-size: 0.7rem;
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-label span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+  }
+
+  .folder-btn {
+    width: 100%;
+    padding: 18px 22px;
+    background: var(--surface2);
+    border: 1.5px dashed var(--border);
+    border-radius: 14px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.2s;
+    text-align: left;
+    word-break: break-all;
+  }
+
+  .folder-btn:hover {
+    border-color: var(--accent2);
+    background: rgba(123,97,255,0.08);
+    color: #fff;
+  }
+
+  .folder-btn.selected {
+    border-style: solid;
+    border-color: var(--accent2);
+    background: rgba(123,97,255,0.10);
+  }
+
+  .folder-btn .icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+
+  .folder-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .folder-text .hint { color: var(--muted); }
+  .folder-text .path { color: var(--accent2); }
+
+  .run-btn {
+    width: 100%;
+    padding: 20px;
+    border-radius: 16px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 30px rgba(123,97,255,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .run-btn:disabled {
+    background: var(--surface2);
+    color: var(--muted);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .run-btn:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 40px rgba(123,97,255,0.5);
+  }
+
+  .run-btn:not(:disabled):active { transform: translateY(0); }
+
+  /* Progress */
+  .progress-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .progress-card.visible { display: block; }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .progress-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .progress-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent2);
+  }
+
+  .progress-track {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  .progress-fill.indeterminate {
+    width: 40%;
+    animation: slide 1.2s ease-in-out infinite;
+  }
+
+  @keyframes slide {
+    0% { transform: translateX(-200%); }
+    100% { transform: translateX(350%); }
+  }
+
+  .status-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    min-height: 1.2em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Log */
+  .log-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .log-card.visible { display: block; }
+
+  .log-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .log-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: rgba(0,214,143,0.15);
+    color: var(--success);
+    border: 1px solid rgba(0,214,143,0.3);
+  }
+
+  .badge.error {
+    background: rgba(255,77,109,0.15);
+    color: var(--accent);
+    border-color: rgba(255,77,109,0.3);
+  }
+
+  .log-body {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-track { background: transparent; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-entry {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.5;
+  }
+
+  .log-icon { flex-shrink: 0; }
+  .log-entry.ok .log-icon { color: var(--success); }
+  .log-entry.skip .log-icon { color: var(--warn); }
+  .log-entry.err .log-icon { color: var(--accent); }
+  .log-entry.info .log-icon { color: var(--accent2); }
+
+  .log-entry .log-msg { color: var(--muted); word-break: break-all; }
+  .log-entry.ok .log-msg { color: #cde; }
+
+  /* Summary */
+  .summary {
+    display: none;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .summary.visible { display: grid; }
+
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .stat-box:nth-child(1) .stat-num { color: var(--success); }
+  .stat-box:nth-child(2) .stat-num { color: var(--warn); }
+  .stat-box:nth-child(3) .stat-num { color: var(--accent); }
+
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .support-note {
+    text-align: center;
+    margin-top: 32px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .unsupported {
+    background: rgba(255,209,102,0.1);
+    border: 1px solid rgba(255,209,102,0.3);
+    border-radius: 12px;
+    padding: 16px 20px;
+    color: var(--warn);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    text-align: center;
+    display: none;
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo-row">
+      <div class="logo-icon">📄</div>
+      <h1>PDF Harvester</h1>
+    </div>
+    <p class="subtitle">Scan &amp; collect PDFs across any folder tree</p>
+  </header>
+
+  <div class="unsupported" id="unsupported">
+    ⚠️ Your browser doesn't support the File System Access API.<br>
+    Please use Chrome 86+, Edge 86+, or Opera 72+.
+  </div>
+
+  <!-- Source -->
+  <div class="card">
+    <div class="card-label"><span></span>Source Folder</div>
+    <button class="folder-btn" id="srcBtn" onclick="pickFolder('src')">
+      <span class="icon">📂</span>
+      <span class="folder-text"><span class="hint">Click to select source folder…</span></span>
+    </button>
+  </div>
+
+  <!-- Destination -->
+  <div class="card">
+    <div class="card-label"><span style="background:var(--accent)"></span>Destination Folder</div>
+    <button class="folder-btn" id="dstBtn" onclick="pickFolder('dst')">
+      <span class="icon">📁</span>
+      <span class="folder-text"><span class="hint">Click to select destination folder…</span></span>
+    </button>
+  </div>
+
+  <!-- Run -->
+  <button class="run-btn" id="runBtn" disabled onclick="runCopy()">
+    ▶ Start Harvesting PDFs
+  </button>
+
+  <!-- Summary -->
+  <div class="summary" id="summary">
+    <div class="stat-box"><span class="stat-num" id="statCopied">0</span><span class="stat-label">Copied</span></div>
+    <div class="stat-box"><span class="stat-num" id="statSkipped">0</span><span class="stat-label">Skipped</span></div>
+    <div class="stat-box"><span class="stat-num" id="statErrors">0</span><span class="stat-label">Errors</span></div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-card" id="progressCard">
+    <div class="progress-header">
+      <span class="progress-label">Progress</span>
+      <span class="progress-count" id="progressCount">0 / 0</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill indeterminate" id="progressFill"></div>
+    </div>
+    <div class="status-text" id="statusText">Scanning folders…</div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-card" id="logCard">
+    <div class="log-header">
+      <span class="log-title">Activity Log</span>
+      <span class="badge" id="logBadge">Running</span>
+    </div>
+    <div class="log-body" id="logBody"></div>
+  </div>
+
+  <p class="support-note">
+    Uses the browser's File System Access API — no files are uploaded anywhere.<br>
+    Everything runs locally on your machine.
+  </p>
+</div>
+
+<script>
+let srcHandle = null, dstHandle = null;
+
+const supported = 'showDirectoryPicker' in window;
+if (!supported) document.getElementById('unsupported').style.display = 'block';
+
+async function pickFolder(which) {
+  if (!supported) return;
+  try {
+    const handle = await window.showDirectoryPicker({ mode: which === 'dst' ? 'readwrite' : 'read' });
+    if (which === 'src') {
+      srcHandle = handle;
+      updateBtn('srcBtn', handle.name, '📂');
+    } else {
+      dstHandle = handle;
+      updateBtn('dstBtn', handle.name, '📁');
+    }
+    checkReady();
+  } catch (e) {
+    if (e.name !== 'AbortError') logEntry('err', '✗', 'Folder selection failed: ' + e.message);
+  }
+}
+
+function updateBtn(id, name, icon) {
+  const btn = document.getElementById(id);
+  btn.classList.add('selected');
+  btn.querySelector('.folder-text').innerHTML =
+    `<span class="path">${icon} ${escHtml(name)}</span>`;
+}
+
+function checkReady() {
+  document.getElementById('runBtn').disabled = !(srcHandle && dstHandle);
+}
+
+async function runCopy() {
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('progressCard').classList.add('visible');
+  document.getElementById('logCard').classList.add('visible');
+  document.getElementById('summary').classList.remove('visible');
+  document.getElementById('logBody').innerHTML = '';
+  document.getElementById('logBadge').textContent = 'Running';
+  document.getElementById('logBadge').classList.remove('error');
+  setStatus('Scanning for PDF files…');
+
+  let stats = { copied: 0, skipped: 0, errors: 0 };
+
+  logEntry('info', '→', `Scanning: ${srcHandle.name}`);
+  const pdfs = await collectPDFs(srcHandle, '');
+  logEntry('info', '→', `Found ${pdfs.length} PDF file${pdfs.length !== 1 ? 's' : ''}`);
+
+  const fill = document.getElementById('progressFill');
+  fill.classList.remove('indeterminate');
+  fill.style.width = '0%';
+
+  for (let i = 0; i < pdfs.length; i++) {
+    const { fileHandle, relativePath } = pdfs[i];
+    const pct = Math.round(((i) / pdfs.length) * 100);
+    fill.style.width = pct + '%';
+    document.getElementById('progressCount').textContent = `${i} / ${pdfs.length}`;
+    setStatus(relativePath);
+
+    try {
+      const file = await fileHandle.getFile();
+      const name = await uniqueName(dstHandle, file.name);
+      const writable = await (await dstHandle.getFileHandle(name, { create: true })).createWritable();
+      await writable.write(await file.arrayBuffer());
+      await writable.close();
+      if (name !== file.name) {
+        logEntry('skip', '⚡', `${relativePath} → renamed to ${name}`);
+        stats.skipped++;
+      } else {
+        logEntry('ok', '✓', relativePath);
+        stats.copied++;
+      }
+    } catch (err) {
+      logEntry('err', '✗', `${relativePath}: ${err.message}`);
+      stats.errors++;
+    }
+  }
+
+  fill.style.width = '100%';
+  document.getElementById('progressCount').textContent = `${pdfs.length} / ${pdfs.length}`;
+  setStatus('Done!');
+
+  document.getElementById('statCopied').textContent = stats.copied;
+  document.getElementById('statSkipped').textContent = stats.skipped;
+  document.getElementById('statErrors').textContent = stats.errors;
+  document.getElementById('summary').classList.add('visible');
+  document.getElementById('logBadge').textContent = 'Done';
+  if (stats.errors > 0) {
+    document.getElementById('logBadge').classList.add('error');
+    document.getElementById('logBadge').textContent = `Done · ${stats.errors} error${stats.errors !== 1 ? 's' : ''}`;
+  }
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runBtn').textContent = '↺ Run Again';
+}
+
+async function collectPDFs(dirHandle, basePath) {
+  const results = [];
+  for await (const [name, handle] of dirHandle.entries()) {
+    const path = basePath ? basePath + '/' + name : name;
+    if (handle.kind === 'directory') {
+      const sub = await collectPDFs(handle, path);
+      results.push(...sub);
+    } else if (handle.kind === 'file' && name.toLowerCase().endsWith('.pdf')) {
+      results.push({ fileHandle: handle, relativePath: path });
+    }
+  }
+  return results;
+}
+
+async function uniqueName(dirHandle, name) {
+  let candidate = name;
+  let counter = 1;
+  while (true) {
+    try {
+      await dirHandle.getFileHandle(candidate, { create: false });
+      // exists — try a new name
+      const dot = name.lastIndexOf('.');
+      const base = dot >= 0 ? name.slice(0, dot) : name;
+      const ext  = dot >= 0 ? name.slice(dot) : '';
+      candidate = `${base} (${counter})${ext}`;
+      counter++;
+    } catch {
+      return candidate; // doesn't exist
+    }
+  }
+}
+
+function setStatus(msg) {
+  document.getElementById('statusText').textContent = msg;
+}
+
+function logEntry(type, icon, msg) {
+  const body = document.getElementById('logBody');
+  const el = document.createElement('div');
+  el.className = `log-entry ${type}`;
+  el.innerHTML = `<span class="log-icon">${escHtml(icon)}</span><span class="log-msg">${escHtml(msg)}</span>`;
+  body.appendChild(el);
+  body.scrollTop = body.scrollHeight;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

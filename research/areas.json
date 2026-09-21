@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Alter-G EMG Study",
+    "summary": "Interactive visualizations from uphill/downhill Alter-G treadmill running data.",
+    "path": "research/alter-g-emg.html",
+    "status": "Live"
+  },
+  {
+    "title": "APA SPEX Shoulder Course",
+    "summary": "Educational shoulder course chapters, topic pages, and reference library.",
+    "path": "education/apa-spex-shoulder-course/index.html",
+    "status": "Live"
+  },
+  {
+    "title": "Tools",
+    "summary": "Utility pages and workflow helpers, starting with the PDF harvester.",
+    "path": "research/tools.html",
+    "status": "Live"
+  }
+]

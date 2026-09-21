@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: light dark; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; font: 14px system-ui, sans-serif; background: #fafaf9; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>The Misaligned Dynamometer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg:       #F1F4F7;
+    --surface:  #FFFFFF;
+    --surface-2:#E8EDF2;
+    --ink:      #131A22;
+    --ink-2:    #3B4753;
+    --muted:    #66737F;
+    --line:     #D7DFE6;
+    --line-2:   #BFCAD4;
+    --accent:   #12637F;
+    --accent-2: #0B4459;
+    --accent-wash:#E0EEF4;
+    --loss:     #AC3D26;
+    --geom:     #8C6714;
+    --geom-wash:#F4EDD8;
+    --limb:     #DBE3EA;
+    --limb-line:#B2BFCB;
+    --r1:#8FC9D9; --r2:#57A8C2; --r3:#2E87A5; --r4:#1A6785; --r5:#0C4258;
+    --shadow: 0 1px 2px rgba(16,28,40,.05), 0 6px 20px rgba(16,28,40,.06);
+  }
+  :root:not([data-theme="light"]) { color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:       #0B1015; --surface:  #141C25; --surface-2:#1B2630;
+      --ink:      #E9EFF5; --ink-2:    #C4CFD9; --muted:    #8D9BA9;
+      --line:     #253039; --line-2:   #36444F;
+      --accent:   #63B9D6; --accent-2: #99D6E9; --accent-wash:#14303E;
+      --loss:     #EE8E71; --geom:     #E0B95C; --geom-wash:#2E2714;
+      --limb:     #1E2A34; --limb-line:#3B4956;
+      --r1:#35798F; --r2:#4694B0; --r3:#5CB0CB; --r4:#82CAE1; --r5:#B2E6F3;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.34);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:       #0B1015; --surface:  #141C25; --surface-2:#1B2630;
+    --ink:      #E9EFF5; --ink-2:    #C4CFD9; --muted:    #8D9BA9;
+    --line:     #253039; --line-2:   #36444F;
+    --accent:   #63B9D6; --accent-2: #99D6E9; --accent-wash:#14303E;
+    --loss:     #EE8E71; --geom:     #E0B95C; --geom-wash:#2E2714;
+    --limb:     #1E2A34; --limb-line:#3B4956;
+    --r1:#35798F; --r2:#4694B0; --r3:#5CB0CB; --r4:#82CAE1; --r5:#B2E6F3;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.34);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.45; -webkit-font-smoothing: antialiased; overflow: hidden;
+  }
+  h1, h2, h3 { font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif; font-weight: 700; margin: 0; }
+  p { margin: 0; }
+
+  .console {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: clamp(7px, 1.05vh, 13px);
+    padding: clamp(9px, 1.5vh, 18px) clamp(12px, 1.4vw, 22px);
+  }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; box-shadow: var(--shadow); }
+
+  /* header */
+  .top { display: flex; align-items: center; gap: clamp(10px, 1.6vw, 26px); flex-wrap: wrap; }
+  .brand { display: flex; flex-direction: column; gap: 1px; margin-right: auto; min-width: 0; }
+  .brand .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: clamp(8px, .98vh, 11px); font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+  .brand h1 { font-size: clamp(15px, 2.35vh, 27px); line-height: 1.05; letter-spacing: .004em; }
+
+  .grp { display: flex; align-items: center; gap: 9px; }
+  .grp > span { font-family: "IBM Plex Mono", monospace; font-size: clamp(8px, .98vh, 11px); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line-2); border-radius: 9px; padding: 3px; gap: 3px; box-shadow: var(--shadow); }
+  .seg button, .btn {
+    font: inherit; font-size: clamp(11px, 1.42vh, 15px); font-weight: 500;
+    padding: clamp(4px, .72vh, 8px) clamp(9px, .95vw, 15px);
+    border: 0; border-radius: 6px; background: transparent; color: var(--ink-2);
+    cursor: pointer; white-space: nowrap; transition: background .12s, color .12s;
+  }
+  .seg button:hover, .btn:hover { color: var(--ink); background: var(--surface-2); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+  .btn { border: 1px solid var(--line-2); background: var(--surface); box-shadow: var(--shadow); }
+  .seg button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* tiles */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; box-shadow: var(--shadow); }
+  .tile { background: var(--surface); padding: clamp(6px, 1.05vh, 13px) clamp(10px, 1.1vw, 18px); display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .tile .k { font-family: "IBM Plex Mono", monospace; font-size: clamp(8px, .98vh, 11px); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .tile .v { font-family: "IBM Plex Mono", monospace; font-size: clamp(21px, 3.5vh, 42px); font-weight: 500; line-height: 1.1; letter-spacing: -.025em; font-variant-numeric: tabular-nums; }
+  .tile .v u { text-decoration: none; font-size: .52em; font-weight: 400; color: var(--muted); margin-left: 3px; }
+  .tile .s { font-size: clamp(9px, 1.2vh, 13.5px); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile.is-loss .v { color: var(--loss); }
+  .tile.is-acc  .v { color: var(--accent); }
+  .tile.is-geom .v { color: var(--geom); }
+  .tile.is-flat .v { color: var(--muted); }
+
+  /* main */
+  .main { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr); gap: clamp(7px, 1.05vh, 13px); min-height: 0; }
+  .col { display: grid; gap: clamp(7px, 1.05vh, 13px); min-height: 0; min-width: 0; }
+  .col.left, .col.right { grid-template-rows: minmax(0, 1fr) auto; }
+
+  .stage { padding: clamp(4px, .7vh, 10px); display: flex; min-height: 0; min-width: 0; }
+  .stage svg { width: 100%; height: 100%; display: block; }
+
+  .keystrip { padding: clamp(7px, 1.05vh, 13px) clamp(11px, 1.1vw, 17px); display: flex; flex-wrap: wrap; align-items: center; gap: clamp(6px, .9vh, 11px) clamp(14px, 1.5vw, 28px); font-size: clamp(10.5px, 1.36vh, 14.5px); color: var(--ink-2); }
+  .keystrip .vk { display: flex; align-items: center; gap: 8px; }
+  .keystrip .sw { width: clamp(16px, 1.5vw, 26px); height: 0; border-top-width: 3px; flex: none; }
+  .keystrip b { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .keystrip .n { color: var(--muted); }
+  .keystrip .calc { margin-left: auto; font-family: "IBM Plex Mono", monospace; font-size: clamp(10px, 1.3vh, 14px); color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .keystrip .calc b { color: var(--accent); }
+  .keystrip .calc em { font-style: normal; color: var(--geom); font-weight: 600; }
+
+  .chart-card { padding: clamp(6px, 1vh, 12px) clamp(8px, .9vw, 14px) clamp(2px, .4vh, 6px); display: flex; flex-direction: column; min-height: 0; position: relative; }
+  .chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 0 4px clamp(2px, .5vh, 6px); }
+  .chart-head h2 { font-size: clamp(12px, 1.72vh, 19px); }
+  .legend { display: flex; align-items: center; gap: clamp(6px, .7vw, 13px); flex-wrap: wrap; font-family: "IBM Plex Mono", monospace; font-size: clamp(8.5px, 1.05vh, 12px); color: var(--muted); }
+  .legend .lg { display: inline-flex; align-items: center; gap: 4px; }
+  .legend .sw { width: 13px; height: 3px; border-radius: 2px; }
+  .chart-body { flex: 1; min-height: 0; display: flex; }
+  .chart-body svg { width: 100%; height: 100%; display: block; }
+  .chart-note { padding: clamp(3px, .6vh, 8px) 4px clamp(4px, .7vh, 9px); font-size: clamp(9.5px, 1.22vh, 13px); color: var(--muted); }
+  .chart-note b { color: var(--ink-2); font-weight: 600; }
+
+  .reftable { padding: clamp(6px, 1vh, 12px) clamp(11px, 1.1vw, 17px) clamp(8px, 1.1vh, 14px); }
+  .reftable h3 { font-size: clamp(10.5px, 1.35vh, 14px); color: var(--muted); font-weight: 600; letter-spacing: .02em; margin-bottom: 4px; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: center; padding: clamp(1px, .38vh, 5px) 2px; font-family: "IBM Plex Mono", monospace; font-size: clamp(10px, 1.32vh, 14.5px); }
+  th { font-size: clamp(8px, .96vh, 11px); font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line-2); padding-bottom: 3px; }
+  th:first-child, td:first-child { text-align: left; color: var(--muted); font-size: clamp(8.5px, 1vh, 11.5px); letter-spacing: .06em; text-transform: uppercase; }
+  td.neg { color: var(--loss); font-weight: 500; }
+  tbody tr.hi td { background: var(--accent-wash); }
+
+  /* sliders */
+  .rack { padding: clamp(7px, 1.05vh, 14px) clamp(12px, 1.2vw, 20px) clamp(9px, 1.2vh, 15px); display: grid; grid-template-columns: repeat(6, 1fr); gap: clamp(9px, 1.1vw, 22px); }
+  .sl { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .sl .row { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+  .sl label { font-size: clamp(10px, 1.32vh, 14px); font-weight: 500; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sl label em { font-style: normal; font-family: "IBM Plex Mono", monospace; color: var(--accent); font-weight: 600; }
+  .sl output { font-family: "IBM Plex Mono", monospace; font-size: clamp(11px, 1.5vh, 16px); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+  .sl.derived label, .sl.derived output { color: var(--muted); }
+  .sl.derived output { font-weight: 500; }
+  .sl.slip label em, .sl.slip output { color: var(--geom); }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: clamp(16px, 2.1vh, 24px); background: transparent; cursor: pointer; }
+  input[type=range]:disabled { cursor: default; opacity: .5; }
+  input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--line-2); }
+  input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--line-2); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); margin-top: -6.5px; }
+  input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); }
+  #in-slip::-webkit-slider-thumb { background: var(--geom); box-shadow: 0 0 0 1px var(--geom); }
+  #in-slip::-moz-range-thumb { background: var(--geom); box-shadow: 0 0 0 1px var(--geom); }
+  input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+  /* svg text */
+  .s-label  { font-family: "IBM Plex Sans", sans-serif; font-size: 15px; font-weight: 500; fill: var(--muted); }
+  .s-strong { font-family: "IBM Plex Mono", monospace; font-size: 18px; font-weight: 600; fill: var(--ink); }
+  .s-geom   { font-family: "IBM Plex Mono", monospace; font-size: 16px; font-weight: 600; fill: var(--geom); }
+  .s-label, .s-strong, .s-geom { paint-order: stroke fill; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; }
+  .c-axis   { font-family: "IBM Plex Mono", monospace; font-size: 13px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .c-title  { font-family: "IBM Plex Sans", sans-serif; font-size: 13.5px; font-weight: 500; fill: var(--muted); }
+  .c-end    { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600; paint-order: stroke fill; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+
+  /* tooltip & overlay */
+  .tip { position: absolute; pointer-events: none; opacity: 0; transform: translate(-50%, -100%); background: var(--ink); color: var(--surface); border-radius: 7px; padding: 7px 10px; font-family: "IBM Plex Mono", monospace; font-size: 12px; line-height: 1.5; white-space: nowrap; font-variant-numeric: tabular-nums; transition: opacity .1s; z-index: 5; }
+  .tip .hd { display: block; margin-bottom: 3px; opacity: .72; }
+  .tip i { font-style: normal; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+  .tip b { font-weight: 600; }
+
+  .scrim { position: fixed; inset: 0; background: rgba(8,14,20,.5); display: flex; align-items: center; justify-content: center; padding: 3vh 3vw; z-index: 20; }
+  .sheet { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 70px rgba(8,14,20,.4); max-width: 1000px; width: 100%; max-height: 94%; overflow-y: auto; padding: clamp(18px, 3vh, 32px) clamp(20px, 3vw, 38px) clamp(20px, 3vh, 34px); }
+  .sheet h2 { font-size: clamp(19px, 3vh, 27px); margin-bottom: 4px; }
+  .sheet > p { font-size: 15px; color: var(--ink-2); max-width: 74ch; }
+  .sheet .cols { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(16px, 2.4vw, 32px); margin-top: 20px; }
+  .sheet h3 { font-size: 15px; margin-bottom: 6px; }
+  .sheet p { font-size: 14px; color: var(--ink-2); margin-bottom: 9px; }
+  .sheet .eq { font-family: "IBM Plex Mono", monospace; font-size: 13.5px; font-weight: 500; background: var(--surface-2); border-left: 3px solid var(--accent); padding: 9px 13px; border-radius: 0 6px 6px 0; margin-bottom: 10px; overflow-x: auto; }
+  .sheet .eq.g { border-left-color: var(--geom); }
+  .sheet ul { margin: 6px 0 0; padding-left: 19px; font-size: 13.5px; color: var(--ink-2); }
+  .sheet li { margin-bottom: 5px; }
+  .sheet .tag { display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px; margin-bottom: 8px; }
+  .sheet .tag.a { background: var(--accent-wash); color: var(--accent-2); }
+  .sheet .tag.b { background: var(--geom-wash); color: var(--geom); }
+  .sheet kbd { font-family: "IBM Plex Mono", monospace; font-size: 12px; background: var(--surface-2); border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; color: var(--ink); }
+  .sheet .close { position: sticky; top: 0; float: right; }
+
+  @media (max-width: 1040px), (max-height: 540px) {
+    html, body { height: auto; }
+    body { overflow: visible; }
+    .console { height: auto; grid-template-rows: none; display: flex; flex-direction: column; }
+    .main { grid-template-columns: 1fr; }
+    .col.left, .col.right { grid-template-rows: none; }
+    .stage svg, .chart-body svg { height: auto; }
+    .chart-body { display: block; }
+    .rack { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); }
+    .tiles { grid-template-columns: 1fr 1fr; }
+    .sheet .cols { grid-template-columns: 1fr; }
+    .keystrip .calc { margin-left: 0; text-align: left; width: 100%; }
+    .s-label { font-size: 17px; } .s-strong { font-size: 19px; } .s-geom { font-size: 18px; }
+    .c-axis { font-size: 15px; } .c-title { font-size: 15px; } .c-end { font-size: 15px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="console">
+
+  <div class="top">
+    <div class="brand">
+      <span class="eyebrow">Hand-held dynamometry &#183; measurement geometry</span>
+      <h1>What tilt costs you on the dial</h1>
+    </div>
+    <div class="grp">
+      <span>Drive tilt by</span>
+      <div class="seg" role="group" aria-label="Drive variable">
+        <button type="button" data-drive="angle">Angle &#952;</button>
+        <button type="button" data-drive="offset">Hand drift &#916;</button>
+      </div>
+    </div>
+    <button type="button" class="btn" id="btn-notes" aria-haspopup="dialog">Notes &amp; keys</button>
+  </div>
+
+  <div class="tiles">
+    <div class="tile is-acc">
+      <span class="k">Dial reading</span>
+      <span class="v" id="t-read">&#8212;<u>N</u></span>
+      <span class="s" id="t-read-s">&#8212;</span>
+    </div>
+    <div class="tile is-loss" id="tile-force">
+      <span class="k">Force under-read</span>
+      <span class="v" id="t-force">&#8212;</span>
+      <span class="s" id="t-force-s">&#8212;</span>
+    </div>
+    <div class="tile is-geom" id="tile-lever">
+      <span class="k">Actual lever arm</span>
+      <span class="v" id="t-lever">&#8212;<u>cm</u></span>
+      <span class="s" id="t-lever-s">&#8212;</span>
+    </div>
+    <div class="tile is-loss" id="tile-torque">
+      <span class="k">Torque error</span>
+      <span class="v" id="t-torque">&#8212;</span>
+      <span class="s" id="t-torque-s">&#8212;</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="col left">
+      <div class="card stage">
+        <svg id="dia" viewBox="0 0 960 620" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schematic of a hand-held dynamometer tilted away from perpendicular against a limb segment, showing the true force, the axial component the device measures, the unmeasured shear, and any slip of the pad from its mark."></svg>
+      </div>
+      <div class="card keystrip" id="vkey"></div>
+    </div>
+
+    <div class="col right">
+      <figure class="card chart-card" style="margin:0">
+        <div class="chart-head">
+          <h2 id="ch-title">Error against misalignment</h2>
+          <div class="legend" id="ch-legend"></div>
+        </div>
+        <div class="chart-body">
+          <svg id="chart" viewBox="0 0 700 560" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Measured value as a percentage of the true value, plotted against misalignment."></svg>
+        </div>
+        <figcaption class="chart-note" id="ch-sub"></figcaption>
+        <div class="tip" id="tip"></div>
+      </figure>
+
+      <div class="card reftable">
+        <h3>Cosine error on the dial, for reference</h3>
+        <table>
+          <thead><tr><th>Tilt &#952;</th><th>5&#176;</th><th>10&#176;</th><th>15&#176;</th><th>20&#176;</th><th>25&#176;</th><th>30&#176;</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">cos &#952;</th><td>0.996</td><td>0.985</td><td>0.966</td><td>0.940</td><td>0.906</td><td>0.866</td></tr>
+            <tr id="row-err"><th scope="row">Reads low by</th><td class="neg">0.4%</td><td class="neg">1.5%</td><td class="neg">3.4%</td><td class="neg">6.0%</td><td class="neg">9.4%</td><td class="neg">13.4%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card rack">
+    <div class="sl" id="sl-theta">
+      <div class="row"><label for="in-theta">Misalignment <em>&#952;</em></label><output id="o-theta"></output></div>
+      <input type="range" id="in-theta" min="0" max="40" step="0.5" value="15">
+    </div>
+    <div class="sl" id="sl-delta">
+      <div class="row"><label for="in-delta">Hand drift <em>&#916;</em></label><output id="o-delta"></output></div>
+      <input type="range" id="in-delta" min="0" max="10" step="0.1" value="5.2">
+    </div>
+    <div class="sl">
+      <div class="row"><label for="in-len">Device length <em>L</em></label><output id="o-len"></output></div>
+      <input type="range" id="in-len" min="4" max="30" step="0.5" value="20">
+    </div>
+    <div class="sl">
+      <div class="row"><label for="in-lever">Lever arm <em>d</em></label><output id="o-lever"></output></div>
+      <input type="range" id="in-lever" min="12" max="50" step="0.5" value="35">
+    </div>
+    <div class="sl slip">
+      <div class="row"><label for="in-slip">Pad slip <em>s</em></label><output id="o-slip"></output></div>
+      <input type="range" id="in-slip" min="-6" max="6" step="0.1" value="2">
+    </div>
+    <div class="sl">
+      <div class="row"><label for="in-force">Limb force <em>F</em></label><output id="o-force"></output></div>
+      <input type="range" id="in-force" min="50" max="700" step="5" value="300">
+    </div>
+  </div>
+
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Notes and keyboard shortcuts">
+    <button type="button" class="btn close" id="btn-close">Close</button>
+    <h2>Two independent errors</h2>
+    <p>A hand-held dynamometer is a uniaxial load cell: it registers only the force running along its own long axis. Tilting it costs you on the dial. Where the pad actually sits costs you on the torque. <b>These are separate failures and neither causes the other.</b></p>
+
+    <div class="cols">
+      <div>
+        <span class="tag a">Tilt &#183; second order</span>
+        <h3>The cosine error on the dial</h3>
+        <div class="eq">reading = F &#183; cos &#952;</div>
+        <p>The limb pushes on the pad perpendicular to the segment. Only the component along the device's axis compresses the load cell; the rest is shear at the pad, carried by skin friction and your hand, and never seen. Because cosine is flat near zero the first few degrees cost almost nothing &#8212; 10&#176; of tilt costs 1.5%.</p>
+        <h3>Where device length comes in &#8212; and where it does not</h3>
+        <div class="eq">&#952; = asin(&#916; / L)</div>
+        <p>You do not set &#952; directly; you set where your hand is. A lateral drift &#916; between the two ends of the device becomes an angle that depends on <b>L</b>: the same 2&#160;cm of drift is 23.6&#176; on a 5&#160;cm pocket device but 5.7&#176; on a 20&#160;cm one. <b>This is the only route by which device length affects anything.</b> Set &#952; directly and length drops out entirely.</p>
+      </div>
+      <div>
+        <span class="tag b">Placement &#183; first order</span>
+        <h3>The lever-arm error, which has nothing to do with length</h3>
+        <div class="eq g">torque error = cos &#952; &#215; d / (d + s) &#8722; 1</div>
+        <p>You put the pad on a mark and measure <em>d</em> to it. If the pad migrates by <em>s</em> during the contraction &#8212; skidding on skin, rolling as the limb moves &#8212; the true lever arm is <em>d</em>&#160;+&#160;<em>s</em> while you still divide by <em>d</em>. Swapping a 5&#160;cm device for a 25&#160;cm one and placing the pad on the same mark changes nothing here: <b>the lever arm is a property of where the pad is, not of how long the device is.</b></p>
+        <p>This error is first-order in <em>s</em> and <b>does not need any tilt at all</b>. With the device perfectly square and 2&#160;cm of slip on a 35&#160;cm arm you are already 5.4% low on torque with a flawless dial reading.</p>
+        <p class="n" style="color:var(--muted)"><b>A note on an earlier version of this model:</b> if you assume the device rotates rigidly about a fixed hand, then <em>s</em> = L&#183;sin&#160;&#952; and length does drive the lever arm. That assumption is not made here, because it inverts the causation &#8212; in a real test the pad is placed first and the hand follows it, not the other way round.</p>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div>
+        <h3>The two errors multiply</h3>
+        <div class="eq">(1 &#8722; 0.034) &#215; (1 &#8722; 0.054) = 1 &#8722; 0.086</div>
+        <p>At the opening setup &#8212; 15&#176; of tilt, 2&#160;cm of slip, 35&#160;cm arm &#8212; the dial is 3.4% low and the placement is 5.4% low, giving 8.6% on the torque estimate. Cosine error is always negative; slip takes its sign from which way the pad went, so a proximal slip can mask the under-read and make the number look better than it is.</p>
+      </div>
+      <div>
+        <h3>Driving it from the keyboard</h3>
+        <ul>
+          <li><kbd>&#8592;</kbd> <kbd>&#8594;</kbd> &#8212; nudge whichever variable is driving the tilt</li>
+          <li><kbd>&#8593;</kbd> <kbd>&#8595;</kbd> &#8212; change the device length</li>
+          <li><kbd>[</kbd> <kbd>]</kbd> &#8212; pad slip; <kbd>\</kbd> puts the pad back on its mark</li>
+          <li><kbd>A</kbd> &#8212; swap between driving by angle and by hand drift</li>
+          <li><kbd>0</kbd> &#8212; back to the opening setup &#183; hold <kbd>Shift</kbd> for coarse steps</li>
+          <li><kbd>N</kbd> or <kbd>?</kbd> &#8212; this panel; <kbd>Esc</kbd> closes it</li>
+        </ul>
+        <h3 style="margin-top:12px">What the model assumes</h3>
+        <ul>
+          <li><b>Frictionless, normal contact.</b> The limb pushes perpendicular to the segment; soft-tissue compliance adds error not shown here.</li>
+          <li><b>A perfectly uniaxial cell.</b> Real cells have some off-axis and bending sensitivity &#8212; device-specific, so check the manufacturer's spec.</li>
+          <li><b>Rigid segment, joint angle held.</b> <em>d</em> runs from the joint's rotation axis to the centre of the pad.</li>
+          <li><b>The examiner is not the weak link.</b> These sit on top of the make/break ceiling that dominates testing of strong groups.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var D2R = Math.PI / 180, R2D = 180 / Math.PI;
+  var LENS = [5, 10, 15, 20, 30];
+  var RAMP = ["--r1", "--r2", "--r3", "--r4", "--r5"];
+  var DEFAULTS = { theta: 15, delta: 5.2, L: 20, d: 35, slip: 2, F: 300, drive: "angle" };
+
+  var S = Object.assign({}, DEFAULTS);
+
+  function el(id) { return document.getElementById(id); }
+  var inTheta = el("in-theta"), inDelta = el("in-delta"), inLen = el("in-len"),
+      inLever = el("in-lever"), inSlip = el("in-slip"), inForce = el("in-force");
+
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function fmt(v, n) { return v.toFixed(n === undefined ? 1 : n); }
+  function signed(v, n) { return (v > 0 ? "+" : v < 0 ? "−" : "") + fmt(Math.abs(v), n); }
+
+  /* ---------- model ----------
+     theta   tilt of the device axis away from perpendicular
+     delta   lateral drift between the device's two ends;  delta = L sin(theta)
+     slip    how far the PAD has migrated from its mark — an independent quantity,
+             NOT a function of L or theta. The lever arm is a property of where
+             the pad is, not of how long the device is.
+  */
+  function sync() {
+    if (S.drive === "angle") S.delta = S.L * Math.sin(S.theta * D2R);
+    else S.theta = Math.asin(clamp(S.delta / S.L, 0, 1)) * R2D;
+  }
+
+  function dEff() { return Math.max(1, S.d + S.slip); }
+  function dialRatio(thetaDeg) { return Math.cos(thetaDeg * D2R); }
+  function torqueRatio(thetaDeg) { return Math.cos(thetaDeg * D2R) * S.d / dEff(); }
+
+  function derive() {
+    var c = Math.cos(S.theta * D2R), de = dEff();
+    return {
+      cos: c, reading: S.F * c, de: de,
+      leverRatio: S.d / de,
+      trueTorque: S.F * de / 100,
+      estTorque: S.F * c * S.d / 100,
+      tRatio: c * S.d / de
+    };
+  }
+
+  /* ---------- schematic ---------- */
+  var JX = 100, LY = 400;
+
+  // Scale follows the setup (d, L, slip) but not theta, so the picture holds
+  // still while the tilt is driven — only the device moves.
+  function scaleFor() {
+    var tail = Math.max(9, S.d * 0.22);
+    var span = S.d + Math.max(S.slip, 0) + S.L * 0.55 + tail;
+    return clamp(Math.min(786 / span, 322 / Math.max(S.L, 9)), 7.5, 22);
+  }
+
+  function drawDia() {
+    var m = derive();
+    var th = S.theta * D2R;
+    var SCALE = scaleFor();
+    var FVEC = clamp(S.L * SCALE * 0.95, 150, 300);
+    var Lpx = S.L * SCALE;
+    var padX = JX + m.de * SCALE;          // where the pad actually is
+    var nomX = JX + S.d * SCALE;           // the mark it was placed on
+    var ux = Math.sin(th), uy = -Math.cos(th);   // device axis, pad -> hand (leaning distally)
+    var handX = padX + Lpx * ux, handY = LY + Lpx * uy;
+
+    var ftipX = padX, ftipY = LY - FVEC;
+    var pl = FVEC * Math.cos(th);
+    var ptX = padX + pl * ux, ptY = LY + pl * uy;
+
+    var g = [];
+    g.push('<defs>' +
+      '<marker id="ah-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0.6 L10 5 L0 9.4 Z" fill="var(--ink)"/></marker>' +
+      '<marker id="ah-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0.6 L10 5 L0 9.4 Z" fill="var(--accent)"/></marker>' +
+      '<marker id="ah-l" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0.8 L10 5 L0 9.2 Z" fill="var(--loss)"/></marker>' +
+      '<marker id="ah-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0.8 L10 5 L0 9.2 Z" fill="var(--geom)"/></marker>' +
+      '</defs>');
+
+    // limb
+    var limbEnd = clamp(Math.max(padX, nomX, handX) + 52, 380, 930);
+    g.push('<path d="M ' + JX + ' ' + LY + ' L ' + fmt(limbEnd - 23, 1) + ' ' + (LY + 5) +
+           ' Q ' + fmt(limbEnd, 1) + ' ' + (LY + 37) + ' ' + fmt(limbEnd - 23, 1) + ' ' + (LY + 69) +
+           ' L ' + JX + ' ' + (LY + 74) + ' Z" fill="var(--limb)" stroke="var(--limb-line)" stroke-width="1.75"/>');
+    g.push('<line x1="' + JX + '" y1="' + (LY + 37) + '" x2="' + fmt(limbEnd + 14, 1) + '" y2="' + (LY + 37) +
+           '" stroke="var(--limb-line)" stroke-width="1.5" stroke-dasharray="8 7"/>');
+    g.push('<circle cx="' + JX + '" cy="' + (LY + 37) + '" r="24" fill="var(--surface)" stroke="var(--limb-line)" stroke-width="2.25"/>');
+    g.push('<circle cx="' + JX + '" cy="' + (LY + 37) + '" r="5" fill="var(--ink)"/>');
+    g.push('<text class="s-label" x="' + JX + '" y="' + (LY + 96) + '" text-anchor="middle">joint axis</text>');
+    g.push('<text class="s-label" x="' + fmt(limbEnd - 8, 1) + '" y="' + (LY + 105) + '" text-anchor="end">limb segment</text>');
+
+    // perpendicular reference — also the true-force direction
+    var refLen = Math.max(Lpx, FVEC) + 42;
+    g.push('<line x1="' + padX + '" y1="' + LY + '" x2="' + padX + '" y2="' + fmt(LY - refLen, 1) +
+           '" stroke="var(--line-2)" stroke-width="2" stroke-dasharray="7 6"/>');
+    g.push('<text class="s-label" x="' + padX + '" y="' + fmt(LY - refLen - 9, 1) +
+           '" text-anchor="middle">perpendicular to the segment</text>');
+
+    // the device
+    g.push('<g transform="rotate(' + fmt(S.theta, 2) + ' ' + padX + ' ' + LY + ')">' +
+      '<rect x="' + (padX - 42) + '" y="' + (LY - 18) + '" width="84" height="19" rx="7" fill="var(--ink-2)"/>' +
+      '<rect x="' + (padX - 15) + '" y="' + (LY - Lpx + 2) + '" width="30" height="' + Math.max(8, Lpx - 18) + '" rx="9" fill="var(--limb)" stroke="var(--limb-line)" stroke-width="2"/>' +
+      '<rect x="' + (padX - 9) + '" y="' + (LY - Math.min(Lpx - 10, 60)) + '" width="18" height="' + Math.min(26, Math.max(6, Lpx * 0.28)) + '" rx="3" fill="var(--muted)" opacity="0.45"/>' +
+      '<rect x="' + (padX - 33) + '" y="' + (LY - Lpx - 11) + '" width="66" height="29" rx="12" fill="var(--limb-line)"/>' +
+      '</g>');
+    g.push('<circle cx="' + fmt(handX, 1) + '" cy="' + fmt(handY, 1) + '" r="4" fill="var(--ink)"/>');
+    g.push('<text class="s-label" x="' + fmt(handX + 44, 1) + '" y="' + fmt(handY + 5, 1) + '">examiner&#8217;s hand</text>');
+
+    // angle arc + label, placed away from the lean
+    var R = clamp(Lpx * 0.58, 78, 168);
+    g.push('<path d="M ' + padX + ' ' + (LY - R) + ' A ' + R + ' ' + R + ' 0 0 1 ' +
+           fmt(padX + R * ux, 1) + ' ' + fmt(LY + R * uy, 1) + '" fill="none" stroke="var(--ink-2)" stroke-width="1.75"/>');
+    g.push('<text class="s-strong" x="' + (padX - 11) + '" y="' + fmt(LY - R - 11, 1) +
+           '" text-anchor="end">' + fmt(S.theta) + '&#176;</text>');
+
+    // shear (unmeasured) component
+    if (S.theta > 0.4) {
+      g.push('<line x1="' + fmt(ptX, 1) + '" y1="' + fmt(ptY, 1) + '" x2="' + ftipX + '" y2="' + ftipY +
+             '" stroke="var(--loss)" stroke-width="2.5" stroke-dasharray="6 5" marker-end="url(#ah-l)"/>');
+      var rvx = ftipX - ptX, rvy = ftipY - ptY, rn = Math.hypot(rvx, rvy) || 1, q = 13;
+      g.push('<polyline points="' +
+        fmt(ptX - q * ux, 1) + ',' + fmt(ptY - q * uy, 1) + ' ' +
+        fmt(ptX - q * ux + q * rvx / rn, 1) + ',' + fmt(ptY - q * uy + q * rvy / rn, 1) + ' ' +
+        fmt(ptX + q * rvx / rn, 1) + ',' + fmt(ptY + q * rvy / rn, 1) +
+        '" fill="none" stroke="var(--loss)" stroke-width="1.5" opacity="0.8"/>');
+    }
+
+    // true force, then the axial component the cell sees
+    g.push('<line x1="' + padX + '" y1="' + LY + '" x2="' + ftipX + '" y2="' + ftipY +
+           '" stroke="var(--ink)" stroke-width="3" marker-end="url(#ah-t)"/>');
+    g.push('<line x1="' + padX + '" y1="' + LY + '" x2="' + fmt(ptX, 1) + '" y2="' + fmt(ptY, 1) +
+           '" stroke="var(--accent)" stroke-width="5.5" marker-end="url(#ah-a)" stroke-linecap="butt"/>');
+
+    // lever arm
+    var DY = LY + 130;
+    g.push('<line x1="' + JX + '" y1="' + (LY + 76) + '" x2="' + JX + '" y2="' + (DY + 11) + '" stroke="var(--line-2)" stroke-width="1.5"/>');
+    g.push('<line x1="' + fmt(padX, 1) + '" y1="' + (LY + 10) + '" x2="' + fmt(padX, 1) + '" y2="' + (DY + 11) + '" stroke="var(--line-2)" stroke-width="1.5" stroke-dasharray="5 5"/>');
+    g.push('<line x1="' + JX + '" y1="' + DY + '" x2="' + fmt(padX, 1) + '" y2="' + DY +
+           '" stroke="var(--geom)" stroke-width="2.25" marker-start="url(#ah-g)" marker-end="url(#ah-g)"/>');
+    g.push('<text class="s-geom" x="' + fmt((JX + padX) / 2, 1) + '" y="' + (DY - 11) + '" text-anchor="middle">actual lever arm ' + fmt(m.de) + ' cm</text>');
+
+    if (Math.abs(S.slip) > 0.05) {
+      var SY = DY + 42;
+      g.push('<line x1="' + fmt(nomX, 1) + '" y1="' + (LY + 76) + '" x2="' + fmt(nomX, 1) + '" y2="' + (SY + 11) + '" stroke="var(--geom)" stroke-width="1.5" stroke-dasharray="4 5" opacity="0.75"/>');
+      g.push('<line x1="' + fmt(nomX, 1) + '" y1="' + SY + '" x2="' + fmt(padX, 1) + '" y2="' + SY +
+             '" stroke="var(--geom)" stroke-width="2.75" marker-end="url(#ah-g)"/>');
+      g.push('<circle cx="' + fmt(nomX, 1) + '" cy="' + (LY + 2) + '" r="5" fill="none" stroke="var(--geom)" stroke-width="2.25"/>');
+      g.push('<text class="s-geom" x="' + fmt(clamp((nomX + padX) / 2, 200, 790), 1) + '" y="' + (SY + 26) +
+             '" text-anchor="middle">pad slipped ' + fmt(Math.abs(S.slip)) + ' cm ' + (S.slip > 0 ? 'distally' : 'proximally') +
+             ' off the ' + fmt(S.d) + ' cm mark</text>');
+    } else {
+      g.push('<text class="s-label" x="' + fmt((JX + padX) / 2, 1) + '" y="' + (DY + 32) +
+             '" text-anchor="middle">pad is on its mark, so the lever arm is right</text>');
+    }
+
+    el("dia").innerHTML = g.join("");
+
+    var calc = 'dial &#160;<b>' + Math.round(S.F) + ' &#215; cos ' + fmt(S.theta) + '&#176; = ' + Math.round(m.reading) + ' N</b>';
+    calc += '<br>torque &#160;<em>(' + Math.round(m.reading) + ' &#215; ' + fmt(S.d) + ') &#247; ' + fmt(m.de) +
+            ' &#8658; ' + fmt(m.tRatio * 100) + '% of true</em>';
+
+    el("vkey").innerHTML =
+      '<span class="vk"><i class="sw" style="border-top-style:solid;border-top-color:var(--ink)"></i>' +
+        'F, perpendicular &#160;<b>' + Math.round(S.F) + '&#8239;N</b></span>' +
+      '<span class="vk"><i class="sw" style="border-top-style:solid;border-top-color:var(--accent)"></i>' +
+        'F&#183;cos&#160;&#952;, along the axis &#160;<b>' + Math.round(m.reading) + '&#8239;N</b> <span class="n">&#8212; the dial</span></span>' +
+      '<span class="vk"><i class="sw" style="border-top-style:dashed;border-top-color:var(--loss)"></i>' +
+        'F&#183;sin&#160;&#952;, shear &#160;<b>' + Math.round(S.F * Math.sin(th)) + '&#8239;N</b> <span class="n">&#8212; never measured</span></span>' +
+      '<span class="calc">' + calc + '</span>';
+  }
+
+  /* ---------- chart ---------- */
+  var CW = 700, CH = 560, ML = 62, MR = 82, MT = 16, MB = 62;
+  var PX0 = ML, PX1 = CW - MR, PY0 = MT, PY1 = CH - MB;
+  var cState = null;
+
+  function buildSeries(cs) {
+    var lo = 0, hi = S.drive === "angle" ? 40 : 10, N = 200, out = [];
+    var hasSlip = Math.abs(S.slip) > 0.05;
+
+    function sample(fn, limitL) {
+      var pts = [];
+      for (var k = 0; k <= N; k++) {
+        var xv = lo + (hi - lo) * k / N;
+        if (limitL !== undefined && xv > limitL) break;
+        var t = S.drive === "angle" ? xv : Math.asin(clamp(xv / limitL, 0, 1)) * R2D;
+        var r = fn(t);
+        if (!isFinite(r)) break;
+        pts.push([xv, r * 100]);
+      }
+      return pts;
+    }
+
+    if (S.drive === "angle") {
+      // length cannot enter here — both curves are length-independent
+      out.push({ key: "dial", label: "dial reading", tip: "dial", color: "var(--accent)", w: 4, pts: sample(dialRatio) });
+      if (hasSlip) out.push({ key: "torque", label: "torque estimate", tip: "torque", color: "var(--geom)", w: 4, dash: "7 5", pts: sample(torqueRatio) });
+    } else {
+      LENS.forEach(function (L, i) {
+        out.push({
+          key: "L" + L, label: L + " cm", tip: L + " cm", L: L,
+          color: cs.getPropertyValue(RAMP[i]).trim(),
+          w: Math.abs(L - S.L) < 0.26 ? 4 : 2.25,
+          pts: sample(dialRatio, L)
+        });
+      });
+    }
+    return { lo: lo, hi: hi, series: out };
+  }
+
+  function drawChart() {
+    var cs = getComputedStyle(document.documentElement);
+    var built = buildSeries(cs), lo = built.lo, hi = built.hi, series = built.series;
+
+    var lowest = 100;
+    series.forEach(function (s) { s.pts.forEach(function (p) { if (p[1] < lowest) lowest = p[1]; }); });
+    var yLo = clamp(Math.floor(lowest / 5) * 5, 50, 95), yHi = 100;
+
+    var X = function (v) { return PX0 + (v - lo) / (hi - lo) * (PX1 - PX0); };
+    var Y = function (v) { return PY1 - (v - yLo) / (yHi - yLo) * (PY1 - PY0); };
+    cState = { X: X, Y: Y, lo: lo, hi: hi, series: series };
+
+    var g = [], i;
+    for (i = 0; i <= 5; i++) {
+      var yv = yLo + (yHi - yLo) * i / 5, yy = Y(yv);
+      g.push('<line x1="' + PX0 + '" y1="' + fmt(yy, 1) + '" x2="' + PX1 + '" y2="' + fmt(yy, 1) + '" stroke="var(--line)" stroke-width="1"/>');
+      g.push('<text class="c-axis" x="' + (PX0 - 11) + '" y="' + fmt(yy + 4.5, 1) + '" text-anchor="end">' + fmt(yv, 0) + '%</text>');
+    }
+    (S.drive === "angle" ? [0, 10, 20, 30, 40] : [0, 2, 4, 6, 8, 10]).forEach(function (v) {
+      g.push('<line x1="' + fmt(X(v), 1) + '" y1="' + PY1 + '" x2="' + fmt(X(v), 1) + '" y2="' + (PY1 + 6) + '" stroke="var(--line-2)" stroke-width="1"/>');
+      g.push('<text class="c-axis" x="' + fmt(X(v), 1) + '" y="' + (PY1 + 24) + '" text-anchor="middle">' + v + '</text>');
+    });
+    g.push('<line x1="' + PX0 + '" y1="' + PY1 + '" x2="' + PX1 + '" y2="' + PY1 + '" stroke="var(--line-2)" stroke-width="1.5"/>');
+    g.push('<text class="c-title" x="' + ((PX0 + PX1) / 2) + '" y="' + (PY1 + 48) + '" text-anchor="middle">' +
+           (S.drive === "angle" ? "misalignment &#952; (degrees)" : "hand drift &#916; off square (cm)") + '</text>');
+    g.push('<text class="c-title" transform="translate(16 ' + ((PY0 + PY1) / 2) + ') rotate(-90)" text-anchor="middle">% of the true value</text>');
+
+    series.forEach(function (s) {
+      var vis = [];
+      for (var k = 0; k < s.pts.length; k++) { if (s.pts[k][1] < yLo) break; vis.push(s.pts[k]); }
+      if (vis.length < 2) return;
+      var dp = vis.map(function (p, k) { return (k ? "L" : "M") + fmt(X(p[0]), 1) + " " + fmt(Y(p[1]), 1); }).join(" ");
+      g.push('<path d="' + dp + '" fill="none" stroke="' + s.color + '" stroke-width="' + s.w + '"' +
+             (s.dash ? ' stroke-dasharray="' + s.dash + '"' : '') + ' stroke-linecap="round" stroke-linejoin="round"/>');
+      var last = vis[vis.length - 1];
+      var lx = X(last[0]), ly = clamp(Y(last[1]), PY0 + 9, PY1 - 5);
+      var atEdge = lx > PX1 - 6;
+      g.push('<text class="c-end" x="' + fmt(atEdge ? PX1 + 9 : lx, 1) + '" y="' + fmt(atEdge ? ly + 4 : ly - 11, 1) +
+             '" fill="' + s.color + '" text-anchor="' + (atEdge ? "start" : "middle") + '">' + s.tip + '</text>');
+    });
+
+    // current setup
+    var curX = S.drive === "angle" ? S.theta : Math.min(S.delta, hi);
+    var curR = S.drive === "angle" && Math.abs(S.slip) > 0.05 ? torqueRatio(S.theta) : dialRatio(S.theta);
+    var cy = clamp(curR * 100, yLo, yHi);
+    g.push('<line x1="' + fmt(X(curX), 1) + '" y1="' + PY0 + '" x2="' + fmt(X(curX), 1) + '" y2="' + PY1 +
+           '" stroke="var(--ink-2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>');
+    g.push('<circle cx="' + fmt(X(curX), 1) + '" cy="' + fmt(Y(cy), 1) + '" r="7.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="3"/>');
+    var left = X(curX) < (PX0 + PX1) / 2;
+    g.push('<text class="c-end" x="' + fmt(left ? X(curX) + 15 : X(curX) - 15, 1) + '" y="' + fmt(Y(cy) - 15, 1) +
+           '" fill="var(--accent)" text-anchor="' + (left ? "start" : "end") + '">now &#183; ' + fmt(curR * 100) + '%</text>');
+
+    g.push('<rect id="hit" x="' + PX0 + '" y="' + PY0 + '" width="' + (PX1 - PX0) + '" height="' + (PY1 - PY0) + '" fill="transparent"/>');
+    g.push('<line id="cross" x1="0" y1="' + PY0 + '" x2="0" y2="' + PY1 + '" stroke="var(--ink-2)" stroke-width="1" opacity="0"/>');
+
+    el("chart").innerHTML = g.join("");
+    attachHover();
+
+    var hasSlip = Math.abs(S.slip) > 0.05;
+    el("ch-title").textContent = S.drive === "angle" ? "Both errors against tilt" : "The dial, by device length";
+    el("ch-sub").innerHTML = S.drive === "angle"
+      ? (hasSlip
+          ? "The gap between the curves is the pad slip, and it is <b>already there at 0&#176;</b>. Neither curve depends on L &#8212; with &#952; set directly, device length does not enter."
+          : "Pad on its mark, so the dial is the whole story: F&#183;cos&#160;&#952;. <b>Device length does not enter this at all.</b>")
+      : "Here is the one place length matters: the same drift is a big angle on a short device and a small one on a long device. <b>Length buys angular tolerance</b> &#8212; it does nothing to the lever arm.";
+
+    el("ch-legend").innerHTML = series.map(function (s) {
+      return '<span class="lg"><i class="sw" style="background:' + s.color + '"></i>' + s.label + '</span>';
+    }).join("");
+  }
+
+  function attachHover() {
+    var svg = el("chart"), hit = el("hit"), cross = el("cross"), tip = el("tip");
+    if (!hit) return;
+    var card = svg.closest(".chart-card");
+
+    function move(ev) {
+      var r = svg.getBoundingClientRect();
+      var cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      var cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      var sc = Math.min(r.width / CW, r.height / CH);
+      var ox = r.left + (r.width - CW * sc) / 2, oy = r.top + (r.height - CH * sc) / 2;
+      var sx = (cx - ox) / sc, sy = (cy - oy) / sc;
+      if (sx < PX0 || sx > PX1 || sy < PY0 || sy > PY1) { hide(); return; }
+      var v = cState.lo + (sx - PX0) / (PX1 - PX0) * (cState.hi - cState.lo);
+      cross.setAttribute("x1", sx); cross.setAttribute("x2", sx); cross.setAttribute("opacity", "0.45");
+
+      tip.innerHTML = '<span class="hd">' + (S.drive === "angle" ? fmt(v) + "&#176; tilt" : fmt(v) + "&#160;cm drift") + '</span>' +
+        cState.series.map(function (s) {
+          var no = s.L !== undefined && v > s.L;
+          var t = S.drive === "angle" ? v : Math.asin(clamp(v / s.L, 0, 1)) * R2D;
+          var rr = s.key === "torque" ? torqueRatio(t) : dialRatio(t);
+          return '<span><i style="background:' + s.color + '"></i>' + s.tip + ' &#183; <b>' +
+                 (no || !isFinite(rr) ? "&#8212;" : fmt(rr * 100) + "%") + '</b></span>';
+        }).join("<br>");
+      tip.style.opacity = "1";
+      var cr = card.getBoundingClientRect();
+      tip.style.left = clamp(cx - cr.left, 92, cr.width - 92) + "px";
+      tip.style.top = (cy - cr.top - 14) + "px";
+    }
+    function hide() { cross.setAttribute("opacity", "0"); tip.style.opacity = "0"; }
+
+    hit.addEventListener("mousemove", move);
+    hit.addEventListener("mouseleave", hide);
+    hit.addEventListener("touchmove", function (e) { move(e); e.preventDefault(); }, { passive: false });
+    hit.addEventListener("touchend", hide);
+  }
+
+  /* ---------- tiles & inputs ---------- */
+  function drawTiles() {
+    var m = derive();
+    el("t-read").innerHTML = Math.round(m.reading) + "<u>N</u>";
+    el("t-read-s").textContent = "true force " + Math.round(S.F) + " N";
+
+    var fPct = (m.cos - 1) * 100;
+    el("t-force").textContent = (fPct <= -0.05 ? "−" : "") + fmt(Math.abs(fPct)) + "%";
+    el("t-force-s").textContent = "cos " + fmt(S.theta) + "° = " + m.cos.toFixed(3);
+    el("tile-force").className = "tile " + (fPct <= -0.05 ? "is-loss" : "is-flat");
+
+    el("t-lever").innerHTML = fmt(m.de) + "<u>cm</u>";
+    el("t-lever-s").textContent = Math.abs(S.slip) < 0.05
+      ? "pad on the " + fmt(S.d) + " cm mark"
+      : signed(S.slip) + " cm off the " + fmt(S.d) + " cm mark";
+    el("tile-lever").className = "tile " + (Math.abs(S.slip) < 0.05 ? "is-flat" : "is-geom");
+
+    var tPct = (m.tRatio - 1) * 100;
+    el("t-torque").textContent = (tPct <= -0.05 ? "−" : tPct >= 0.05 ? "+" : "") + fmt(Math.abs(tPct)) + "%";
+    el("t-torque-s").textContent = fmt(m.estTorque) + " vs " + fmt(m.trueTorque) + " N·m";
+    el("tile-torque").className = "tile " + (tPct > 0.05 ? "is-geom" : tPct < -0.05 ? "is-loss" : "is-flat");
+
+    var ref = [5, 10, 15, 20, 25, 30], cols = el("row-err").children, best = -1, bd = 2.6;
+    for (var i = 0; i < ref.length; i++) {
+      var dd = Math.abs(ref[i] - S.theta);
+      if (dd < bd) { bd = dd; best = i; }
+    }
+    el("row-err").classList.toggle("hi", best >= 0);
+    for (var j = 1; j < cols.length; j++) { cols[j].style.outline = ""; cols[j].style.borderRadius = ""; }
+    if (best >= 0) { cols[best + 1].style.outline = "2px solid var(--accent)"; cols[best + 1].style.borderRadius = "4px"; }
+  }
+
+  function drawInputs() {
+    inTheta.value = S.theta; inDelta.value = Math.min(S.delta, 10);
+    inLen.value = S.L; inLever.value = S.d; inSlip.value = S.slip; inForce.value = S.F;
+
+    el("o-theta").textContent = fmt(S.theta) + "°";
+    el("o-delta").textContent = fmt(S.delta) + " cm";
+    el("o-len").textContent = fmt(S.L) + " cm";
+    el("o-lever").textContent = fmt(S.d) + " cm";
+    el("o-slip").textContent = Math.abs(S.slip) < 0.05 ? "on mark" : signed(S.slip) + " cm";
+    el("o-force").textContent = Math.round(S.F) + " N";
+
+    var byAngle = S.drive === "angle";
+    inTheta.disabled = !byAngle; inDelta.disabled = byAngle;
+    el("sl-theta").classList.toggle("derived", !byAngle);
+    el("sl-delta").classList.toggle("derived", byAngle);
+
+    document.querySelectorAll("[data-drive]").forEach(function (b) {
+      b.setAttribute("aria-pressed", b.dataset.drive === S.drive ? "true" : "false");
+    });
+  }
+
+  function render() { sync(); drawInputs(); drawDia(); drawTiles(); drawChart(); }
+
+  /* ---------- wiring ---------- */
+  inTheta.addEventListener("input", function () { S.theta = +this.value; S.drive = "angle"; render(); });
+  inDelta.addEventListener("input", function () { S.delta = +this.value; S.drive = "offset"; render(); });
+  inLen.addEventListener("input", function () { S.L = +this.value; render(); });
+  inLever.addEventListener("input", function () { S.d = +this.value; render(); });
+  inSlip.addEventListener("input", function () { S.slip = +this.value; render(); });
+  inForce.addEventListener("input", function () { S.F = +this.value; render(); });
+
+  document.querySelectorAll("[data-drive]").forEach(function (b) {
+    b.addEventListener("click", function () { S.drive = b.dataset.drive; render(); });
+  });
+
+  var scrim = el("scrim");
+  function notes(open) { scrim.hidden = !open; if (open) el("btn-close").focus(); else el("btn-notes").focus(); }
+  el("btn-notes").addEventListener("click", function () { notes(true); });
+  el("btn-close").addEventListener("click", function () { notes(false); });
+  scrim.addEventListener("click", function (e) { if (e.target === scrim) notes(false); });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key;
+    if (k === "Escape") { notes(false); return; }
+    if (!scrim.hidden) return;
+    var step = e.shiftKey ? 5 : 1;
+
+    if (k === "ArrowLeft" || k === "ArrowRight") {
+      if ((e.target.tagName || "").toLowerCase() === "input") return;
+      var dir = k === "ArrowRight" ? 1 : -1;
+      if (S.drive === "angle") S.theta = clamp(S.theta + dir * step * 0.5, 0, 40);
+      else S.delta = clamp(S.delta + dir * step * 0.2, 0, 10);
+    } else if (k === "ArrowUp" || k === "ArrowDown") {
+      S.L = clamp(S.L + (k === "ArrowUp" ? 1 : -1) * step * 0.5, 4, 30);
+    } else if (k === "]") { S.slip = clamp(S.slip + step * 0.2, -6, 6); }
+    else if (k === "[") { S.slip = clamp(S.slip - step * 0.2, -6, 6); }
+    else if (k === "\\") { S.slip = 0; }
+    else if (k === "a" || k === "A") { S.drive = S.drive === "angle" ? "offset" : "angle"; }
+    else if (k === "0") { Object.assign(S, DEFAULTS); }
+    else if (k === "n" || k === "N" || k === "?") { notes(true); return; }
+    else return;
+
+    e.preventDefault();
+    render();
+  });
+
+  window.addEventListener("resize", function () { el("tip").style.opacity = "0"; });
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", render);
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>

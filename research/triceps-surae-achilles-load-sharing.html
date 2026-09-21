@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bundle recruitment and regional Achilles load &mdash; v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#060D13; --panel:#0C1620; --panel-2:#0A131B;
+    --rule:rgba(126,178,206,.16); --rule-soft:rgba(126,178,206,.08);
+    --text:#C9DCE6; --muted:#6E8695; --bright:#EAF5FA;
+    --mg:#F5A623; --lg:#3FC8E8; --sol:#C77DFF; --steel:#9FB6C4;
+    --display:"Barlow Condensed","Oswald","Arial Narrow",sans-serif;
+    --body:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --data:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:var(--body);
+    font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1100px 620px at 20% -12%, rgba(63,200,232,.055), transparent 62%),
+      radial-gradient(900px 560px at 88% 108%, rgba(199,125,255,.05), transparent 60%);}
+  .stage{min-height:100vh;display:flex;flex-direction:column;padding:12px 14px 10px;gap:9px}
+
+  .top{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+       border-bottom:1px solid var(--rule);padding-bottom:8px}
+  .eyebrow{font-family:var(--display);font-size:11px;letter-spacing:.26em;
+           text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  h1{font-family:var(--display);font-weight:500;font-size:25px;letter-spacing:.012em;
+     margin:0;color:var(--bright);line-height:1}
+  h1 em{font-style:normal;color:var(--muted)}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+  .trial-count{font-family:var(--data);font-size:11px;color:var(--muted);letter-spacing:.06em}
+  .trial-count b{color:var(--bright);font-weight:500}
+
+  .grid{flex:1;min-height:0;display:grid;gap:9px;
+        grid-template-columns:.95fr 1.20fr .70fr .78fr 1.00fr}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));
+         border:1px solid var(--rule);border-radius:3px;
+         display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .panel-head{display:flex;align-items:baseline;gap:8px;padding:7px 10px 6px;
+              border-bottom:1px solid var(--rule-soft)}
+  .panel-head h2{font-family:var(--display);font-weight:500;font-size:11.5px;letter-spacing:.19em;
+                 text-transform:uppercase;margin:0;color:var(--steel);white-space:nowrap}
+  .panel-head span{font-family:var(--data);font-size:9.5px;color:var(--muted);margin-left:auto;
+                   letter-spacing:.03em;text-align:right}
+  .canvas-wrap{flex:1;min-height:0;position:relative}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  .readouts{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;
+            background:var(--rule-soft);border:1px solid var(--rule);border-radius:3px}
+  .ro{background:var(--panel-2);padding:6px 11px 7px}
+  .ro-label{font-family:var(--display);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+            color:var(--muted);display:block;margin-bottom:1px}
+  .ro-val{font-family:var(--data);font-size:14px;color:var(--bright)}
+  .ro-val small{font-size:10px;color:var(--muted)}
+
+  .rail{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+        border-top:1px solid var(--rule);padding-top:9px}
+  .ctl{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .ctl > label{font-family:var(--display);font-size:10px;letter-spacing:.17em;
+               text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .seg{display:flex;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+  .seg button{appearance:none;background:transparent;border:0;border-right:1px solid var(--rule-soft);
+              color:var(--muted);font-family:var(--body);font-size:11.5px;padding:5px 9px;cursor:pointer;
+              white-space:nowrap;transition:background .14s,color .14s}
+  .seg button:last-child{border-right:0}
+  .seg button:hover{color:var(--text);background:rgba(159,182,196,.07)}
+  .seg button[aria-pressed="true"]{background:rgba(159,182,196,.15);color:var(--bright)}
+  .slider{display:flex;align-items:center;gap:8px}
+  input[type=range]{appearance:none;width:86px;height:14px;background:transparent;cursor:pointer;margin:0}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--rule)}
+  input[type=range]::-webkit-slider-thumb{appearance:none;width:9px;height:9px;border-radius:50%;
+      background:var(--steel);margin-top:-4px}
+  input[type=range]:hover::-webkit-slider-thumb{background:var(--bright)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--rule)}
+  input[type=range]::-moz-range-thumb{width:9px;height:9px;border:0;border-radius:50%;background:var(--steel)}
+  .slider output{font-family:var(--data);font-size:11.5px;color:var(--bright);min-width:34px}
+  .actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+  button.act{appearance:none;font-family:var(--body);font-size:12px;padding:7px 13px;border-radius:2px;
+             cursor:pointer;border:1px solid var(--rule);background:transparent;color:var(--text);
+             transition:background .14s,border-color .14s,color .14s}
+  button.act:hover{border-color:var(--steel);color:var(--bright)}
+  button.primary{background:var(--bright);color:#08131A;border-color:var(--bright);font-weight:500}
+  button.primary:hover{background:#fff;color:#000}
+  :focus-visible{outline:1px solid var(--lg);outline-offset:2px}
+
+  .notes{position:fixed;inset:0;background:rgba(4,9,13,.87);backdrop-filter:blur(3px);
+         display:none;align-items:center;justify-content:center;padding:24px;z-index:20}
+  .notes[data-open="true"]{display:flex}
+  .notes-inner{max-width:860px;max-height:86vh;overflow:auto;background:var(--panel);
+               border:1px solid var(--rule);border-radius:3px;padding:26px 30px 30px}
+  .notes-inner h3{font-family:var(--display);font-size:13px;letter-spacing:.2em;text-transform:uppercase;
+                  color:var(--steel);margin:22px 0 8px;font-weight:500}
+  .notes-inner h3:first-child{margin-top:0}
+  .notes-inner p,.notes-inner li{font-size:12.5px;color:var(--text);margin:0 0 7px}
+  .notes-inner ul{padding-left:17px;margin:0 0 4px}
+  .ref{font-size:11.5px;color:var(--muted);margin-bottom:5px}
+  .ref b{color:var(--text);font-weight:500}
+  .notes-close{float:right;margin:-6px -8px 0 12px}
+  .warn{border-left:2px solid var(--mg);padding-left:12px;margin:0 0 8px}
+  .contest{border-left:2px solid var(--lg);padding-left:12px;margin:0 0 8px}
+  table.v{width:100%;border-collapse:collapse;margin:2px 0 10px;font-size:11.5px}
+  table.v th{font-family:var(--display);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+             color:var(--muted);text-align:left;font-weight:500;padding:4px 8px 4px 0;
+             border-bottom:1px solid var(--rule)}
+  table.v td{padding:4px 8px 4px 0;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  table.v td:first-child{color:var(--bright)}
+  .footnote{font-size:10.5px;color:var(--muted)}
+
+  @media (max-width:1400px){
+    .grid{grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(280px,1fr)}
+    .readouts{grid-template-columns:repeat(3,1fr)}
+  }
+  @media (max-width:900px){
+    .grid{grid-template-columns:1fr}
+    .canvas-wrap{height:320px}
+    .readouts{grid-template-columns:repeat(2,1fr)}
+    .actions{margin-left:0;width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="top">
+    <span class="eyebrow">Myotendinous bundles &rarr; Achilles subtendons</span>
+    <h1>Which bundles fire changes <em>where the tendon loads</em></h1>
+    <div class="top-right">
+      <span class="trial-count">TRIAL <b id="trialNo">0</b></span>
+      <button class="act" id="notesBtn">Model notes &amp; sources</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head"><h2>Bundle discharges</h2><span id="driveSub">by threshold</span></div>
+      <div class="canvas-wrap"><canvas id="cDrive"></canvas></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Bundle map</h2><span id="mapSub">insertion cross-section</span></div>
+      <div class="canvas-wrap"><canvas id="cMap"></canvas></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Posterior</h2><span>right limb</span></div>
+      <div class="canvas-wrap"><canvas id="cAnat"></canvas></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Rotation</h2><span id="secSub">axial</span></div>
+      <div class="canvas-wrap"><canvas id="cSect"></canvas></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Insertion &amp; trial spread</h2><span>calcaneal footprint</span></div>
+      <div class="canvas-wrap"><canvas id="cFoot"></canvas></div>
+    </section>
+  </div>
+
+  <div class="readouts">
+    <div class="ro"><span class="ro-label">Peak force</span><span class="ro-val" id="roForce">&mdash;</span></div>
+    <div class="ro"><span class="ro-label">Load share</span><span class="ro-val" id="roShare">&mdash;</span></div>
+    <div class="ro"><span class="ro-label">Peak bundle stress</span><span class="ro-val" id="roStress">&mdash;</span></div>
+    <div class="ro"><span class="ro-label">Non-uniformity</span><span class="ro-val" id="roNU">&mdash;</span></div>
+    <div class="ro"><span class="ro-label">Force spread</span><span class="ro-val" id="roFcv">&mdash;</span></div>
+    <div class="ro"><span class="ro-label">Centroid scatter</span><span class="ro-val" id="roSpread">&mdash;</span></div>
+  </div>
+
+  <div class="rail">
+    <div class="ctl">
+      <label id="taskLbl">Task</label>
+      <div class="seg" role="group" aria-labelledby="taskLbl" id="segTask">
+        <button data-v="iso" aria-pressed="true">Isometric ramp</button>
+        <button data-v="raise" aria-pressed="false">Heel raise</button>
+        <button data-v="walk" aria-pressed="false">Walk push-off</button>
+        <button data-v="hop" aria-pressed="false">Hop</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label id="twistLbl">Twist</label>
+      <div class="seg" role="group" aria-labelledby="twistLbl" id="segTwist">
+        <button data-v="1" aria-pressed="false">I</button>
+        <button data-v="2" aria-pressed="true">II</button>
+        <button data-v="3" aria-pressed="false">III</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label for="knee">Knee flexion</label>
+      <div class="slider"><input type="range" id="knee" min="0" max="90" step="5" value="0"><output id="kneeOut">0&deg;</output></div>
+    </div>
+
+    <div class="ctl">
+      <label for="coupling">Interfascicular coupling</label>
+      <div class="slider"><input type="range" id="coupling" min="0" max="100" step="5" value="20"><output id="couplingOut">0.20</output></div>
+    </div>
+
+    <div class="ctl">
+      <label id="presetLbl">Variability</label>
+      <div class="seg" role="group" aria-labelledby="presetLbl" id="segPreset">
+        <button data-v="fixed" aria-pressed="false">Identical</button>
+        <button data-v="session" aria-pressed="true">Same session</button>
+        <button data-v="days" aria-pressed="false">Between days</button>
+        <button data-v="people" aria-pressed="false">Between people</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label for="cvCommon">Common CV</label>
+      <div class="slider"><input type="range" id="cvCommon" min="0" max="30" step="1" value="12"><output id="cvCommonOut">12%</output></div>
+    </div>
+
+    <div class="ctl">
+      <label for="cvDiff">Differential CV</label>
+      <div class="slider"><input type="range" id="cvDiff" min="0" max="30" step="1" value="6"><output id="cvDiffOut">6%</output></div>
+    </div>
+
+    <div class="actions">
+      <button class="act" id="clearBtn">Clear trials</button>
+      <button class="act" id="tenBtn">Run 10 trials</button>
+      <button class="act primary" id="runBtn">Run trial</button>
+    </div>
+  </div>
+</div>
+
+<div class="notes" id="notes" role="dialog" aria-modal="true" aria-label="Model notes and sources">
+  <div class="notes-inner">
+    <button class="act notes-close" id="notesClose">Close</button>
+
+    <h3>What this shows</h3>
+    <p>The Achilles is not one rope. It is three subtendons &mdash; from medial gastrocnemius, lateral gastrocnemius and soleus &mdash; that spiral around each other on the way to the calcaneus. In this version the muscle&ndash;tendon path is modelled the way the tissue is actually arranged: as bundles running longitudinally in parallel, each with its own recruitment threshold and its own territory in the tendon cross-section. Loading the tendon patchily is then not something drawn onto the picture; it is what happens when only some bundles are recruited.</p>
+    <p class="warn">Teaching schematic, not a validated finite-element model. Stresses are multiples of mean tendon stress; centroid offsets are a percentage of tendon radius. No absolute values (MPa, mm, N) are reported, because the model has neither the geometry nor the material properties to justify them.</p>
+
+    <h3>Why this replaced the proximal/mid/distal zones</h3>
+    <p>Elements in series must carry cumulative force, so in the previous version the distal zone was always the sum and regional detail necessarily disappeared by the free tendon. That is correct for total force but it meant the model structurally could not produce differential sliding between adjacent tendon fascicles &mdash; which is the phenomenon actually observed. Non-uniform displacement is a cross-sectional effect between parallel neighbours, not a longitudinal gradient. Parallel bundles generate it natively.</p>
+    <p class="footnote">One casualty of the change: the previous version shifted medial gastrocnemius activity proximally with knee flexion, following array EMG findings. That was a longitudinal-region effect and has no representation in a purely parallel model, so it has been removed rather than faked. Knee flexion still reduces gastrocnemius force capacity along its force&ndash;length relation and withdraws some drive.</p>
+
+    <h3>Bundle structure</h3>
+    <ul>
+      <li>14 bundles per muscle, 42 in total. Recruitment thresholds are exponentially distributed, as are twitch amplitudes; bundle cross-sectional area scales with twitch amplitude, and areas within a muscle sum to that subtendon's share (SOL 0.50 / MG 0.30 / LG 0.20).</li>
+      <li>Each bundle holds a fixed position inside its subtendon's wedge and carries that position through the twist, so the same bundle can be posterior proximally and deep at the insertion.</li>
+      <li>Bundle stress is its own force divided by its own area, expressed as a multiple of mean tendon stress. Orderly recruitment therefore makes low-intensity contractions spatially patchy, and loading becomes more even as more bundles recruit &mdash; an intensity-dependent change in load <em>distribution</em>, not just magnitude.</li>
+      <li>Trial-to-trial noise acts on excitation, so it bites hardest on bundles sitting near their threshold. That is a more defensible locus for the variation than a whole-muscle gain multiplier.</li>
+    </ul>
+
+    <h3>Interfascicular coupling</h3>
+    <p>Perfectly independent strands would overstate non-uniformity, because the interfascicular matrix transmits shear as well as permitting sliding. The coupling parameter &kappa; blends each bundle's stress with a distance-weighted average of its cross-sectional neighbours, using a Gaussian kernel whose width grows with &kappa; (&sigma; = 0.12 + 1.4&kappa; in units of tendon radius). At &kappa; = 0 bundles are independent and non-uniformity is maximal; at &kappa; = 1 the tendon behaves as a bonded unit and stress is near-uniform.</p>
+    <p>This is the ageing and pathology control. Non-uniform displacement is reduced with ageing, after repair of a ruptured tendon, and with pathological change, so raising &kappa; is the model's way of representing those states. The kernel form and the &sigma; range are modelling choices, not measured values, and &kappa; is not calibrated against any dataset &mdash; treat it as a qualitative dial.</p>
+
+    <h3>The two noise sources</h3>
+    <p>Trial-to-trial fluctuation in synergist activation is partly shared (common descending drive) and partly muscle-specific. Only the second moves the load centroid. Raising <b>common CV</b> alone makes total force vary between trials while the sharing ratio, and therefore the centroid, stays put.</p>
+    <p class="footnote">Note on scaling: a given CV on <em>drive</em> emerges as a larger CV on <em>force</em>, because excitation passes through the expansive recruitment-plus-rate-coding nonlinearity. The sliders are drive-level quantities, so the Force spread readout will read higher than the drive CV you set.</p>
+
+    <h3>What the variability presets are anchored to</h3>
+    <table class="v">
+      <tr><th>Level</th><th>Healthy value</th><th>Note</th></tr>
+      <tr><td>Motor unit CoV-ISI</td><td>~10&ndash;20% at low-moderate isometric, falling with intensity</td><td>Model uses 20% throughout.</td></tr>
+      <tr><td>Torque steadiness (CV of force)</td><td>~2&ndash;3% from 10&ndash;70% MVF</td><td>Within-trial steadiness, not between-trial peak.</td></tr>
+      <tr><td>Single-muscle sEMG, within session</td><td>CV ~9&ndash;36%; medial gastrocnemius ~23&ndash;31%</td><td>Includes measurement error &mdash; a ceiling, not biology.</td></tr>
+      <tr><td>Force-sharing <em>ratio</em></td><td>Small within-person; large between-person and repeatable across days</td><td>Crouzier 2018 (n=20), 2019 (n=85). Why "Between people" is widest.</td></tr>
+      <tr><td>Tendon non-uniformity</td><td>~3.0 &plusmn; 1.5 mm; between-trial ICC 0.68&ndash;0.92, SEM 0.4&ndash;0.7 mm</td><td>Between-subject SD roughly half the mean.</td></tr>
+    </table>
+    <p class="footnote">Presets: Identical 0/0 &middot; Same session 12/6 &middot; Between days 12/10 &middot; Between people 12/26. Differential values are reasoned from the table, not lifted from one paper. Nobody has measured trial-to-trial variability of the insertion load centroid in vivo, so that readout has no empirical benchmark.</p>
+
+    <h3>Structural assumptions</h3>
+    <ul>
+      <li>Rotation applied mostly over the distal 5&nbsp;cm, matching the reported soleus torsion site 3&ndash;5&nbsp;cm proximal to the calcaneal attachment; MG close to parallel in all types.</li>
+      <li>Twist types implemented so the classification falls out of the geometry: Type I only SOL reaches the deep layer of the tuberosity, Type II both LG and SOL, Type III only LG.</li>
+      <li>Bundle positions within each wedge are fixed and arbitrary &mdash; there is no established map of which part of a muscle feeds which part of its subtendon.</li>
+      <li>Axial sections use a fixed labelled frame (posterior up, anterior down, medial right, lateral left). Rotation direction is limb-dependent in vivo, so read direction as schematic.</li>
+      <li>Task envelopes are illustrative templates, not measured EMG.</li>
+      <li>"Bundle" here means a sub-element of one muscle and its tendon fascicles. It is deliberately not called a muscle&ndash;tendon unit, which conventionally denotes the whole muscle plus its tendon.</li>
+    </ul>
+
+    <h3>Sources</h3>
+    <p class="ref"><b>Edama M, et al.</b> The twisted structure of the human Achilles tendon. <i>Scand J Med Sci Sports</i> 2015. &mdash; 111 legs; three torsion types by deep-layer attachment; Type I 50%, II 43%, III 7%; soleus torsion 3&ndash;5 cm proximal; MG close to parallel in all types.</p>
+    <p class="ref"><b>Pękala PA, et al.</b> The twisted structure of the Achilles tendon unraveled. <i>Scand J Med Sci Sports</i> 2017.</p>
+    <p class="ref"><b>Szaro P, et al.</b> Fascicles of the adult human Achilles tendon. <i>Ann Anat</i> 2009. &mdash; direction of torsion.</p>
+    <p class="ref"><b>Handsfield GG, et al.</b> A 3D model of the Achilles tendon to determine the mechanisms underlying nonuniform tendon displacements. <i>J Biomech</i> 2017. &mdash; non-uniform displacement arose primarily from differing forces between subtendons.</p>
+    <p class="ref"><b>Bojsen-Møller J, Magnusson SP.</b> Heterogeneous loading of the human Achilles tendon in vivo. <i>Exerc Sport Sci Rev</i> 2015.</p>
+    <p class="ref"><b>Clark WH, Franz JR.</b> Do triceps surae muscle dynamics govern non-uniform Achilles tendon deformations? <i>PeerJ</i> 2018.</p>
+    <p class="ref"><b>Slane LC, Thelen DG.</b> <i>J Biomech</i> 2014; <i>Med Eng Phys</i> 2015. <b>Franz JR, et al.</b> <i>Gait Posture</i> 2015; <b>Franz JR, Thelen DG.</b> <i>J Appl Physiol</i> 2015. &mdash; deeper fascicles displace more than superficial; non-uniformity reduced with ageing.</p>
+    <p class="ref"><b>Fröberg Å, et al.</b> Altered patterns of displacement within the Achilles tendon following surgical repair. <i>KSSTA</i> 2017. <b>Couppé C, et al.</b> 2020; <b>Beyer R, et al.</b> 2018. &mdash; reduced non-uniformity after repair and with pathological change. The basis for the coupling slider.</p>
+    <p class="ref"><b>Haraldsson BT, et al.</b> 2008. &mdash; sliding between tendon fascicles, the tissue basis for treating bundles as partly independent.</p>
+    <p class="ref"><b>Crouzier M, Lacourpaille L, Nordez A, Tucker K, Hug F.</b> Neuromechanical coupling within the human triceps surae. <i>J Exp Biol</i> 2018;221:jeb187260; and the n=85 walking dataset on between-day repeatability of MG:LG ratios.</p>
+    <p class="ref"><b>Khair RM, et al.</b> Acute effects of isometric plantarflexion exercise on Achilles tendon non-uniform displacement. <i>J Biomech</i> 2025. &mdash; non-uniformity 2.99 ± 1.52 mm; between-trial ICC 0.680&ndash;0.920, SEM 0.4&ndash;0.7 mm.</p>
+    <p class="footnote">All checked against the primary record. Flag anything you want tightened or removed before teaching from it.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ============================ constants ============================ */
+const COMPS=["mg","lg","sol"];
+const NAME={mg:"MG",lg:"LG",sol:"SOL"};
+const COL={mg:"#F5A623",lg:"#3FC8E8",sol:"#C77DFF"};
+const RGB={mg:[245,166,35],lg:[63,200,232],sol:[199,125,255]};
+const CAP={mg:0.30,lg:0.16,sol:0.54};
+const AREA={mg:0.30,lg:0.20,sol:0.50};
+const BASE={mg:45,lg:315,sol:180};
+const ROT={1:{mg:-8,lg:-30,sol:-25},2:{mg:-12,lg:-80,sol:-60},3:{mg:-15,lg:-135,sol:-100}};
+const TWIST_LABEL={1:"Type I \u00b7 least (50%)",2:"Type II \u00b7 moderate (43%)",3:"Type III \u00b7 extreme (7%)"};
+
+const TASKS={
+  iso:{label:"Isometric ramp\u2013hold",dur:3.0,peak:.62,shape:"ramp",
+       bias:{mg:1.00,lg:1.00,sol:1.00},lag:{mg:0,lg:.01,sol:0}},
+  raise:{label:"Standing heel raise",dur:2.4,peak:.72,shape:"bell",
+       bias:{mg:1.06,lg:1.00,sol:1.02},lag:{mg:0,lg:.02,sol:-.02}},
+  walk:{label:"Walking push-off",dur:1.1,peak:.58,shape:"walk",
+       bias:{mg:1.00,lg:0.90,sol:1.18},lag:{mg:.03,lg:.04,sol:-.05}},
+  hop:{label:"Hopping",dur:0.9,peak:1.00,shape:"hop",
+       bias:{mg:1.22,lg:1.12,sol:0.88},lag:{mg:-.01,lg:0,sol:.02}}
+};
+const PRESETS={fixed:[0,0],session:[12,6],days:[12,10],people:[12,26]};
+
+const DT=1/240, NB=14, HISTORY=14;
+
+/* ============================ helpers ============================ */
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+function smoothstep(a,b,x){const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);}
+function mulberry32(s){return function(){s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function gauss(rng){let u=0,v=0;while(!u)u=rng();while(!v)v=rng();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const rad=d=>d*Math.PI/180;
+const rgba=(c,a)=>{const r=RGB[c];return `rgba(${r[0]},${r[1]},${r[2]},${a})`;};
+
+/* ============================ bundles ============================ */
+/* Each bundle: one muscle, own threshold, own twitch size, own area,
+   own fixed territory inside its subtendon wedge. */
+const B=[];
+(function buildBundles(){
+  const rng=mulberry32(99), RR=45, RP=90;
+  for(const c of COMPS){
+    const list=[];let aSum=0,fSum=0;
+    for(let i=0;i<NB;i++){
+      const x=i/(NB-1);
+      const thr=(Math.exp(Math.log(RR)*x)-1)/(RR-1);
+      const P=Math.exp(Math.log(RP)*x);
+      const frMax=26+12*x;
+      const a=Math.pow(P,0.55);
+      aSum+=a; fSum+=P*(1-Math.exp(-frMax/12));
+      const span=AREA[c]*360;
+      const u=(i+0.5)/NB;
+      list.push({c,thr,P,frMin:8,frMax,
+        angOff:(u-0.5)*span*0.84+(rng()-0.5)*span*0.12,
+        rr:0.30+0.62*Math.sqrt(rng()),
+        areaRaw:a});
+    }
+    for(const b of list){b.area=b.areaRaw/aSum*AREA[c];b.fNorm=fSum;}
+    B.push(...list);
+  }
+})();
+const N=B.length;
+
+const muRate=(b,e)=> e<=b.thr?0:Math.min(b.frMax,b.frMin+(b.frMax-b.frMin)*(e-b.thr)/Math.max(1e-6,1-b.thr));
+const bundleForce=(b,e)=>{const fr=muRate(b,e);
+  return fr<=0?0:b.P*(1-Math.exp(-fr/12))/b.fNorm*CAP[b.c];};
+
+/* ============================ geometry ============================ */
+function twistAngle(c,s){return BASE[c]+ROT[S.twist][c]*smoothstep(.45,.95,s);}
+function bundlePos(b,s){
+  const a=rad(twistAngle(b.c,s)+b.angOff);
+  return {x:Math.sin(a)*b.rr, y:Math.cos(a)*b.rr};   // +x medial, +y posterior
+}
+/* pairwise cross-sectional distances at the insertion, rebuilt when twist changes */
+let DIST=null;
+function rebuildDistances(){
+  const p=B.map(b=>bundlePos(b,1));
+  DIST=new Float32Array(N*N);
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+    const dx=p[i].x-p[j].x, dy=p[i].y-p[j].y;
+    DIST[i*N+j]=Math.sqrt(dx*dx+dy*dy);
+  }
+}
+
+/* ============================ envelopes ============================ */
+function envelope(shape,t){
+  if(t<0||t>1)return 0;
+  switch(shape){
+    case "ramp":return smoothstep(.06,.36,t)*(1-smoothstep(.80,.98,t));
+    case "bell":return Math.pow(Math.sin(Math.PI*t),1.4);
+    case "walk":{const g=Math.exp(-(((t-.62)/.24)*((t-.62)/.24)));
+      const e=Math.exp(-(((t-.25)/.22)*((t-.25)/.22)));
+      return clamp(g+.35*e,0,1.2)/1.05;}
+    case "hop":return Math.exp(-(((t-.40)/.155)*((t-.40)/.155)));
+  }
+  return 0;
+}
+
+/* ============================ state ============================ */
+const S={task:"iso",twist:2,knee:0,cvCommon:.12,cvDiff:.06,kappa:.20,preset:"session",
+  trialNo:0,playing:false,tPlay:0,sim:null,history:[],seed:1234,lastRAF:0,
+  live:{mg:0,lg:0,sol:0},
+  bF:new Float32Array(N), bStress:new Float32Array(N), nRecruited:0};
+
+const gastrocFactor=()=>clamp(1-0.78*Math.pow(S.knee/90,1.25),0.14,1);
+
+/* ============================ stress + coupling ============================ */
+function computeStress(force){
+  let tot=0;for(let i=0;i<N;i++)tot+=force[i];
+  if(tot<=0){S.bStress.fill(0);return 0;}
+  const raw=new Float32Array(N);
+  for(let i=0;i<N;i++) raw[i]=(force[i]/B[i].area)/tot;   // × mean tendon stress
+  const sig=0.12+1.4*S.kappa, denom=2*sig*sig;
+  for(let i=0;i<N;i++){
+    let num=0,den=0;
+    for(let j=0;j<N;j++){
+      const d=DIST[i*N+j];
+      const w=Math.exp(-(d*d)/denom)*B[j].area;
+      num+=w*raw[j];den+=w;
+    }
+    S.bStress[i]=num/den;
+  }
+  return tot;
+}
+function nonUniformity(){
+  let m=0,aw=0;
+  for(let i=0;i<N;i++){m+=S.bStress[i]*B[i].area;aw+=B[i].area;}
+  m/=aw||1e-6;
+  let v=0;
+  for(let i=0;i<N;i++){const d=S.bStress[i]-m;v+=d*d*B[i].area;}
+  v/=aw||1e-6;
+  return m>1e-6?Math.sqrt(v)/m:0;
+}
+function deepSuperficial(){
+  let dS=0,dA=0,sS=0,sA=0;
+  for(let i=0;i<N;i++){
+    const p=bundlePos(B[i],1);
+    if(p.y<0){dS+=S.bStress[i]*B[i].area;dA+=B[i].area;}
+    else{sS+=S.bStress[i]*B[i].area;sA+=B[i].area;}
+  }
+  const d=dA>0?dS/dA:0, s=sA>0?sS/sA:0;
+  return s>1e-6?d/s:0;
+}
+
+/* ============================ simulate ============================ */
+function simulate(){
+  const T=TASKS[S.task];
+  const seed=(S.cvCommon===0&&S.cvDiff===0)?20240101:(S.seed=(S.seed*1664525+1013904223)>>>0);
+  const rng=mulberry32(seed), gf=gastrocFactor();
+
+  const gCommon=clamp(1+S.cvCommon*gauss(rng),.3,2.2);
+  const gComp={},lag={};
+  for(const c of COMPS){
+    gComp[c]=clamp(1+S.cvDiff*gauss(rng),.3,2.2);
+    lag[c]=T.lag[c]+S.cvDiff*gauss(rng)*0.20;
+  }
+  gComp.mg*=lerp(1,.88,S.knee/90);
+  gComp.lg*=lerp(1,.86,S.knee/90);
+  const gB=B.map(()=>clamp(1+S.cvDiff*1.5*gauss(rng),.25,2.4));
+
+  const n=Math.round(T.dur/DT);
+  const time=new Float32Array(n);
+  const bF=[];for(let i=0;i<N;i++)bF.push(new Float32Array(n));
+  const spikes=[];for(let i=0;i<N;i++)spikes.push([]);
+  const next=new Float32Array(N).fill(-1);
+  const force={};for(const c of COMPS)force[c]=new Float32Array(n);
+
+  for(let i=0;i<n;i++){
+    const t=i*DT;time[i]=t;
+    const eC={};
+    for(const c of COMPS){
+      const tn=(t/T.dur)-lag[c];
+      eC[c]=clamp(envelope(T.shape,tn)*T.peak*T.bias[c]*gCommon*gComp[c],0,1);
+    }
+    for(let k=0;k<N;k++){
+      const b=B[k];
+      const e=clamp(eC[b.c]*gB[k],0,1);
+      let f=bundleForce(b,e);
+      if(b.c!=="sol")f*=gf;
+      bF[k][i]=f;force[b.c][i]+=f;
+      const fr=muRate(b,e);
+      if(fr<=0){next[k]=-1;continue;}
+      if(next[k]<0)next[k]=t+rng()/fr;
+      while(next[k]<=t){
+        spikes[k].push(next[k]);
+        next[k]+=Math.max(.006,(1/fr)*(1+.20*gauss(rng)));
+      }
+    }
+  }
+
+  let iPk=0,best=-1;
+  for(let i=0;i<n;i++){const s=force.mg[i]+force.lg[i]+force.sol[i];if(s>best){best=s;iPk=i;}}
+  const pk={};for(const c of COMPS)pk[c]=force[c][iPk];
+  const tot=pk.mg+pk.lg+pk.sol||1e-6;
+  const share={};for(const c of COMPS)share[c]=pk[c]/tot;
+
+  return {T,time,bF,spikes,force,n,dur:T.dur,iPk,peakTotal:best,share,cen:centroid(pk)};
+}
+
+const insertionAngle=c=>BASE[c]+ROT[S.twist][c];
+function centroid(f){
+  const r=.55;let x=0,y=0,w=0;
+  for(const c of COMPS){const a=rad(insertionAngle(c));
+    x+=f[c]*Math.sin(a)*r;y+=f[c]*Math.cos(a)*r;w+=f[c];}
+  w=w||1e-6;return {x:x/w,y:y/w};
+}
+
+/* ============================ canvas plumbing ============================ */
+function setup(id){
+  const cv=document.getElementById(id),ctx=cv.getContext("2d"),o={cv,ctx,w:0,h:0};
+  new ResizeObserver(()=>{
+    const r=cv.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+    if(!r.width||!r.height)return;
+    cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);o.w=r.width;o.h=r.height;draw();
+  }).observe(cv);
+  return o;
+}
+const DR=setup("cDrive"),MP=setup("cMap"),AN=setup("cAnat"),SC=setup("cSect"),FT=setup("cFoot");
+
+function label(ctx,txt,x,y,{size=9.5,col="#6E8695",align="left",track=1.6}={}){
+  ctx.save();ctx.font=`500 ${size}px "Barlow Condensed", sans-serif`;
+  ctx.fillStyle=col;ctx.textAlign="left";ctx.textBaseline="alphabetic";
+  const ch=[...txt.toUpperCase()];let tot=0;
+  for(const k of ch)tot+=ctx.measureText(k).width+track;
+  let cx=align==="center"?x-tot/2:align==="right"?x-tot:x;
+  for(const k of ch){ctx.fillText(k,cx,y);cx+=ctx.measureText(k).width+track;}
+  ctx.restore();
+}
+function mono(ctx,t,x,y,{size=10,col="#C9DCE6",align="left"}={}){
+  ctx.save();ctx.font=`400 ${size}px "IBM Plex Mono", monospace`;
+  ctx.fillStyle=col;ctx.textAlign=align;ctx.fillText(t,x,y);ctx.restore();
+}
+
+/* ---------------------- 1 : bundle discharges ---------------------- */
+function drawDrive(){
+  const {ctx,w,h}=DR;if(!w)return;
+  ctx.clearRect(0,0,w,h);
+  const padL=40,padR=10,padT=10,padB=16;
+  const laneH=(h-padT-padB)/3,gw=w-padL-padR;
+  const sim=S.sim,dur=sim?sim.dur:1,tp=S.tPlay;
+
+  COMPS.forEach((c,ci)=>{
+    const y0=padT+ci*laneH,y1=y0+laneH-8;
+    ctx.strokeStyle="rgba(126,178,206,.10)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(padL,y1+.5);ctx.lineTo(w-padR,y1+.5);
+    ctx.moveTo(padL+.5,y0);ctx.lineTo(padL+.5,y1);ctx.stroke();
+    label(ctx,NAME[c],padL-7,y0+11,{align:"right",col:COL[c],size:11});
+    mono(ctx,Math.round((S.live[c]||0)*100)+"%",padL-7,y0+23,{align:"right",col:"#6E8695",size:9.5});
+    if(!sim)return;
+
+    const rTop=y0+3,rH=(y1-y0)*.60;
+    ctx.save();ctx.strokeStyle=rgba(c,.55);ctx.lineWidth=1;ctx.beginPath();
+    for(let k=0;k<N;k++){
+      if(B[k].c!==c)continue;
+      const idx=k-COMPS.indexOf(c)*NB;
+      const yy=rTop+(idx/(NB-1))*(rH-3);
+      for(const t of sim.spikes[k]){
+        if(t>tp)break;
+        const x=padL+(t/dur)*gw;
+        ctx.moveTo(x,yy);ctx.lineTo(x,yy+2.2);
+      }
+    }
+    ctx.stroke();ctx.restore();
+
+    let fMax=0;for(const k of COMPS)for(let j=0;j<sim.n;j++)fMax=Math.max(fMax,sim.force[k][j]);
+    fMax=fMax||1;
+    ctx.save();ctx.beginPath();
+    const step=Math.max(1,Math.floor(sim.n/400));let started=false;
+    for(let j=0;j<sim.n;j+=step){
+      if(sim.time[j]>tp)break;
+      const x=padL+(sim.time[j]/dur)*gw,yy=y1-(sim.force[c][j]/fMax)*(y1-y0)*.90;
+      started?ctx.lineTo(x,yy):(ctx.moveTo(x,yy),started=true);
+    }
+    ctx.strokeStyle=COL[c];ctx.lineWidth=1.6;ctx.lineJoin="round";
+    ctx.shadowColor=rgba(c,.5);ctx.shadowBlur=6;ctx.stroke();ctx.restore();
+  });
+
+  if(sim&&S.playing){
+    const x=padL+(tp/dur)*gw;
+    ctx.strokeStyle="rgba(234,245,250,.30)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,h-padB);ctx.stroke();
+  }
+  label(ctx,"low \u2192 high threshold",padL+2,padT+8,{size:8,col:"#41535F"});
+  label(ctx,"time \u2192",w-padR,h-4,{align:"right",size:8.5,col:"#41535F"});
+}
+
+/* ---------------------- 2 : bundle map ---------------------- */
+function drawMap(){
+  const {ctx,w,h}=MP;if(!w)return;
+  ctx.clearRect(0,0,w,h);
+  const topH=h*.66;
+  const cx=w*.5, cy=topH*.50, R=Math.min(w*.34,topH*.40);
+
+  // tendon outline + wedge hints
+  ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,R*1.14,R,0,0,7);
+  ctx.fillStyle="rgba(126,178,206,.04)";ctx.strokeStyle="rgba(126,178,206,.20)";
+  ctx.lineWidth=1;ctx.fill();ctx.stroke();ctx.restore();
+  ctx.save();ctx.setLineDash([2,4]);ctx.strokeStyle="rgba(126,178,206,.10)";
+  ctx.beginPath();ctx.moveTo(cx-R*1.2,cy);ctx.lineTo(cx+R*1.2,cy);ctx.stroke();ctx.restore();
+
+  label(ctx,"P",cx,cy-R-7,{align:"center",size:8.5,col:"#41535F"});
+  label(ctx,"A",cx,cy+R+13,{align:"center",size:8.5,col:"#41535F"});
+  label(ctx,"M",cx+R*1.26,cy+3,{size:8.5,col:"#41535F"});
+  label(ctx,"L",cx-R*1.26-8,cy+3,{size:8.5,col:"#41535F"});
+
+  // bundles
+  let maxS=0;for(let i=0;i<N;i++)maxS=Math.max(maxS,S.bStress[i]);
+  const scale=Math.max(1,maxS);
+  for(let i=0;i<N;i++){
+    const b=B[i],p=bundlePos(b,1);
+    const px=cx+p.x*R*1.14, py=cy-p.y*R;
+    const rr=Math.sqrt(b.area)*R*0.62;
+    const on=S.bF[i]>1e-5;
+    const hot=clamp(S.bStress[i]/scale,0,1);
+    ctx.save();
+    ctx.beginPath();ctx.arc(px,py,rr,0,7);
+    ctx.fillStyle=rgba(b.c,on?(.10+hot*.70):.045);
+    ctx.fill();
+    ctx.strokeStyle=rgba(b.c,on?(.30+hot*.55):.16);
+    ctx.lineWidth=on?1:.7;
+    if(on){ctx.shadowColor=rgba(b.c,hot*.8);ctx.shadowBlur=hot*10;}
+    ctx.stroke();ctx.restore();
+  }
+
+  // recruitment ladder
+  const ly0=topH+16, ly1=h-30, lh=ly1-ly0;
+  label(ctx,"recruitment order",10,ly0-6,{size:8.5,col:"#41535F"});
+  mono(ctx,`${S.nRecruited}/${N}`,w-10,ly0-5,{size:9.5,col:"#5D7583",align:"right"});
+  const bw=(w-24)/N;
+  let maxF=0;for(let i=0;i<N;i++)maxF=Math.max(maxF,S.bF[i]);
+  maxF=maxF||1;
+  const order=B.map((b,i)=>i).sort((a,b2)=>B[a].thr-B[b2].thr);
+  order.forEach((k,pos)=>{
+    const b=B[k],x=12+pos*bw;
+    const hgt=clamp(S.bF[k]/maxF,0,1)*lh;
+    ctx.save();
+    ctx.fillStyle=rgba(b.c,.07);
+    ctx.fillRect(x,ly0,bw-1.2,lh);
+    if(hgt>0.5){
+      ctx.fillStyle=rgba(b.c,.35+clamp(S.bStress[k]/scale,0,1)*.5);
+      ctx.fillRect(x,ly1-hgt,bw-1.2,hgt);
+    }
+    ctx.restore();
+  });
+  ctx.save();ctx.strokeStyle="rgba(126,178,206,.14)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(12,ly1+.5);ctx.lineTo(w-12,ly1+.5);ctx.stroke();ctx.restore();
+
+  const ds=deepSuperficial();
+  label(ctx,"deep : superficial",10,h-8,{size:8.5,col:"#41535F"});
+  mono(ctx,ds.toFixed(2),w-10,h-7,{size:10,col:ds>1.02?"#EAF5FA":"#5D7583",align:"right"});
+}
+
+/* ---------------------- 3 : anatomy ---------------------- */
+const AW=300,AH=660;
+const TEND={top:400,ins:575,cx:150,rTop:26,rIns:20};
+function drawAnat(){
+  const {ctx,w,h}=AN;if(!w)return;
+  ctx.clearRect(0,0,w,h);
+  const sc=Math.min(w/AW,h/AH),ox=(w-AW*sc)/2,oy=(h-AH*sc)/2;
+  ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);
+  const cx=TEND.cx,act=S.live;
+
+  const ka=rad(S.knee);
+  ctx.save();ctx.strokeStyle="rgba(126,178,206,.28)";ctx.lineWidth=2;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(cx,96);ctx.lineTo(cx-Math.sin(ka)*74,96-Math.cos(ka)*74);ctx.stroke();
+  ctx.fillStyle="rgba(126,178,206,.35)";ctx.beginPath();ctx.arc(cx,96,3.5,0,7);ctx.fill();ctx.restore();
+  label(ctx,`knee ${S.knee}\u00b0`,cx-Math.sin(ka)*80-6,96-Math.cos(ka)*80,{align:"right",size:9,col:"#4E6472"});
+
+  const solA=.10+act.sol*.42;
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(cx-30,150);ctx.bezierCurveTo(cx-84,190,cx-88,300,cx-40,382);
+  ctx.lineTo(cx+38,382);ctx.bezierCurveTo(cx+86,296,cx+80,190,cx+30,150);ctx.closePath();
+  const gs=ctx.createLinearGradient(0,150,0,382);
+  gs.addColorStop(0,rgba("sol",solA*.75));gs.addColorStop(1,rgba("sol",solA*.35));
+  ctx.fillStyle=gs;ctx.fill();
+  ctx.strokeStyle=rgba("sol",.30+act.sol*.5);ctx.lineWidth=1;ctx.stroke();ctx.restore();
+  label(ctx,"SOL",cx+92,268,{col:COL.sol,size:11});
+
+  const lgA=.10+act.lg*.46,gf=gastrocFactor();
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(cx-8,118);ctx.bezierCurveTo(cx-62,150,cx-66,250,cx-26,318);
+  ctx.lineTo(cx-6,318);ctx.bezierCurveTo(cx-8,240,cx-4,170,cx-4,118);ctx.closePath();
+  const gl=ctx.createLinearGradient(cx-66,0,cx,0);
+  gl.addColorStop(0,rgba("lg",lgA*.85));gl.addColorStop(1,rgba("lg",lgA*.30));
+  ctx.fillStyle=gl;ctx.fill();
+  ctx.strokeStyle=rgba("lg",.34+act.lg*.5);ctx.lineWidth=1;ctx.stroke();ctx.restore();
+  label(ctx,"LG",cx-96,196,{col:COL.lg,size:11,align:"right"});
+
+  const mgA=.10+act.mg*.46;
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(cx+8,116);ctx.bezierCurveTo(cx+68,152,cx+72,262,cx+30,344);
+  ctx.lineTo(cx+6,344);ctx.bezierCurveTo(cx+8,250,cx+4,168,cx+4,116);ctx.closePath();
+  const gm=ctx.createLinearGradient(cx,0,cx+72,0);
+  gm.addColorStop(0,rgba("mg",mgA*.30));gm.addColorStop(1,rgba("mg",mgA*.85));
+  ctx.fillStyle=gm;ctx.fill();
+  ctx.strokeStyle=rgba("mg",.34+act.mg*.5);ctx.lineWidth=1;ctx.stroke();ctx.restore();
+  label(ctx,"MG",cx+98,178,{col:COL.mg,size:11});
+  if(gf<.98)label(ctx,`gastroc capacity ${Math.round(gf*100)}%`,cx-96,132,{size:8.5,col:"#4E6472"});
+
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(cx-34,566);ctx.bezierCurveTo(cx-46,596,cx-28,626,cx+16,624);
+  ctx.bezierCurveTo(cx+48,622,cx+46,586,cx+34,564);ctx.closePath();
+  ctx.fillStyle="rgba(126,178,206,.09)";ctx.strokeStyle="rgba(126,178,206,.26)";
+  ctx.lineWidth=1;ctx.fill();ctx.stroke();ctx.restore();
+
+  const y5=TEND.top+(TEND.ins-TEND.top)*.50,y3=TEND.top+(TEND.ins-TEND.top)*.70;
+  ctx.save();ctx.fillStyle="rgba(126,178,206,.045)";ctx.fillRect(cx-70,y5,140,y3-y5);
+  ctx.setLineDash([2,3]);ctx.strokeStyle="rgba(126,178,206,.20)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx-70,y5+.5);ctx.lineTo(cx+70,y5+.5);
+  ctx.moveTo(cx-70,y3+.5);ctx.lineTo(cx+70,y3+.5);ctx.stroke();ctx.restore();
+  label(ctx,"torsion 3\u20135 cm",cx-74,y5+13,{align:"right",size:8.5,col:"#4E6472"});
+
+  // individual bundle strands, deepest drawn first
+  let maxS=0;for(let i=0;i<N;i++)maxS=Math.max(maxS,S.bStress[i]);
+  const scale=Math.max(1,maxS);
+  const order=B.map((b,i)=>i).sort((a,b2)=>
+    Math.cos(rad(twistAngle(B[a].c,1)+B[a].angOff))-Math.cos(rad(twistAngle(B[b2].c,1)+B[b2].angOff)));
+  const steps=26;
+  for(const k of order){
+    const b=B[k];
+    const on=S.bF[k]>1e-5, hot=clamp(S.bStress[k]/scale,0,1);
+    ctx.save();ctx.beginPath();
+    for(let i=0;i<=steps;i++){
+      const s=i/steps,y=lerp(TEND.top,TEND.ins,s),rr=lerp(TEND.rTop,TEND.rIns,s);
+      const a=rad(twistAngle(b.c,s)+b.angOff);
+      const x=cx+Math.sin(a)*rr*b.rr*.90;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=rgba(b.c,on?(.18+hot*.62):.10);
+    ctx.lineWidth=Math.max(1.1,Math.sqrt(b.area)*11);
+    ctx.lineCap="round";
+    if(on&&hot>.35){ctx.shadowColor=rgba(b.c,hot*.75);ctx.shadowBlur=hot*7;}
+    ctx.stroke();ctx.restore();
+  }
+
+  [[0,"10 cm"],[.5,"5 cm"],[1,"insertion"]].forEach(([s,t])=>{
+    const y=lerp(TEND.top,TEND.ins,s);
+    ctx.save();ctx.strokeStyle="rgba(126,178,206,.22)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx+34,y+.5);ctx.lineTo(cx+60,y+.5);ctx.stroke();ctx.restore();
+    label(ctx,t,cx+64,y+3.5,{size:8.5,col:"#4E6472"});
+  });
+  ctx.restore();
+  label(ctx,"lateral",6,h-6,{size:8.5,col:"#41535F"});
+  label(ctx,"medial",w-6,h-6,{size:8.5,col:"#41535F",align:"right"});
+}
+
+/* ---------------------- 4 : axial sections ---------------------- */
+function drawSect(){
+  const {ctx,w,h}=SC;if(!w)return;
+  ctx.clearRect(0,0,w,h);
+  const levels=[{s:0,t:"10 cm"},{s:.5,t:"5 cm"},{s:1,t:"insertion"}];
+  const padT=14,padB=32,cellH=(h-padT-padB)/3;
+  const R=Math.min(cellH*.34,w*.24),cx=w*.44;
+  let maxS=0;for(let i=0;i<N;i++)maxS=Math.max(maxS,S.bStress[i]);
+  const scale=Math.max(1,maxS);
+
+  levels.forEach((lv,i)=>{
+    const cy=padT+cellH*i+cellH/2;
+    ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,R*1.12,R,0,0,7);
+    ctx.fillStyle="rgba(126,178,206,.045)";ctx.strokeStyle="rgba(126,178,206,.20)";
+    ctx.lineWidth=1;ctx.fill();ctx.stroke();ctx.restore();
+
+    for(let k=0;k<N;k++){
+      const b=B[k],p=bundlePos(b,lv.s);
+      const px=cx+p.x*R*1.10, py=cy-p.y*R*.98;
+      const rr=Math.max(1,Math.sqrt(b.area)*R*0.55);
+      const on=S.bF[k]>1e-5, hot=clamp(S.bStress[k]/scale,0,1);
+      ctx.save();ctx.beginPath();ctx.arc(px,py,rr,0,7);
+      ctx.fillStyle=rgba(b.c,on?(.12+hot*.66):.05);ctx.fill();ctx.restore();
+    }
+    label(ctx,lv.t,cx+R*1.3,cy-R*.55,{size:8,col:"#5D7583"});
+    if(i===1){
+      label(ctx,"P",cx,cy-R-6,{align:"center",size:8,col:"#41535F"});
+      label(ctx,"A",cx,cy+R+11,{align:"center",size:8,col:"#41535F"});
+      label(ctx,"M",cx+R*1.22,cy+3,{size:8,col:"#41535F"});
+      label(ctx,"L",cx-R*1.22-7,cy+3,{size:8,col:"#41535F"});
+    }
+  });
+
+  const deep=COMPS.filter(c=>{const a=((insertionAngle(c))%360+360)%360;return a>90&&a<270;});
+  label(ctx,"deep layer",8,h-17,{size:8,col:"#41535F"});
+  ctx.save();ctx.font='500 11px "IBM Plex Mono", monospace';
+  let x=8;
+  deep.forEach((c,i)=>{
+    ctx.fillStyle=COL[c];ctx.fillText(NAME[c],x,h-5);x+=ctx.measureText(NAME[c]).width;
+    if(i<deep.length-1){ctx.fillStyle="#41535F";ctx.fillText("+",x+2,h-5);x+=ctx.measureText("+").width+4;}
+  });
+  ctx.restore();
+}
+
+/* ---------------------- 5 : insertion footprint ---------------------- */
+function drawFoot(){
+  const {ctx,w,h}=FT;if(!w)return;
+  ctx.clearRect(0,0,w,h);
+  const cx=w*.5,cy=h*.47,R=Math.min(w*.30,h*.34);
+
+  ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,R*1.24,R,0,0,7);
+  ctx.fillStyle="rgba(126,178,206,.05)";ctx.strokeStyle="rgba(126,178,206,.22)";
+  ctx.lineWidth=1;ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(cx,cy,R*1.24,R,0,0,Math.PI);ctx.closePath();
+  ctx.fillStyle="rgba(126,178,206,.045)";ctx.fill();ctx.restore();
+  label(ctx,"deep layer",cx,cy+R+16,{align:"center",size:8.5,col:"#41535F"});
+  label(ctx,"P",cx,cy-R-8,{align:"center",size:8.5,col:"#41535F"});
+  label(ctx,"M",cx+R*1.36,cy+3,{size:8.5,col:"#41535F"});
+  label(ctx,"L",cx-R*1.36-8,cy+3,{size:8.5,col:"#41535F"});
+
+  ctx.save();ctx.setLineDash([2,4]);ctx.strokeStyle="rgba(126,178,206,.13)";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx-R*1.3,cy);ctx.lineTo(cx+R*1.3,cy);
+  ctx.moveTo(cx,cy-R*1.1);ctx.lineTo(cx,cy+R*1.1);ctx.stroke();ctx.restore();
+
+  let maxS=0;for(let i=0;i<N;i++)maxS=Math.max(maxS,S.bStress[i]);
+  const scale=Math.max(1,maxS);
+  ctx.save();ctx.globalCompositeOperation="lighter";
+  for(let k=0;k<N;k++){
+    const b=B[k];if(S.bF[k]<=1e-5)continue;
+    const p=bundlePos(b,1);
+    const px=cx+p.x*R*1.24, py=cy-p.y*R;
+    const hot=clamp(S.bStress[k]/scale,0,1);
+    const rr=R*(.10+Math.sqrt(b.area)*.55)*(.7+hot*.7);
+    const g=ctx.createRadialGradient(px,py,0,px,py,rr);
+    g.addColorStop(0,rgba(b.c,.08+hot*.55));g.addColorStop(1,rgba(b.c,0));
+    ctx.beginPath();ctx.arc(px,py,rr,0,7);ctx.fillStyle=g;ctx.fill();
+  }
+  ctx.restore();
+
+  const hist=S.history;
+  hist.forEach((p,i)=>{
+    const age=(i+1)/hist.length;
+    ctx.beginPath();ctx.arc(cx+p.cen.x*R*1.24,cy-p.cen.y*R,1.8,0,7);
+    ctx.fillStyle=`rgba(234,245,250,${.10+age*.34})`;ctx.fill();
+  });
+  if(hist.length>2){
+    const mx=hist.reduce((s,p)=>s+p.cen.x,0)/hist.length;
+    const my=hist.reduce((s,p)=>s+p.cen.y,0)/hist.length;
+    let vx=0,vy=0;
+    for(const p of hist){vx+=(p.cen.x-mx)*(p.cen.x-mx);vy+=(p.cen.y-my)*(p.cen.y-my);}
+    const sx=Math.sqrt(vx/hist.length),sy=Math.sqrt(vy/hist.length);
+    ctx.save();ctx.beginPath();
+    ctx.ellipse(cx+mx*R*1.24,cy-my*R,Math.max(sx*R*1.24,1.5),Math.max(sy*R,1.5),0,0,7);
+    ctx.strokeStyle="rgba(234,245,250,.26)";ctx.setLineDash([3,3]);ctx.lineWidth=1;
+    ctx.stroke();ctx.restore();
+  }
+
+  if(S.sim){
+    const f={};for(const c of COMPS)f[c]=0;
+    for(let k=0;k<N;k++)f[B[k].c]+=S.bF[k];
+    const cur=centroid(f);
+    const px=cx+cur.x*R*1.24,py=cy-cur.y*R;
+    ctx.save();ctx.strokeStyle="#EAF5FA";ctx.lineWidth=1.2;ctx.beginPath();
+    ctx.moveTo(px-7,py);ctx.lineTo(px-2.5,py);ctx.moveTo(px+2.5,py);ctx.lineTo(px+7,py);
+    ctx.moveTo(px,py-7);ctx.lineTo(px,py-2.5);ctx.moveTo(px,py+2.5);ctx.lineTo(px,py+7);
+    ctx.shadowColor="rgba(234,245,250,.7)";ctx.shadowBlur=6;ctx.stroke();ctx.restore();
+  }
+  label(ctx,`${hist.length} trial${hist.length===1?"":"s"}`,w-8,h-6,{size:8.5,col:"#41535F",align:"right"});
+  label(ctx,S.cvDiff===0?"differential noise off":"load centroid",8,h-6,{size:8.5,col:"#41535F"});
+}
+
+/* ============================ readouts ============================ */
+function updateReadouts(){
+  const el=id=>document.getElementById(id),sim=S.sim;
+  if(!sim){["roForce","roShare","roStress","roNU","roFcv","roSpread"]
+    .forEach(i=>el(i).innerHTML="&mdash;");return;}
+  const sh=sim.share;
+  el("roForce").innerHTML=`${(sim.peakTotal*100).toFixed(0)} <small>rel. units</small>`;
+  el("roShare").innerHTML=
+    `<span style="color:${COL.mg}">${Math.round(sh.mg*100)}</span>/`+
+    `<span style="color:${COL.lg}">${Math.round(sh.lg*100)}</span>/`+
+    `<span style="color:${COL.sol}">${Math.round(sh.sol*100)}</span> <small>M/L/S</small>`;
+  let top=0;for(let i=1;i<N;i++)if(S.bStress[i]>S.bStress[top])top=i;
+  el("roStress").innerHTML=`<span style="color:${COL[B[top].c]}">${S.bStress[top].toFixed(2)}\u00d7</span> <small>${NAME[B[top].c]}</small>`;
+  el("roNU").innerHTML=`${(nonUniformity()*100).toFixed(0)}% <small>CV</small>`;
+
+  const hist=S.history;
+  if(hist.length>2){
+    const f=hist.map(p=>p.peak),mf=f.reduce((a,b2)=>a+b2,0)/f.length;
+    let vf=0;for(const v of f)vf+=(v-mf)*(v-mf);
+    el("roFcv").innerHTML=`${(100*Math.sqrt(vf/f.length)/(mf||1e-6)).toFixed(1)}% <small>CV</small>`;
+    const mx=hist.reduce((s,p)=>s+p.cen.x,0)/hist.length,my=hist.reduce((s,p)=>s+p.cen.y,0)/hist.length;
+    let v=0;for(const p of hist)v+=(p.cen.x-mx)*(p.cen.x-mx)+(p.cen.y-my)*(p.cen.y-my);
+    el("roSpread").innerHTML=`${(Math.sqrt(v/hist.length)*100).toFixed(1)}% <small>SD, radius</small>`;
+  } else {
+    el("roFcv").innerHTML=`<small>needs 3 trials</small>`;
+    el("roSpread").innerHTML=`<small>needs 3 trials</small>`;
+  }
+  document.getElementById("secSub").textContent=TWIST_LABEL[S.twist];
+  document.getElementById("driveSub").textContent=sim.T.label;
+  document.getElementById("mapSub").textContent=`\u03ba = ${S.kappa.toFixed(2)}`;
+}
+
+/* ============================ loop ============================ */
+function draw(){drawDrive();drawMap();drawAnat();drawSect();drawFoot();}
+
+function applyFrame(i){
+  const sim=S.sim;
+  let nR=0;
+  for(let k=0;k<N;k++){S.bF[k]=sim.bF[k][i];if(S.bF[k]>1e-5)nR++;}
+  S.nRecruited=nR;
+  computeStress(S.bF);
+  for(const c of COMPS)S.live[c]=clamp(sim.force[c][i]/CAP[c],0,1);
+}
+function endTrial(){
+  const sim=S.sim;
+  applyFrame(sim.iPk);
+  S.history.push({cen:sim.cen,share:sim.share,peak:sim.peakTotal});
+  if(S.history.length>HISTORY)S.history.shift();
+  updateReadouts();
+}
+function frame(ts){
+  if(S.playing){
+    const dt=Math.min(.05,(ts-S.lastRAF)/1000||0);S.lastRAF=ts;S.tPlay+=dt;
+    applyFrame(clamp(Math.floor(S.tPlay/DT),0,S.sim.n-1));
+    if(S.tPlay>=S.sim.dur){S.playing=false;endTrial();}
+    draw();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(ts=>{S.lastRAF=ts;requestAnimationFrame(frame);});
+
+/* ============================ trials ============================ */
+const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function runTrial(){
+  S.sim=simulate();S.trialNo++;
+  document.getElementById("trialNo").textContent=S.trialNo;
+  if(reduced){S.tPlay=S.sim.dur;S.playing=false;endTrial();draw();}
+  else{S.tPlay=0;S.playing=true;S.lastRAF=performance.now();updateReadouts();}
+}
+function runMany(n){let k=0;const go=()=>{runTrial();
+  if(++k<n)setTimeout(go,reduced?60:(S.sim.dur*1000)+140);};go();}
+
+/* ============================ controls ============================ */
+function seg(id,cb){
+  const el=document.getElementById(id);
+  el.addEventListener("click",e=>{
+    const b=e.target.closest("button");if(!b)return;
+    [...el.querySelectorAll("button")].forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    cb(b.dataset.v);
+  });
+}
+seg("segTask",v=>{S.task=v;S.history=[];runTrial();});
+seg("segTwist",v=>{S.twist=+v;rebuildDistances();S.history=[];
+  if(S.sim)applyFrame(S.sim.iPk);updateReadouts();draw();});
+seg("segPreset",v=>{
+  S.preset=v;const a=PRESETS[v][0],b=PRESETS[v][1];
+  cvC.value=a;cvD.value=b;cvCOut.textContent=a+"%";cvDOut.textContent=b+"%";
+  S.cvCommon=a/100;S.cvDiff=b/100;S.history=[];runTrial();
+});
+
+const knee=document.getElementById("knee"),kneeOut=document.getElementById("kneeOut");
+knee.addEventListener("input",()=>{S.knee=+knee.value;kneeOut.textContent=S.knee+"\u00b0";S.history=[];draw();});
+knee.addEventListener("change",()=>runTrial());
+
+const cpl=document.getElementById("coupling"),cplOut=document.getElementById("couplingOut");
+cpl.addEventListener("input",()=>{
+  S.kappa=+cpl.value/100;cplOut.textContent=S.kappa.toFixed(2);
+  if(S.sim){computeStress(S.bF);updateReadouts();}
+  draw();
+});
+
+const cvC=document.getElementById("cvCommon"),cvCOut=document.getElementById("cvCommonOut");
+const cvD=document.getElementById("cvDiff"),cvDOut=document.getElementById("cvDiffOut");
+function clearPreset(){[...document.querySelectorAll("#segPreset button")]
+  .forEach(b=>b.setAttribute("aria-pressed","false"));}
+cvC.addEventListener("input",()=>{S.cvCommon=+cvC.value/100;cvCOut.textContent=cvC.value+"%";clearPreset();S.history=[];});
+cvD.addEventListener("input",()=>{S.cvDiff=+cvD.value/100;cvDOut.textContent=cvD.value+"%";clearPreset();S.history=[];});
+cvC.addEventListener("change",()=>runTrial());
+cvD.addEventListener("change",()=>runTrial());
+
+document.getElementById("runBtn").addEventListener("click",()=>runTrial());
+document.getElementById("tenBtn").addEventListener("click",()=>runMany(10));
+document.getElementById("clearBtn").addEventListener("click",()=>{S.history=[];updateReadouts();draw();});
+
+const notes=document.getElementById("notes");
+document.getElementById("notesBtn").addEventListener("click",()=>notes.dataset.open="true");
+document.getElementById("notesClose").addEventListener("click",()=>notes.dataset.open="false");
+notes.addEventListener("click",e=>{if(e.target===notes)notes.dataset.open="false";});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape")notes.dataset.open="false";
+  if(e.code==="Space"&&!/INPUT|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();runTrial();}
+});
+
+rebuildDistances();
+setTimeout(()=>runTrial(),80);
+})();
+</script>
+</body>
+</html>
