@@ -524,8 +524,10 @@
     box-shadow:var(--shadow);
     overflow:hidden;
   }
-  .anatomy-figure img{
+  .anatomy-figure img,
+  .anatomy-figure video{
     width:100%;
+    height:auto;
     display:block;
     background:#0c0c0c;
   }
@@ -744,6 +746,7 @@
         <div class="viz-legend">
           <span><i style="background:var(--bone);"></i>Uninvolved &mdash; measured</span>
           <span><i style="background:transparent; border:1.5px dashed var(--ink-faint); width:10px; height:10px;"></i>Involved &mdash; bony&#8209;predicted</span>
+          <span><i style="background:transparent; border:1.5px dashed var(--bone); width:10px; height:10px;"></i>Involved &mdash; torsion&#8209;adjusted target</span>
           <span><i style="background:var(--accent);"></i>Involved &mdash; measured</span>
         </div>
       </div>
@@ -955,6 +958,11 @@
       ghostPath = svgEl('path', { fill:'none', stroke:'var(--bone)', 'stroke-width':'3', 'stroke-dasharray':'5 4', opacity:'0.85' });
       svg.appendChild(ghostPath);
     }
+    var targetPath = null;
+    if(opts.target){
+      targetPath = svgEl('path', { fill:'none', stroke:'var(--bone)', 'stroke-width':'2.5', 'stroke-dasharray':'2 3', opacity:'0.95' });
+      svg.appendChild(targetPath);
+    }
 
     svg.appendChild(svgEl('circle', { cx:cx, cy:cy, r:4, fill:'var(--ink-faint)' }));
 
@@ -1037,6 +1045,10 @@
         var gIR = clamp(opts.getGhostIR(), 0, IR_MAX), gER = clamp(opts.getGhostER(), 0, ER_MAX);
         ghostPath.setAttribute('d', polylineD(trackPoints(cx,cy,r-18, stdAngleOf(gIR,true), stdAngleOf(gER,false))));
       }
+      if(targetPath && opts.getTargetIR){
+        var tIR = clamp(opts.getTargetIR(), 0, IR_MAX), tER = clamp(opts.getTargetER(), 0, ER_MAX);
+        targetPath.setAttribute('d', polylineD(trackPoints(cx,cy,r-30, stdAngleOf(tIR,true), stdAngleOf(tER,false))));
+      }
     }
 
     return { update: update };
@@ -1055,7 +1067,8 @@
     getIR:function(){ return state.irI; }, getER:function(){ return state.erI; },
     setIR:function(v){ setField('irI', v); }, setER:function(v){ setField('erI', v); },
     labelIR:'Involved internal rotation', labelER:'Involved external rotation',
-    ghost:true, getGhostIR:function(){ return state.irU; }, getGhostER:function(){ return state.erU; }
+    ghost:true, getGhostIR:function(){ return state.irU; }, getGhostER:function(){ return state.erU; },
+    target:true, getTargetIR:function(){ return state.irU-state.torsion; }, getTargetER:function(){ return state.erU+state.torsion; }
   });
 
   /* ---- torsion knob: a single-handle version of the same rotating-forearm idea, but
@@ -1335,6 +1348,25 @@
   }
 
   loadPreset(presets[0]);
+
+  var anatomyImages = document.querySelectorAll('.anatomy-figure img');
+  var anatomyVideos = [
+    '../assets/Torsion-humerus.mp4',
+    '../assets/Torsion-scapula-humerus.mp4'
+  ];
+  var anatomyMedia = [];
+  anatomyImages.forEach(function(img, index){
+    var video = document.createElement('video');
+    video.src = anatomyVideos[index];
+    video.autoplay = true;
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('aria-label', img.alt || 'Animated torsion anatomy');
+    video.className = img.className;
+    img.replaceWith(video);
+    anatomyMedia.push(video);
+  });
 })();
 </script>
 
