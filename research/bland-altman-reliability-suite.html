@@ -527,6 +527,42 @@
       color: var(--on-surface-variant);
       line-height: 1.35;
     }
+    /* Options that the current step/dataset cannot use: ghosted but still focusable for the tooltip */
+    .seg-btn.is-disabled,
+    .design-node.is-disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      border-style: dashed;
+      box-shadow: none;
+    }
+    .seg-btn.is-disabled:hover,
+    .design-node.is-disabled:hover { background: var(--background); }
+    .help-tip {
+      position: fixed;
+      z-index: 50;
+      max-width: min(320px, calc(100vw - 24px));
+      background: var(--on-surface);
+      color: var(--background);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded);
+      font-family: var(--font-body);
+      font-size: 0.8125rem;
+      line-height: 1.45;
+      box-shadow: var(--card-lift);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--dur-micro) var(--ease-out);
+    }
+    .help-tip.is-visible { opacity: 1; }
+    .help-tip strong { font-family: var(--font-headline); }
+    .help-tip .tip-line { display: block; margin-top: var(--space-xs); }
+    .help-tip .tip-why {
+      display: block;
+      margin-top: var(--space-xs);
+      padding-top: var(--space-xs);
+      border-top: 1px solid color-mix(in srgb, var(--background) 30%, transparent);
+      font-weight: 700;
+    }
 
     .flowchart-wrap {
       background: var(--surface-container-low);
@@ -887,48 +923,48 @@
         <span class="chip" data-status="info" id="active-design-chip">Design 2 Active</span>
       </div>
 
-      <div class="decision-layout">
+      <div class="decision-layout" id="decision-layout">
         <div class="question-box">
           <div class="q-step">
             <span class="q-title">Step A — Measurement Objective &amp; Replication</span>
             <div class="btn-seg">
-              <button type="button" class="seg-btn" id="q-single-dev" onclick="answerTree('mode', 'repeatability')">Single Device Test–Retest</button>
-              <button type="button" class="seg-btn" id="q-single-pair" onclick="answerTree('mode', 'single_pair')">Two Methods (1 Pair / Subject)</button>
-              <button type="button" class="seg-btn" id="q-multi-obs" onclick="answerTree('mode', 'clustered')">Two Methods (Multiple Obs / Subject)</button>
+              <button type="button" class="seg-btn" id="q-single-dev">Single Device Test–Retest</button>
+              <button type="button" class="seg-btn" id="q-single-pair">Two Methods (1 Pair / Subject)</button>
+              <button type="button" class="seg-btn" id="q-multi-obs">Two Methods (Multiple Obs / Subject)</button>
             </div>
           </div>
 
           <div class="q-step" id="step-b-wrap">
             <span class="q-title">Step B — Underlying True Value &amp; Hierarchy</span>
             <div class="btn-seg">
-              <button type="button" class="seg-btn" id="q-constant" onclick="answerTree('cluster', 'constant')">Constant True Value (Replicates)</button>
-              <button type="button" class="seg-btn" id="q-varying" onclick="answerTree('cluster', 'varying')">Varying True Value (Time-Locked)</button>
-              <button type="button" class="seg-btn" id="q-nested" onclick="answerTree('cluster', 'nested')">Nested Conditions / Days (LMM)</button>
+              <button type="button" class="seg-btn" id="q-constant">Constant True Value (Replicates)</button>
+              <button type="button" class="seg-btn" id="q-varying">Varying True Value (Time-Locked)</button>
+              <button type="button" class="seg-btn" id="q-nested">Nested Conditions / Days (LMM)</button>
             </div>
           </div>
 
           <div class="design-cards" role="group" aria-label="Five experimental designs">
-            <button type="button" class="design-node" id="node-d1" onclick="selectDesign(1)">
+            <button type="button" class="design-node" id="node-d1">
               <span class="design-node-id">Design 1</span>
               <span class="design-node-name">Single-Device Repeatability</span>
               <span class="design-node-desc">Within-subject s_w &amp; RC = 2.77·s_w</span>
             </button>
-            <button type="button" class="design-node" id="node-d2" onclick="selectDesign(2)">
+            <button type="button" class="design-node" id="node-d2">
               <span class="design-node-id">Design 2</span>
               <span class="design-node-name">Classic Paired LoA</span>
               <span class="design-node-desc">Exact noncentral t &amp; MOVER CIs</span>
             </button>
-            <button type="button" class="design-node" id="node-d3" onclick="selectDesign(3)">
+            <button type="button" class="design-node" id="node-d3">
               <span class="design-node-id">Design 3</span>
               <span class="design-node-name">Replicates (Constant True)</span>
               <span class="design-node-desc">Separate s²_xw, s²_yw &amp; m_h weights</span>
             </button>
-            <button type="button" class="design-node" id="node-d4" onclick="selectDesign(4)">
+            <button type="button" class="design-node" id="node-d4">
               <span class="design-node-id">Design 4</span>
               <span class="design-node-name">Repeated (Varying True)</span>
               <span class="design-node-desc">Time-locked σ²_b + s²_dw &amp; errata</span>
             </button>
-            <button type="button" class="design-node" id="node-d5" onclick="selectDesign(5)">
+            <button type="button" class="design-node" id="node-d5">
               <span class="design-node-id">Design 5</span>
               <span class="design-node-name">Nested / Hierarchical LMM</span>
               <span class="design-node-desc">Subject + Condition + BCa Bootstrap</span>
@@ -1803,32 +1839,113 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
     const Fu = F_icc * fQuantile(0.975, dfX, n - 1);
     iccPrimary = {
       name: `Variance-Component ICC`, val: iccVal,
-      ci: [bootICC[Math.floor(0.025 * B)], bootICC[Math.floor(0.975 * B)]],
+      ci: [
+        Math.max(0, Math.min(1, (Fl - 1) / (Fl - 1 + mxh))),
+        Math.max(0, Math.min(1, (Fu - 1) / (Fu - 1 + mxh)))
+      ],
       secondaryName: `Repeatability (X / Y)`, secondaryVal: 2.77 * Math.sqrt(s2_xw), secondaryCI: [2.77 * Math.sqrt(s2_xw), 2.77 * Math.sqrt(s2_yw)]
     };
   } else if (design === 4) {
-    // Design 4: Repeated Measures with Varying True Value (One-way random effects ANOVA on differences)
-    let sumInvM = 0;
-    const dSubj = [];
-    const grandD = mean(diffs);
+    // Design 4: Repeated measures, true value varying (Bland & Altman 1999 §5.2/2007; Zou 2013 Case 3)
+    // One-way random-effects ANOVA on the differences, unbalanced m_i.
+    const dSubj = [], mArr = [];
     let SS_b = 0, SS_w = 0;
+    const grandD = mean(diffs);
     sumMi2 = 0;
     for (const s of subjects) {
-      const m = s.list.length;
-      sumMi2 += m * m;
-      sumInvM += 1 / m;
       const d_i = s.list.map(r => r.x - r.y);
-      const diBar = mean(d_i);
-      dSubj.push(diBar);
+      const m = d_i.length, diBar = mean(d_i);
+      mArr.push(m); dSubj.push(diBar);
+      sumMi2 += m * m;
       SS_b += m * (diBar - grandD) ** 2;
       for (const d of d_i) SS_w += (d - diBar) ** 2;
+    }
+    const dfB = Math.max(1, n - 1);
+    dfW = Math.max(1, N - n);
+    MSb = SS_b / dfB;
+    MSw = SS_w / dfW;
+    m0 = (N * N - sumMi2) / (dfB * N);            // λ: effective replicates per subject
+    s2_dw = MSw;
+    s2_b = Math.max(0, (MSb - MSw) / m0);
+    const s2_tot = s2_b + s2_dw;
+    sdTot = Math.sqrt(s2_tot);
+    bias = grandD;
+    // Var(grand mean of all N differences) = σ²_b·∑mᵢ²/N² + σ²_dw/N
+    seBias = Math.sqrt(s2_b * sumMi2 / (N * N) + s2_dw / N);
+    loaL = bias - 1.96 * sdTot;
+    loaU = bias + 1.96 * sdTot;
+
+    // s²_tot as a linear combination of mean squares: a1·MS_b + a2·MS_w
+    const a1 = 1 / m0, a2 = 1 - 1 / m0;
+    const vS2 = 2 * ((a1 * MSb) ** 2 / dfB + (a2 * MSw) ** 2 / dfW);
+    const seDelta = Math.sqrt(seBias ** 2 + (1.96 ** 2) * vS2 / (4 * s2_tot));
+    deltaCI_L = [loaL - 1.96 * seDelta, loaL + 1.96 * seDelta];
+    deltaCI_U = [loaU - 1.96 * seDelta, loaU + 1.96 * seDelta];
+
+    // Zou (2013) MOVER
+    const tCrit = tQuantile(0.975, dfB);
+    const L_mu = bias - tCrit * seBias, U_mu = bias + tCrit * seBias;
+    const lB = dfB * MSb / chi2Quantile(0.975, dfB), uB = dfB * MSb / chi2Quantile(0.025, dfB);
+    const lW = dfW * MSw / chi2Quantile(0.975, dfW), uW = dfW * MSw / chi2Quantile(0.025, dfW);
+    const L_s2 = s2_tot - Math.sqrt((a1 * (MSb - lB)) ** 2 + (a2 * (MSw - lW)) ** 2);
+    const U_s2 = s2_tot + Math.sqrt((a1 * (uB - MSb)) ** 2 + (a2 * (uW - MSw)) ** 2);
+    const halfEst = 1.96 * sdTot;
+    const halfL = 1.96 * Math.sqrt(Math.max(1e-9, L_s2));
+    const halfU = 1.96 * Math.sqrt(U_s2);
+    altCI_L = [
+      loaL - Math.sqrt((bias - L_mu) ** 2 + (halfU - halfEst) ** 2),
+      loaL + Math.sqrt((U_mu - bias) ** 2 + (halfEst - halfL) ** 2)
+    ];
+    altCI_U = [
+      loaU - Math.sqrt((bias - L_mu) ** 2 + (halfEst - halfL) ** 2),
+      loaU + Math.sqrt((U_mu - bias) ** 2 + (halfU - halfEst) ** 2)
+    ];
+    altLabel = `MOVER (Zou 2013 Case 3)`;
+
+    // Share of difference variance that is between subjects, with F-based CI
+    const F = MSb / Math.max(1e-12, MSw);
+    const Fl = F / fQuantile(0.975, dfB, dfW);
+    const Fu = F * fQuantile(0.975, dfW, dfB);
+    const icc = s2_b / Math.max(1e-12, s2_tot);
+    const sdw = Math.sqrt(s2_dw);
+    iccPrimary = {
+      name: `Between-Subject Share σ²_b / σ²_tot`, val: icc,
+      ci: [Math.max(0, (Fl - 1) / (Fl - 1 + m0)), Math.min(1, Math.max(0, (Fu - 1) / (Fu - 1 + m0)))],
+      secondaryName: `Within-Subject SD of Differences`, secondaryVal: sdw,
+      secondaryCI: [Math.sqrt(lW), Math.sqrt(uW)]
+    };
+  } else if (design === 5) {
+    // Design 5: Nested subject > condition/day > replicate (method of moments on the differences).
+    // Unbalanced cells use average conditions per subject (kCond) and harmonic replicates per cell (mRep).
+    const grandD = mean(diffs);
+    let SS_subj = 0, SS_cond = 0, SS_res = 0, totalClusters = 0, sumInvCell = 0;
+    for (const s of subjects) {
+      const d_i = s.list.map(r => r.x - r.y);
+      const diBar = mean(d_i);
+      SS_subj += d_i.length * (diBar - grandD) ** 2;
+      const cells = new Map();
+      for (const r of s.list) {
+        if (!cells.has(r.cond)) cells.set(r.cond, []);
+        cells.get(r.cond).push(r.x - r.y);
+      }
+      for (const cd of cells.values()) {
+        const cBar = mean(cd);
+        totalClusters++;
+        sumInvCell += 1 / cd.length;
+        SS_cond += cd.length * (cBar - diBar) ** 2;
+        for (const d of cd) SS_res += (d - cBar) ** 2;
+      }
     }
     const dfSubj = Math.max(1, n - 1);
     const dfCond = Math.max(1, totalClusters - n);
     const dfRes = Math.max(1, N - totalClusters);
-    const MSb = SS_b / Math.max(1, dfSubj);
-    const MSw = SS_w / dfW;
-    s2_dw = MSw;
+    const MS_subj = SS_subj / dfSubj;
+    const MS_cond = SS_cond / dfCond;
+    const MS_res = SS_res / dfRes;
+    const kCond = totalClusters / Math.max(1, n);
+    const mRep = totalClusters / Math.max(1e-9, sumInvCell);
+    MSb = MS_subj; MSw = MS_res; dfW = dfRes; m0 = mRep;
+    s2_dw = MS_res;
     s2_cond = Math.max(0, (MS_cond - MS_res) / mRep);
     s2_b = Math.max(0, (MS_subj - MS_cond) / (kCond * mRep));
     const s2_tot = s2_b + s2_cond + s2_dw;
@@ -1839,7 +1956,7 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
     loaU = bias + 1.96 * sdTot;
 
     // Wald / Delta approximation
-    const seDelta = Math.sqrt(s2_b / n + ((1.96 ** 2) / (2 * s2_tot)) * ((s2_b ** 2) / dfSubj + (s2_cond ** 2) / dfCond + (s2_dw ** 2) / dfRes));
+    const seDelta = Math.sqrt(seBias ** 2 + ((1.96 ** 2) / (2 * s2_tot)) * ((s2_b ** 2) / dfSubj + (s2_cond ** 2) / dfCond + (s2_dw ** 2) / dfRes));
     deltaCI_L = [loaL - 1.96 * seDelta, loaL + 1.96 * seDelta];
     deltaCI_U = [loaU - 1.96 * seDelta, loaU + 1.96 * seDelta];
 
@@ -1878,7 +1995,7 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
     const iccVal = s2_b / Math.max(1e-9, s2_tot);
     iccPrimary = {
       name: `LMM ICC (σ²_subj / σ²_tot)`, val: iccVal,
-      ci: [bootICC[Math.floor(0.025 * B)], bootICC[Math.floor(0.975 * B)]],
+      ci: [Math.max(0, bootICC[Math.floor(0.025 * B)]), Math.min(1, bootICC[Math.floor(0.975 * B)])],
       secondaryName: `Cond + Residual Var`, secondaryVal: s2_cond + s2_dw, secondaryCI: [s2_cond, s2_dw]
     };
   }
@@ -1924,21 +2041,182 @@ function fmt(val, digits = 2) {
   return Number.isFinite(val) ? val.toFixed(digits) : `—`;
 }
 
-function renderDecisionTree(design) {
-  const stepB = document.getElementById(`step-b-wrap`);
-  const setAct = (id, cond) => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle(`is-active`, cond);
-  };
-  setAct(`q-single-dev`, design === 1);
-  setAct(`q-single-pair`, design === 2);
-  setAct(`q-multi-obs`, design >= 3);
-  if (stepB) stepB.style.opacity = design >= 3 ? `1` : `0.55`;
-  setAct(`q-constant`, design === 3);
-  setAct(`q-varying`, design === 4);
-  setAct(`q-nested`, design === 5);
+// ---- Study design selector: availability, help text and tooltips ----
+const DESIGN_HELP = {
+  'q-single-dev': {
+    title: `Single Device Test–Retest`,
+    what: `The same device or rater measures each subject twice under identical conditions.`,
+    selects: `Selects <b>Design 1</b>: repeatability, with within-subject SD s_w, repeatability coefficient RC = 2.77·s_w and ICC(1,1).`,
+    needs: `No Step B choice needed. Data: one pair (trial 1, trial 2) per subject.`
+  },
+  'q-single-pair': {
+    title: `Two Methods (1 Pair / Subject)`,
+    what: `Two different methods each measure every subject once.`,
+    selects: `Selects <b>Design 2</b>: classic 95% limits of agreement with exact t / MOVER CIs, ICC(A,1) and ICC(C,1).`,
+    needs: `No Step B choice needed. Data: one X–Y pair per subject.`
+  },
+  'q-multi-obs': {
+    title: `Two Methods (Multiple Obs / Subject)`,
+    what: `Two methods, each measuring every subject more than once.`,
+    selects: `Opens <b>Step B</b>, which picks Design 3, 4 or 5. Uses the first design the data supports until you choose.`,
+    needs: `Then choose in Step B how the repeated readings relate to the true value.`
+  },
+  'q-constant': {
+    title: `Constant True Value (Replicates)`,
+    what: `Replicates taken while the subject's true value is stable, e.g. repeated trials in one session. X and Y replicates need not be paired.`,
+    selects: `Selects <b>Design 3</b>: within-method variances s²_xw and s²_yw weighted by harmonic replicate means (Bland &amp; Altman 1999).`,
+    needs: `Requires Step A = <i>Two Methods (Multiple Obs / Subject)</i>.`
+  },
+  'q-varying': {
+    title: `Varying True Value (Time-Locked)`,
+    what: `X and Y are read at the same moments while the true value changes, e.g. across a fatigue protocol.`,
+    selects: `Selects <b>Design 4</b>: one-way ANOVA on the differences, σ²_b + σ²_dw with m₀ weighting (Zou 2013 Case 3).`,
+    needs: `Requires Step A = <i>Two Methods (Multiple Obs / Subject)</i>.`
+  },
+  'q-nested': {
+    title: `Nested Conditions / Days (LMM)`,
+    what: `Repeated readings grouped within conditions or days inside each subject, e.g. 2 angles × 3 trials.`,
+    selects: `Selects <b>Design 5</b>: subject, condition and residual variance components with bootstrap CIs.`,
+    needs: `Requires Step A = <i>Two Methods (Multiple Obs / Subject)</i>, and data with at least two conditions per subject and replicates within each condition.`
+  }
+};
+const DESIGN_NODE_HELP = {
+  1: { key: 'q-single-dev', path: `Step A = Single Device Test–Retest` },
+  2: { key: 'q-single-pair', path: `Step A = Two Methods (1 Pair / Subject)` },
+  3: { key: 'q-constant', path: `Step A = Multiple Obs / Subject, then Step B = Constant True Value` },
+  4: { key: 'q-varying', path: `Step A = Multiple Obs / Subject, then Step B = Varying True Value` },
+  5: { key: 'q-nested', path: `Step A = Multiple Obs / Subject, then Step B = Nested Conditions / Days` }
+};
 
-  for (let d = 1; d <= 5; d++) setAct(`node-d${d}`, design === d);
+// Which designs the active dataset's structure supports, with a reason for each one it does not.
+// Simulated MVC presets support every design, because choosing a design loads the matching preset.
+function designAvailability(dataset) {
+  const all = { allowed: new Set([1, 2, 3, 4, 5]), reasons: {} };
+  if (!dataset || !dataset.rows || String(dataset.key || ``).startsWith(`mvc_`)) return all;
+  const bySubj = new Map();
+  for (const r of dataset.rows) {
+    if (!bySubj.has(r.id)) bySubj.set(r.id, new Map());
+    const cells = bySubj.get(r.id);
+    cells.set(r.cond, (cells.get(r.cond) || 0) + 1);
+  }
+  let maxObs = 0, nestedOK = false;
+  for (const cells of bySubj.values()) {
+    const counts = Array.from(cells.values());
+    maxObs = Math.max(maxObs, counts.reduce((a, b) => a + b, 0));
+    if (counts.length >= 2 && counts.some(c => c >= 2)) nestedOK = true;
+  }
+  const name = dataset.title || `the active dataset`;
+  const allowed = new Set(), reasons = {};
+  if (maxObs <= 1) {
+    allowed.add(1); allowed.add(2);
+    const why = `needs repeated observations per subject, but <i>${name}</i> has one pair per subject. Load a repeated-measures dataset (or a Simulated MVC preset) to use it.`;
+    reasons[3] = why; reasons[4] = why; reasons[5] = why;
+  } else {
+    allowed.add(3); allowed.add(4);
+    const why12 = `needs exactly one pair per subject, but <i>${name}</i> has repeated observations per subject. Load a single-pair dataset (or a Simulated MVC preset) to use it.`;
+    reasons[1] = why12; reasons[2] = why12;
+    if (nestedOK) allowed.add(5);
+    else reasons[5] = `needs at least two conditions/days per subject with replicates inside each, but <i>${name}</i> has no replicates within its conditions.`;
+  }
+  return { allowed, reasons };
+}
+
+function currentDesignState() {
+  const avail = designAvailability(activeDataset);
+  const design = appState.design;
+  const firstMulti = [3, 4, 5].find(d => avail.allowed.has(d));
+  const stepBWhy = `Step B only applies to repeated-measures studies. Select <i>Two Methods (Multiple Obs / Subject)</i> in Step A first.`;
+  const dataWhy = d => (avail.allowed.has(d) ? null : `this design ${avail.reasons[d]}`);
+  const state = {
+    'q-single-dev': { design: 1, active: design === 1, why: dataWhy(1) },
+    'q-single-pair': { design: 2, active: design === 2, why: dataWhy(2) },
+    'q-multi-obs': { design: design >= 3 ? design : firstMulti, active: design >= 3, why: firstMulti ? null : dataWhy(3) },
+    'q-constant': { design: 3, active: design === 3, why: design < 3 ? stepBWhy : dataWhy(3) },
+    'q-varying': { design: 4, active: design === 4, why: design < 3 ? stepBWhy : dataWhy(4) },
+    'q-nested': { design: 5, active: design === 5, why: design < 3 ? stepBWhy : dataWhy(5) }
+  };
+  for (let d = 1; d <= 5; d++) {
+    state[`node-d${d}`] = { design: d, active: design === d, why: dataWhy(d) };
+  }
+  return { state, avail };
+}
+
+function designHelpHTML(id) {
+  const st = currentDesignState().state[id];
+  const status = st.why
+    ? `<span class="tip-why">Not available: ${st.why.charAt(0).toUpperCase() + st.why.slice(1)}</span>`
+    : st.active ? `<span class="tip-why">Currently selected.</span>` : ``;
+  if (id.startsWith(`node-d`)) {
+    const d = +id.slice(6);
+    const h = DESIGN_HELP[DESIGN_NODE_HELP[d].key];
+    return `<strong>Design ${d}: ${h.title}</strong><span class="tip-line">${h.what}</span>` +
+      `<span class="tip-line">${h.selects.replace(/^Selects <b>Design \d<\/b>: /, ``)}</span>` +
+      `<span class="tip-line">Same as choosing ${DESIGN_NODE_HELP[d].path}.</span>${status}`;
+  }
+  const h = DESIGN_HELP[id];
+  return `<strong>${h.title}</strong><span class="tip-line">${h.what}</span><span class="tip-line">${h.selects}</span><span class="tip-line">${h.needs}</span>${status}`;
+}
+
+let designTipEl = null, designTipFor = null;
+function showDesignTip(target) {
+  if (!designTipEl) {
+    designTipEl = document.createElement(`div`);
+    designTipEl.className = `help-tip`;
+    designTipEl.id = `design-help-tip`;
+    designTipEl.setAttribute(`role`, `tooltip`);
+    document.body.appendChild(designTipEl);
+  }
+  designTipFor = target;
+  designTipEl.innerHTML = designHelpHTML(target.id);
+  target.setAttribute(`aria-describedby`, `design-help-tip`);
+  designTipEl.style.left = `0px`;
+  designTipEl.style.top = `0px`;
+  designTipEl.classList.add(`is-visible`);
+  const r = target.getBoundingClientRect(), t = designTipEl.getBoundingClientRect();
+  const left = Math.min(window.innerWidth - t.width - 12, Math.max(12, r.left + r.width / 2 - t.width / 2));
+  let top = r.bottom + 8;
+  if (top + t.height > window.innerHeight - 12) top = Math.max(12, r.top - t.height - 8);
+  designTipEl.style.left = `${left}px`;
+  designTipEl.style.top = `${top}px`;
+}
+function hideDesignTip() {
+  if (designTipEl) designTipEl.classList.remove(`is-visible`);
+  if (designTipFor) designTipFor.removeAttribute(`aria-describedby`);
+  designTipFor = null;
+}
+
+function initDesignSelector() {
+  const ids = Object.keys(DESIGN_HELP).concat([1, 2, 3, 4, 5].map(d => `node-d${d}`));
+  for (const id of ids) {
+    const btn = document.getElementById(id);
+    if (!btn) continue;
+    btn.addEventListener(`mouseenter`, () => showDesignTip(btn));
+    btn.addEventListener(`focus`, () => showDesignTip(btn));
+    btn.addEventListener(`mouseleave`, hideDesignTip);
+    btn.addEventListener(`blur`, hideDesignTip);
+    btn.addEventListener(`click`, () => {
+      const st = currentDesignState().state[id];
+      if (st.why) { showDesignTip(btn); return; }   // ghosted: explain instead of selecting
+      if (st.design) selectDesign(st.design);
+    });
+  }
+  document.addEventListener(`keydown`, e => { if (e.key === `Escape`) hideDesignTip(); });
+  window.addEventListener(`scroll`, hideDesignTip, { passive: true });
+}
+document.addEventListener(`DOMContentLoaded`, initDesignSelector);
+
+function renderDecisionTree(design) {
+  const { state: selState, avail } = currentDesignState();
+  for (const [id, st] of Object.entries(selState)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const on = !!st.active && !st.why;
+    el.classList.toggle(`is-active`, on);
+    el.classList.toggle(`is-disabled`, !!st.why);
+    el.setAttribute(`aria-pressed`, on ? `true` : `false`);
+    if (st.why) el.setAttribute(`aria-disabled`, `true`); else el.removeAttribute(`aria-disabled`);
+  }
+  if (designTipFor) showDesignTip(designTipFor);
 
   const chip = document.getElementById(`active-design-chip`);
   const names = {
@@ -1952,8 +2230,8 @@ function renderDecisionTree(design) {
 
   // Flowchart SVG highlighting active route
   const cAct = `var(--primary)`, cMute = `var(--outline-variant)`, cTextAct = `var(--on-primary)`, cText = `var(--on-surface)`;
-  const nodeBox = (x, y, w, h, title, sub, active) => `
-    <g>
+  const nodeBox = (x, y, w, h, title, sub, active, ghost = false) => `
+    <g opacity="${ghost ? 0.4 : 1}"${ghost ? ` stroke-dasharray="4 3"` : ``}>
       <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${active ? cAct : 'var(--background)'}" stroke="${active ? cAct : 'var(--outline)'}" stroke-width="${active ? 2 : 1.2}"/>
       <text x="${x + w / 2}" y="${y + 20}" text-anchor="middle" font-family="var(--font-headline)" font-weight="700" font-size="11.5" fill="${active ? cTextAct : cText}">${title}</text>
       <text x="${x + w / 2}" y="${y + 35}" text-anchor="middle" font-family="var(--font-body)" font-size="10" fill="${active ? cTextAct : 'var(--on-surface-variant)'}">${sub}</text>
@@ -1968,12 +2246,12 @@ function renderDecisionTree(design) {
       <line x1="495" y1="133" x2="355" y2="195" stroke="${design === 4 ? cAct : cMute}" stroke-width="${design === 4 ? 2.5 : 1.5}"/>
       <line x1="495" y1="133" x2="520" y2="195" stroke="${design === 5 ? cAct : cMute}" stroke-width="${design === 5 ? 2.5 : 1.5}"/>
       ${nodeBox(190, 4, 220, 40, `Measurement Study Question`, `Single device vs two methods?`, true)}
-      ${nodeBox(15, 85, 180, 48, `D1: Single Device`, `RC = 2.77·s_w, ICC(1,1)`, design === 1)}
-      ${nodeBox(210, 85, 180, 48, `D2: 1 Pair / Subject`, `95% LoA, Exact t / MOVER`, design === 2)}
-      ${nodeBox(405, 85, 180, 48, `Multiple Obs / Subject`, `Check stability & nesting`, design >= 3)}
-      ${nodeBox(90, 195, 170, 50, `D3: Constant True`, `s²_d + (1−1/m_xh)s²_xw`, design === 3)}
-      ${nodeBox(270, 195, 170, 50, `D4: Varying True`, `σ²_b + s²_dw (time-locked)`, design === 4)}
-      ${nodeBox(450, 195, 140, 50, `D5: Nested LMM`, `σ²_subj + σ²_cond + σ²_ε`, design === 5)}
+      ${nodeBox(15, 85, 180, 48, `D1: Single Device`, `RC = 2.77·s_w, ICC(1,1)`, design === 1, !avail.allowed.has(1))}
+      ${nodeBox(210, 85, 180, 48, `D2: 1 Pair / Subject`, `95% LoA, Exact t / MOVER`, design === 2, !avail.allowed.has(2))}
+      ${nodeBox(405, 85, 180, 48, `Multiple Obs / Subject`, `Check stability & nesting`, design >= 3, ![3, 4, 5].some(d => avail.allowed.has(d)))}
+      ${nodeBox(90, 195, 170, 50, `D3: Constant True`, `s²_d + (1−1/m_xh)s²_xw`, design === 3, !avail.allowed.has(3))}
+      ${nodeBox(270, 195, 170, 50, `D4: Varying True`, `σ²_b + s²_dw (time-locked)`, design === 4, !avail.allowed.has(4))}
+      ${nodeBox(450, 195, 140, 50, `D5: Nested LMM`, `σ²_subj + σ²_cond + σ²_ε`, design === 5, !avail.allowed.has(5))}
     </svg>`;
   const container = document.getElementById(`flowchart-svg-container`);
   if (container) container.innerHTML = svg;
@@ -2508,18 +2786,6 @@ function selectDesign(d) {
   runAll();
 }
 
-function answerTree(step, val) {
-  if (step === `mode`) {
-    if (val === `repeatability`) selectDesign(1);
-    else if (val === `single_pair`) selectDesign(2);
-    else selectDesign(appState.design >= 3 ? appState.design : 3);
-  } else {
-    if (val === `constant`) selectDesign(3);
-    else if (val === `varying`) selectDesign(4);
-    else selectDesign(5);
-  }
-}
-
 function setCIMethod(val) {
   appState.ciMethod = val;
   runAll();
@@ -2779,10 +3045,21 @@ function applyMappedDataset() {
     defaultBound: Math.max(1, +(Math.sqrt(rows.reduce((s, r) => s + (r.x - r.y) ** 2, 0) / rows.length) * 2).toFixed(1)),
     veracity: `User-imported dataset (${rows.length} pairs)`, rows
   };
+  // If the chosen design does not fit the data's structure, fall back to the first one that does.
+  const avail = designAvailability(appState.customDataset);
+  let usedDesign = targetDesign, note = ``;
+  if (!avail.allowed.has(targetDesign)) {
+    usedDesign = [1, 2, 3, 4, 5].find(d => avail.allowed.has(d));
+    appState.customDataset.design = usedDesign;
+    note = ` Design ${targetDesign} ${avail.reasons[targetDesign].replace(/<[^>]+>/g, ``).split(`.`)[0]}, so Design ${usedDesign} was used instead.`;
+  }
   const sel = document.getElementById(`preset-select`);
   if (sel) sel.value = `custom_user`;
   selectPresetDataset(`custom_user`);
-  if (msg) { msg.textContent = `Loaded ${rows.length} paired observations into Design ${targetDesign}.`; msg.removeAttribute(`data-state`); }
+  if (msg) {
+    msg.textContent = `Loaded ${rows.length} paired observations into Design ${usedDesign}.${note}`;
+    if (note) msg.setAttribute(`data-state`, `error`); else msg.removeAttribute(`data-state`);
+  }
 }
 
 function copyScript(preId, btn) {
