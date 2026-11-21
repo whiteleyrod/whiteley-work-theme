@@ -6,6 +6,17 @@
   <meta name="artifact-type" content="tool">
   <meta name="design-style" content="vitals">
   <title>Bland–Altman Agreement &amp; Clinical Measurement Reliability Workbench</title>
+  <!-- Material palette sync: scope is the course root so the light/dark choice is shared site-wide -->
+  <script>__md_scope=new URL("../education/apa-spex-shoulder-course/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+  <script>
+    (function () {
+      var palette = null;
+      try { palette = __md_get("__palette"); } catch (e) { /* storage blocked: follow system */ }
+      if (palette && palette.color && palette.color.scheme && palette.color.media !== "(prefers-color-scheme)") {
+        document.documentElement.setAttribute("data-theme", palette.color.scheme === "slate" ? "dark" : "light");
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Figtree:wght@300..900&display=swap" rel="stylesheet">
@@ -95,6 +106,61 @@
       --dur-micro: 120ms;
       --dur-short: 220ms;
       --dur-long: 420ms;
+    }
+
+    /* Dark palette: follows the system unless the shared course palette
+       (data-theme set from __palette) says otherwise. Keep both blocks identical. */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --background: #111e23;
+        --surface-container-low: #0b1518;
+        --surface-container: #17282e;
+        --surface-container-high: #1f333a;
+        --on-surface: #e2edef;
+        --on-surface-variant: #a7bbc0;
+        --outline: #6f878e;
+        --outline-variant: #2b3f46;
+        --primary: #4fc3cf;
+        --on-primary: #00363d;
+        --primary-container: #16323a;
+        --on-primary-container: #a6e8ef;
+        --secondary: #7fd3a0;
+        --tertiary: #6fcf97;
+        --error: #f2877f;
+        --on-error: #3b0907;
+        --data-1: #4fc3cf;
+        --data-2: #6fcf97;
+        --data-3: #f0b45a;
+        --data-4: #a5a8f0;
+        --data-context: #4a5f66;
+        --card-lift: 0 1px 2px rgb(0 0 0 / 0.35), 0 6px 16px rgb(0 0 0 / 0.3);
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --background: #111e23;
+      --surface-container-low: #0b1518;
+      --surface-container: #17282e;
+      --surface-container-high: #1f333a;
+      --on-surface: #e2edef;
+      --on-surface-variant: #a7bbc0;
+      --outline: #6f878e;
+      --outline-variant: #2b3f46;
+      --primary: #4fc3cf;
+      --on-primary: #00363d;
+      --primary-container: #16323a;
+      --on-primary-container: #a6e8ef;
+      --secondary: #7fd3a0;
+      --tertiary: #6fcf97;
+      --error: #f2877f;
+      --on-error: #3b0907;
+      --data-1: #4fc3cf;
+      --data-2: #6fcf97;
+      --data-3: #f0b45a;
+      --data-4: #a5a8f0;
+      --data-context: #4a5f66;
+      --card-lift: 0 1px 2px rgb(0 0 0 / 0.35), 0 6px 16px rgb(0 0 0 / 0.3);
     }
 
     *, *::before, *::after { box-sizing: border-box; }
@@ -722,6 +788,7 @@
         </p>
       </div>
       <div class="header-actions no-print">
+        <button type="button" class="btn btn-secondary" id="theme-toggle" onclick="toggleColorScheme()" aria-label="Switch colour scheme">Dark mode</button>
         <button type="button" class="btn btn-secondary" onclick="exportResultsCSV()">Download Results CSV</button>
         <button type="button" class="btn btn-secondary" onclick="downloadActiveDatasetCSV()">Download Dataset CSV</button>
         <button type="button" class="btn btn-primary" onclick="exportReportPDF()">Export PDF Report</button>
@@ -1131,8 +1198,8 @@ function normQuantile(p) {
   }
   if (p <= phigh) {
     q = p - 0.5; r = q * q;
-    return (((((a[0]*r + a[1])*r + a[2]*r + a[3])*r + a[4]*r + a[5]) * q) /
-      (((((b[0]*r + b[1])*r + b[2]*r + b[3])*r + b[4]*r + b[5]) * q) + 1));
+    return (((((a[0]*r + a[1])*r + a[2])*r + a[3])*r + a[4])*r + a[5]) * q /
+      (((((b[0]*r + b[1])*r + b[2])*r + b[3])*r + b[4])*r + 1);
   }
   q = Math.sqrt(-2 * Math.log(1 - p));
   return -(((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) / ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1);
@@ -2524,19 +2591,68 @@ function downloadPlotSVG(svgId, filename) {
   if (!svg) return;
   const clone = svg.cloneNode(true);
   clone.setAttribute(`xmlns`, `http://www.w3.org/2000/svg`);
-  // Inline computed CSS variable colors for standalone vector export
-  const cs = getComputedStyle(document.documentElement);
+  // Inline computed CSS variable colors for standalone vector export.
+  // Always export with the light palette so files read correctly in documents.
   let markup = new XMLSerializer().serializeToString(clone);
-  const vars = [`--background`,`--on-surface`,`--on-surface-variant`,`--outline`,`--outline-variant`,`--primary`,`--on-primary`,`--tertiary`,`--error`,`--data-1`,`--data-2`,`--data-context`,`--ci-band-fill`,`--font-label`,`--font-headline`,`--font-body`];
-  for (const v of vars) {
-    const val = cs.getPropertyValue(v).trim();
-    if (val) markup = markup.split(`var(${v})`).join(val);
-  }
+  const vars = [`--background`,`--on-surface`,`--on-surface-variant`,`--outline`,`--outline-variant`,`--primary`,`--on-primary`,`--tertiary`,`--error`,`--data-1`,`--data-2`,`--data-3`,`--data-4`,`--data-context`,`--ci-band-fill`,`--ci-alt-band-fill`,`--band-fill`,`--font-label`,`--font-headline`,`--font-body`];
+  withLightTheme(() => {
+    const cs = getComputedStyle(document.documentElement);
+    for (const v of vars) {
+      const val = cs.getPropertyValue(v).trim();
+      if (val) markup = markup.split(`var(${v})`).join(val);
+    }
+  });
   triggerDownload(markup, `text/plain`, filename);
 }
 
 function exportReportPDF() {
   window.print();
+}
+
+// Colour scheme (shared with the course via the Material __palette key)
+function effectiveTheme() {
+  const set = document.documentElement.getAttribute(`data-theme`);
+  if (set === `dark` || set === `light`) return set;
+  return window.matchMedia && window.matchMedia(`(prefers-color-scheme: dark)`).matches ? `dark` : `light`;
+}
+
+function updateThemeToggleLabel() {
+  const btn = document.getElementById(`theme-toggle`);
+  if (btn) btn.textContent = effectiveTheme() === `dark` ? `Light mode` : `Dark mode`;
+}
+
+function toggleColorScheme() {
+  const next = effectiveTheme() === `dark` ? `light` : `dark`;
+  document.documentElement.setAttribute(`data-theme`, next);
+  __md_set(`__palette`, {
+    index: next === `dark` ? 1 : 0,
+    color: { media: ``, scheme: next === `dark` ? `slate` : `default`, primary: `indigo`, accent: `indigo` }
+  });
+  updateThemeToggleLabel();
+}
+
+function withLightTheme(fn) {
+  const root = document.documentElement;
+  const prev = root.getAttribute(`data-theme`);
+  root.setAttribute(`data-theme`, `light`);
+  try { fn(); } finally {
+    if (prev === null) root.removeAttribute(`data-theme`); else root.setAttribute(`data-theme`, prev);
+  }
+}
+
+// Print / PDF export always uses the light palette
+let themeBeforePrint;
+window.addEventListener(`beforeprint`, () => {
+  themeBeforePrint = document.documentElement.getAttribute(`data-theme`);
+  document.documentElement.setAttribute(`data-theme`, `light`);
+});
+window.addEventListener(`afterprint`, () => {
+  if (themeBeforePrint == null) document.documentElement.removeAttribute(`data-theme`);
+  else document.documentElement.setAttribute(`data-theme`, themeBeforePrint);
+});
+if (window.matchMedia) {
+  const mq = window.matchMedia(`(prefers-color-scheme: dark)`);
+  if (mq.addEventListener) mq.addEventListener(`change`, updateThemeToggleLabel);
 }
 
 // CSV/TSV Ingestion
@@ -2726,6 +2842,7 @@ async function initApp() {
 }
 
 document.addEventListener(`DOMContentLoaded`, initApp);
+document.addEventListener(`DOMContentLoaded`, updateThemeToggleLabel);
 
 </script>
 </body>
