@@ -831,7 +831,7 @@
         </div>
         <div class="field-group">
           <label class="field-label" for="equiv-bound-input">Clinical Equivalence Bound ±δ (<span id="unit-label-bound">Nm</span>)</label>
-          <input type="number" id="equiv-bound-input" class="input-ctrl" step="0.5" min="0" value="15" oninput="setEquivBound(this.value)">
+          <input type="number" id="equiv-bound-input" class="input-ctrl" step="0.5" min="0" value="18" oninput="setEquivBound(this.value)">
         </div>
         <button type="button" class="btn btn-ghost" onclick="resetWorkbench(this)">Reset Defaults</button>
       </div>
@@ -2290,12 +2290,23 @@ function renderPlots() {
       const bars = res.means.map((m, i) => `
         <line x1="${sx(m)}" y1="${sy(0)}" x2="${sx(m)}" y2="${sy(absD[i])}" stroke="var(--data-1)" stroke-width="2" stroke-opacity="0.6"/>
         <circle cx="${sx(m)}" cy="${sy(absD[i])}" r="4" fill="var(--data-1)"/>`).join(``);
+      let ticks = ``;
+      for (let i = 0; i <= 4; i++) {
+        const yv = (i / 4) * y1, yp = sy(yv);
+        ticks += `<line x1="${pad.l}" y1="${yp}" x2="${W - pad.r}" y2="${yp}" stroke="var(--outline-variant)" stroke-width="1"/>`;
+        ticks += `<text x="${pad.l - 8}" y="${yp + 4}" text-anchor="end" font-family="var(--font-label)" font-size="11" fill="var(--on-surface-variant)">${fmt(yv, 1)}</text>`;
+      }
+      for (let i = 0; i <= 5; i++) {
+        const xv = x0 + (i / 5) * (x1 - x0);
+        ticks += `<text x="${sx(xv)}" y="${H - pad.b + 16}" text-anchor="middle" font-family="var(--font-label)" font-size="11" fill="var(--on-surface-variant)">${fmt(xv, 1)}</text>`;
+      }
       profSvg.innerHTML = `
+        ${ticks}
         <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H - pad.b}" stroke="var(--outline)" stroke-width="1.2"/>
         <line x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" stroke="var(--outline)" stroke-width="1.2"/>
         ${bars}
-        <text x="${pad.l + pw / 2}" y="${H - 12}" text-anchor="middle" font-family="var(--font-label)" font-size="11" fill="var(--on-surface-variant)">${ds.labelX} (${ds.unit})</text>
-        <text x="16" y="${pad.t + ph / 2}" text-anchor="middle" transform="rotate(-90 16 ${pad.t + ph / 2})" font-family="var(--font-label)" font-weight="600" font-size="12" fill="var(--on-surface-variant)">${ds.labelY} (${ds.unit})</text>`;
+        <text x="${pad.l + pw / 2}" y="${H - 6}" text-anchor="middle" font-family="var(--font-label)" font-weight="600" font-size="12" fill="var(--on-surface-variant)">Mean of ${ds.labelX} &amp; ${ds.labelY} (${ds.unit})</text>
+        <text x="16" y="${pad.t + ph / 2}" text-anchor="middle" transform="rotate(-90 16 ${pad.t + ph / 2})" font-family="var(--font-label)" font-weight="600" font-size="12" fill="var(--on-surface-variant)">|X − Y| (${ds.unit})</text>`;
     }
   }
 }
@@ -2799,7 +2810,17 @@ async function saveAppStateSafe() {
   }
 }
 
+function syncControlsToState() {
+  const sel = document.getElementById(`preset-select`);
+  if (sel) sel.value = appState.presetKey;
+  const ciSel = document.getElementById(`ci-method-select`);
+  if (ciSel) ciSel.value = appState.ciMethod;
+  const bEl = document.getElementById(`equiv-bound-input`);
+  if (bEl) bEl.value = appState.equivBound;
+}
+
 async function initApp() {
+  syncControlsToState();
   runAll();
   if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === `function`) {
     try {
