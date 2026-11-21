@@ -16,16 +16,9 @@
       }
     })();
   </script>
+  <script src="../scripts/theme-toggle.js" defer></script>
   <link rel="stylesheet" href="../styles.css">
   <style>
-    .site-header .container { position: relative; }
-    .theme-toggle {
-      position: absolute; top: 0; right: 0;
-      font: inherit; font-size: 0.85rem; font-weight: 600;
-      padding: 0.35rem 0.8rem; border-radius: 999px; cursor: pointer;
-      border: 1px solid #d1d5db; background: transparent; color: inherit;
-    }
-    .theme-toggle:hover, .theme-toggle:focus-visible { border-color: #9ca3af; }
     .tool-group {
       border-radius: 14px;
       padding: 1.5rem 1.75rem 1.75rem;
@@ -38,39 +31,12 @@
     .tool-group--tendon { background: #eefaf5; border-top: 4px solid #10b981; }
     .tool-group--other { background: #fdf8ef; border-top: 4px solid #f59e0b; }
 
-    /* Dark mode: follows the system unless the shared course palette says otherwise.
-       Keep the two rule sets below identical. */
+    /* Dark group backgrounds (site colours come from ../styles.css). Keep both blocks identical. */
     @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) { color-scheme: dark; }
-      :root:not([data-theme="light"]) body { color: #e5e7eb; background: #0f141a; }
-      :root:not([data-theme="light"]) a { color: #93b4ff; }
-      :root:not([data-theme="light"]) .site-header,
-      :root:not([data-theme="light"]) .site-footer { background: #151b23; border-color: #2a323d; }
-      :root:not([data-theme="light"]) .subtitle,
-      :root:not([data-theme="light"]) .site-footer,
-      :root:not([data-theme="light"]) .card p { color: #a3adba; }
-      :root:not([data-theme="light"]) .card { background: #18202a; border-color: #2a323d; color: #e5e7eb; }
-      :root:not([data-theme="light"]) a.card:hover,
-      :root:not([data-theme="light"]) a.card:focus-visible { border-color: #5b6675; }
-      :root:not([data-theme="light"]) .status,
-      :root:not([data-theme="light"]) .theme-toggle { border-color: #3a4452; color: #cbd2db; }
       :root:not([data-theme="light"]) .tool-group--streamlit { background: #1a1f33; }
       :root:not([data-theme="light"]) .tool-group--tendon { background: #12261f; }
       :root:not([data-theme="light"]) .tool-group--other { background: #2a2214; }
     }
-    :root[data-theme="dark"] { color-scheme: dark; }
-    :root[data-theme="dark"] body { color: #e5e7eb; background: #0f141a; }
-    :root[data-theme="dark"] a { color: #93b4ff; }
-    :root[data-theme="dark"] .site-header,
-    :root[data-theme="dark"] .site-footer { background: #151b23; border-color: #2a323d; }
-    :root[data-theme="dark"] .subtitle,
-    :root[data-theme="dark"] .site-footer,
-    :root[data-theme="dark"] .card p { color: #a3adba; }
-    :root[data-theme="dark"] .card { background: #18202a; border-color: #2a323d; color: #e5e7eb; }
-    :root[data-theme="dark"] a.card:hover,
-    :root[data-theme="dark"] a.card:focus-visible { border-color: #5b6675; }
-    :root[data-theme="dark"] .status,
-    :root[data-theme="dark"] .theme-toggle { border-color: #3a4452; color: #cbd2db; }
     :root[data-theme="dark"] .tool-group--streamlit { background: #1a1f33; }
     :root[data-theme="dark"] .tool-group--tendon { background: #12261f; }
     :root[data-theme="dark"] .tool-group--other { background: #2a2214; }
@@ -81,7 +47,6 @@
     <div class="container">
       <h1>Tools</h1>
       <p class="subtitle">Utility pages and workflow helpers</p>
-      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch colour scheme">Dark mode</button>
     </div>
   </header>
 
@@ -225,25 +190,5 @@
       <p>© 2026 Rod Whiteley</p>
     </div>
   </footer>
-  <script>
-    (function () {
-      var root = document.documentElement, btn = document.getElementById("theme-toggle");
-      var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-      function current() {
-        var t = root.getAttribute("data-theme");
-        return (t === "dark" || t === "light") ? t : (mq && mq.matches ? "dark" : "light");
-      }
-      function label() { btn.textContent = current() === "dark" ? "Light mode" : "Dark mode"; }
-      btn.addEventListener("click", function () {
-        var next = current() === "dark" ? "light" : "dark";
-        root.setAttribute("data-theme", next);
-        __md_set("__palette", { index: next === "dark" ? 1 : 0,
-          color: { media: "", scheme: next === "dark" ? "slate" : "default", primary: "indigo", accent: "indigo" } });
-        label();
-      });
-      if (mq && mq.addEventListener) mq.addEventListener("change", label);
-      label();
-    })();
-  </script>
 </body>
 </html>

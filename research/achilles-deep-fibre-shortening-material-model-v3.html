@@ -3,6 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Material palette sync: scope is the course root so the light/dark choice is shared site-wide -->
+  <script>__md_scope=new URL("../education/apa-spex-shoulder-course/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+  <script>
+    (function () {
+      var palette = null;
+      try { palette = __md_get("__palette"); } catch (e) { /* storage blocked: follow system */ }
+      if (palette && palette.color && palette.color.scheme && palette.color.media !== "(prefers-color-scheme)") {
+        document.documentElement.setAttribute("data-theme", palette.color.scheme === "slate" ? "dark" : "light");
+      }
+    })();
+  </script>
+  <script src="../scripts/theme-toggle.js" defer></script>
   <title>Achilles Deep Fibre Shortening — Material Model | Rod Whiteley</title>
   <meta name="description" content="Interactive material-body model of the distal Achilles tendon showing deep insertional fibres shortening while superficial fibres lengthen through dorsiflexion.">
   <link rel="stylesheet" href="../styles.css">
@@ -16,6 +28,35 @@
       --text-accent: #185fa5;
       --border: #e5e7eb;
       --border-strong: #cbd5e1;
+      --legend-superficial: #993C1D;
+      --legend-deep: #185FA5;
+    }
+    /* Dark tokens: follow the system unless the shared palette says otherwise. Keep both blocks identical. */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --surface-1: #18202a;
+        --surface-2: #222b36;
+        --text-primary: #e5e7eb;
+        --text-secondary: #a3adba;
+        --text-muted: #6b7686;
+        --text-accent: #6ea8e8;
+        --border: #2a323d;
+        --border-strong: #46515f;
+        --legend-superficial: #f0a383;
+        --legend-deep: #8fbcf0;
+      }
+    }
+    :root[data-theme="dark"] {
+      --surface-1: #18202a;
+      --surface-2: #222b36;
+      --text-primary: #e5e7eb;
+      --text-secondary: #a3adba;
+      --text-muted: #6b7686;
+      --text-accent: #6ea8e8;
+      --border: #2a323d;
+      --border-strong: #46515f;
+      --legend-superficial: #f0a383;
+      --legend-deep: #8fbcf0;
     }
     .figure-panel {
       background: var(--surface-1);
@@ -129,8 +170,8 @@
 <line id="mk" x1="70" y1="16" x2="70" y2="196" stroke="var(--text-muted)" stroke-width="0.5"/>
 <circle id="dS" cx="70" cy="140" r="4" fill="#D85A30"/>
 <circle id="dD" cx="70" cy="140" r="4" fill="#378ADD"/>
-<text x="70" y="236" font-size="12" fill="#993C1D">Superficial (solid)</text>
-<text x="230" y="236" font-size="12" fill="#185FA5">Deep (dashed) — schematic, after Lyman 2004</text>
+<text x="70" y="236" font-size="12" fill="var(--legend-superficial)">Superficial (solid)</text>
+<text x="230" y="236" font-size="12" fill="var(--legend-deep)">Deep (dashed) — schematic, after Lyman 2004</text>
 </svg>
 
 <script>

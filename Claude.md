@@ -11,6 +11,8 @@
 
 ## Critical Code Style Rules
 - **Theme Sync:** Any new or modified `.html` page under `education/` or `research/` MUST include the Material palette script and initialization snippet. Copy the `<script>` block that initialises `__md_scope`, `__md_get`, `__md_set`, and the colour-scheme toggle from an existing course page such as `education/apa-spex-shoulder-course/index.html`. Ensure `__md_scope` matches the global education-course root so light/dark mode choices persist globally.
+  - Outside the course, pages use the snippet + `scripts/theme-toggle.js` (see `research/_template.html`): set `__md_scope` to the relative path of `education/apa-spex-shoulder-course/`, apply `html[data-theme]` from `__palette` in `<head>`, and load the toggle script with `defer`. The script adds a toggle to `.site-header .container` or wires any `[data-theme-toggle]` button, and fires a `themechange` event on `window` for pages that redraw with computed colours.
+  - Colours must come from CSS variables with a dark set in both `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) … }` and `:root[data-theme="dark"]` (see `styles.css`).
 - **Double TOC Entry Requirement:** Every page under `education/apa-spex-shoulder-course/` contains TWO identical `<nav class="md-nav md-nav--secondary">` blocks (left sidebar and right sidebar share the same markup). When adding or updating navigation on any course page, BOTH blocks must be changed identically. Editing only one leaves the other panel stale.
 - **Slugs:** Folder names, file names, and URL paths must strictly use lowercase `kebab-case` (e.g., `calcifying-tendinopathy`).
 

@@ -3,6 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Material palette sync: scope is the course root so the light/dark choice is shared site-wide -->
+  <script>__md_scope=new URL("../education/apa-spex-shoulder-course/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+  <script>
+    (function () {
+      var palette = null;
+      try { palette = __md_get("__palette"); } catch (e) { /* storage blocked: follow system */ }
+      if (palette && palette.color && palette.color.scheme && palette.color.media !== "(prefers-color-scheme)") {
+        document.documentElement.setAttribute("data-theme", palette.color.scheme === "slate" ? "dark" : "light");
+      }
+    })();
+  </script>
+  <script src="../scripts/theme-toggle.js" defer></script>
   <title>Alter-G EMG Study | Rod Whiteley</title>
   <meta name="description" content="Interactive figures and downloads for the Alter-G EMG study.">
   <link rel="stylesheet" href="../styles.css">

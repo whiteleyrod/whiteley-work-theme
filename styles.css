@@ -1,5 +1,48 @@
+/* Site-wide tokens. Dark mode follows the system unless the shared course
+   palette (__palette, applied as html[data-theme]) says otherwise.
+   Keep the two dark blocks below identical. */
 :root {
   color-scheme: light;
+  --page-bg: #f8fafc;
+  --surface: #ffffff;
+  --text: #1f2937;
+  --text-soft: #4b5563;
+  --text-strong: #374151;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --border-hover: #9ca3af;
+  --link: LinkText;
+  --link-visited: VisitedText;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page-bg: #0f141a;
+    --surface: #18202a;
+    --text: #e5e7eb;
+    --text-soft: #a3adba;
+    --text-strong: #cbd2db;
+    --border: #2a323d;
+    --border-strong: #3a4452;
+    --border-hover: #5b6675;
+    --link: #93b4ff;
+    --link-visited: #c4a8ff;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #0f141a;
+  --surface: #18202a;
+  --text: #e5e7eb;
+  --text-soft: #a3adba;
+  --text-strong: #cbd2db;
+  --border: #2a323d;
+  --border-strong: #3a4452;
+  --border-hover: #5b6675;
+  --link: #93b4ff;
+  --link-visited: #c4a8ff;
 }
 
 * {
@@ -10,8 +53,16 @@ body {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.5;
-  color: #1f2937;
-  background: #f8fafc;
+  color: var(--text);
+  background: var(--page-bg);
+}
+
+a {
+  color: var(--link);
+}
+
+a:visited {
+  color: var(--link-visited);
 }
 
 .container {
@@ -20,9 +71,13 @@ body {
 }
 
 .site-header {
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   padding: 2rem 0 1.25rem;
+}
+
+.site-header .container {
+  position: relative;
 }
 
 h1 {
@@ -32,7 +87,7 @@ h1 {
 
 .subtitle {
   margin: 0.4rem 0 0;
-  color: #4b5563;
+  color: var(--text-soft);
 }
 
 .top-nav {
@@ -40,7 +95,7 @@ h1 {
 }
 
 .top-nav a {
-  color: #1f2937;
+  color: var(--text);
   text-decoration: none;
   font-weight: 600;
 }
@@ -48,6 +103,27 @@ h1 {
 .top-nav a:hover,
 .top-nav a:focus-visible {
   text-decoration: underline;
+}
+
+/* Light/dark toggle (wired up by scripts/theme-toggle.js) */
+.theme-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-strong);
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  border-color: var(--border-hover);
 }
 
 main {
@@ -67,12 +143,17 @@ main {
 
 .card {
   display: block;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 1rem;
   text-decoration: none;
   color: inherit;
+}
+
+a.card,
+a.card:visited {
+  color: var(--text);
 }
 
 .card h3 {
@@ -82,7 +163,7 @@ main {
 
 .card p {
   margin: 0;
-  color: #4b5563;
+  color: var(--text-soft);
 }
 
 .card-head {
@@ -98,22 +179,22 @@ main {
 }
 
 .status {
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   padding: 0.15rem 0.5rem;
   font-size: 0.75rem;
-  color: #374151;
+  color: var(--text-strong);
   white-space: nowrap;
 }
 
 .empty-state {
   margin-top: 1rem;
-  color: #4b5563;
+  color: var(--text-soft);
 }
 
 a.card:hover,
 a.card:focus-visible {
-  border-color: #9ca3af;
+  border-color: var(--border-hover);
 }
 
 .placeholder {
@@ -121,8 +202,8 @@ a.card:focus-visible {
 }
 
 .site-footer {
-  background: #ffffff;
-  border-top: 1px solid #e5e7eb;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
   padding: 1.25rem 0;
-  color: #4b5563;
+  color: var(--text-soft);
 }
