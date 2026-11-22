@@ -629,6 +629,20 @@
       cursor: pointer;
       min-height: 36px;
     }
+    .axis-pickers {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-container-low);
+      border-radius: var(--rounded);
+    }
+    .axis-pickers .field-group { flex: 1 1 170px; min-width: 0; }
+    .select-compact { min-height: 38px; padding-top: 0.2rem; padding-bottom: 0.2rem; font-size: 0.875rem; }
+    .axis-swap { min-width: 44px; font-size: 1.05rem; }
+    .axis-note { flex: 1 1 100%; margin: 0; font-size: 0.8125rem; color: var(--on-surface-variant); }
+    .check-label:has(input:disabled) { opacity: 0.5; cursor: not-allowed; }
     .check-label input[type="checkbox"] {
       width: 18px;
       height: 18px;
@@ -1349,6 +1363,18 @@
             <h3 class="chart-title" id="scatter-chart-title">Method Comparison Scatter Plot</h3>
             <span class="chip" data-status="info" id="scatter-r-chip">OLS Fit: —</span>
           </div>
+          <div class="axis-pickers no-print">
+            <div class="field-group">
+              <label class="field-label" for="scatter-x-select">X axis</label>
+              <select id="scatter-x-select" class="select-ctrl select-compact" onchange="setScatterVar('x', this.value)"></select>
+            </div>
+            <button type="button" class="btn btn-ghost btn-compact axis-swap" onclick="swapScatterVars()" aria-label="Swap the X and Y axes" title="Swap the X and Y axes">⇄</button>
+            <div class="field-group">
+              <label class="field-label" for="scatter-y-select">Y axis</label>
+              <select id="scatter-y-select" class="select-ctrl select-compact" onchange="setScatterVar('y', this.value)"></select>
+            </div>
+            <p class="axis-note" id="scatter-axis-note" aria-live="polite"></p>
+          </div>
           <div class="chart-controls no-print">
             <label class="check-label"><input type="checkbox" id="chk-square" checked onchange="renderPlots()"> Square plot (1:1 aspect)</label>
             <label class="check-label"><input type="checkbox" id="chk-origin-zero" onchange="renderPlots()"> Origin at (0, 0)</label>
@@ -1908,6 +1934,7 @@ let appState = {
   iccType: `agreement`,
   equivBound: 18,
   customDataset: null,
+  scatterVars: { x: `pair:x`, y: `pair:y` },
   plotOpts: {
     centerZero: false,
     symY: false,
@@ -2751,6 +2778,109 @@ function updateSummaryCards(res, dataset, design) {
   }
 }
 
+// ---- Scatter plot axis choices ----
+// "Analysis pairs" are the X/Y pairs being analysed. Imported files also offer their numeric columns
+// (or rater × session values for long files), so any column can be plotted against any other as a check.
+let scatterNote = ``;
+
+function scatterVariableSets(ds) {
+  const sets = [{
+    id: `pairs`, label: `Analysis pairs (${ds.rows.length} points)`,
+    ids: ds.rows.map(r => r.id), conds: ds.rows.map(r => r.cond),
+    vars: [
+      { key: `pair:x`, label: `X: ${ds.labelX}`, axis: ds.labelX, scale: `measure`, values: ds.rows.map(r => r.x) },
+      { key: `pair:y`, label: `Y: ${ds.labelY}`, axis: ds.labelY, scale: `measure`, values: ds.rows.map(r => r.y) },
+      { key: `pair:mean`, label: `Mean of X and Y`, axis: `Mean of ${ds.labelX} & ${ds.labelY}`, scale: `measure`, values: ds.rows.map(r => (r.x + r.y) / 2) },
+      { key: `pair:diff`, label: `Difference X − Y`, axis: `${ds.labelX} − ${ds.labelY}`, scale: `diff`, values: ds.rows.map(r => r.x - r.y) }
+    ]
+  }];
+  const c = ds.columns;
+  if (c && Array.isArray(c.names) && c.names.length >= 2) {
+    sets.push({
+      id: `cols`,
+      label: c.source === `subjects` ? `Rater × session values (${c.ids.length} subjects)` : `Columns of your file (${c.ids.length} rows)`,
+      ids: c.ids, conds: c.conds || [],
+      vars: c.names.map((nm, j) => ({ key: `col:${j}`, label: nm, axis: nm, scale: `measure`, values: c.values[j].map(v => (v == null ? NaN : v)) }))
+    });
+  }
+  return sets;
+}
+
+function resolveScatterSelection(sets) {
+  const find = key => {
+    for (const set of sets) { const v = set.vars.find(x => x.key === key); if (v) return { set, v }; }
+    return null;
+  };
+  const sv = appState.scatterVars || {};
+  let fx = find(sv.x), fy = find(sv.y);
+  if (!fx || !fy || fx.set !== fy.set) {
+    fx = find(`pair:x`);
+    fy = find(`pair:y`);
+    appState.scatterVars = { x: `pair:x`, y: `pair:y` };
+    scatterNote = ``;
+  }
+  return { set: fx.set, x: fx.v, y: fy.v };
+}
+
+function syncScatterPickers(sets, sel) {
+  const signature = sets.map(set => `${set.label}:${set.vars.map(v => `${v.key}=${v.label}`).join(`,`)}`).join(`|`);
+  for (const axis of [`x`, `y`]) {
+    const el = document.getElementById(`scatter-${axis}-select`);
+    if (!el) continue;
+    if (el.dataset.signature !== signature) {
+      el.innerHTML = sets.map(set => `<optgroup label="${ingestEsc(set.label)}">${set.vars.map(v => `<option value="${v.key}">${ingestEsc(v.label)}</option>`).join(``)}</optgroup>`).join(``);
+      el.dataset.signature = signature;
+    }
+    el.value = (axis === `x` ? sel.x : sel.y).key;
+  }
+  const note = document.getElementById(`scatter-axis-note`);
+  if (note) {
+    note.textContent = scatterNote || (sets.length > 1
+      ? `Plot any column against any other to check the data, e.g. to spot swapped or mistyped columns. Both axes come from the same group.`
+      : `Choose what to plot: X, Y, their mean or their difference.`);
+  }
+}
+
+function setScatterVar(axis, key) {
+  const sets = scatterVariableSets(activeDataset);
+  const setOf = k => sets.find(set => set.vars.some(v => v.key === k));
+  const other = axis === `x` ? `y` : `x`;
+  appState.scatterVars = Object.assign({ x: `pair:x`, y: `pair:y` }, appState.scatterVars, { [axis]: key });
+  scatterNote = ``;
+  const set = setOf(key);
+  if (set && setOf(appState.scatterVars[other]) !== set) {
+    const idx = set.vars.findIndex(v => v.key === key);
+    const partner = set.vars[idx + 1] || set.vars[idx - 1];
+    appState.scatterVars[other] = partner.key;
+    scatterNote = `${other.toUpperCase()} axis switched to “${partner.label}”, because both axes must come from the same rows (${set.label.replace(/ \(.*$/, ``)}).`;
+  }
+  renderPlots();
+  saveAppStateSafe();
+}
+
+function swapScatterVars() {
+  const sv = appState.scatterVars || { x: `pair:x`, y: `pair:y` };
+  appState.scatterVars = { x: sv.y, y: sv.x };
+  scatterNote = ``;
+  renderPlots();
+  saveAppStateSafe();
+}
+
+function olsFit(pts) {
+  const n = pts.length;
+  if (n < 3) return null;
+  let mx = 0, my = 0;
+  for (const p of pts) { mx += p.x; my += p.y; }
+  mx /= n;
+  my /= n;
+  let sxx = 0, syy = 0, sxy = 0;
+  for (const p of pts) { sxx += (p.x - mx) ** 2; syy += (p.y - my) ** 2; sxy += (p.x - mx) * (p.y - my); }
+  const slope = sxy / Math.max(1e-12, sxx), intercept = my - slope * mx;
+  let rss = 0;
+  for (const p of pts) rss += (p.y - intercept - slope * p.x) ** 2;
+  return { slope, intercept, r: sxy / Math.sqrt(Math.max(1e-12, sxx * syy)), syx: Math.sqrt(rss / Math.max(1, n - 2)), mx, sxx, N: n };
+}
+
 function bindTooltip(svgEl, tooltipEl, stageEl) {
   if (!svgEl || !tooltipEl || !stageEl) return;
   const pts = svgEl.querySelectorAll(`[data-tip]`);
@@ -2885,66 +3015,97 @@ function renderPlots() {
     }
   }
 
-  // 2. Method Comparison Scatter Plot SVG
+  // 2. Scatter plot of any two variables (the method comparison, X vs Y, by default)
   const scSvg = document.getElementById(`scatter-svg`);
   if (scSvg) {
+    const sets = scatterVariableSets(ds);
+    const sel = resolveScatterSelection(sets);
+    syncScatterPickers(sets, sel);
+    const pts = [];
+    sel.x.values.forEach((xv, i) => {
+      const yv = sel.y.values[i];
+      if (Number.isFinite(xv) && Number.isFinite(yv)) pts.push({ x: xv, y: yv, id: sel.set.ids[i], cond: (sel.set.conds && sel.set.conds[i]) || `` });
+    });
+    // Two measurements share one scale (and the identity line); a difference gets its own scale.
+    const shared = sel.x.scale === `measure` && sel.y.scale === `measure`;
+    const idChk = document.getElementById(`chk-identity`);
+    if (idChk) {
+      idChk.disabled = !shared;
+      idChk.closest(`label`)?.setAttribute(`title`, shared ? `` : `Only for two measurements on the same scale`);
+    }
     const W = opts.squareScatter ? 420 : 520, H = 420;
     scSvg.setAttribute(`viewBox`, `0 0 ${W} ${H}`);
     const pad = { l: 58, r: 24, t: 24, b: 52 };
     const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
-
-    let minV = Math.min(...res.xs, ...res.ys), maxV = Math.max(...res.xs, ...res.ys);
-    const span = Math.max(1e-3, maxV - minV);
-    minV = opts.originZero ? 0 : minV - span * 0.08;
-    maxV = maxV + span * 0.08;
-    const sx = v => pad.l + ((v - minV) / (maxV - minV)) * pw;
-    const sy = v => pad.t + ph - ((v - minV) / (maxV - minV)) * ph;
+    const extent = (vals, measure) => {
+      let lo = Infinity, hi = -Infinity;
+      for (const v of vals) { if (v < lo) lo = v; if (v > hi) hi = v; }
+      if (!Number.isFinite(lo)) { lo = 0; hi = 1; }
+      const sp = Math.max(1e-3, hi - lo);
+      return [opts.originZero && measure && lo >= 0 ? 0 : lo - sp * 0.08, hi + sp * 0.08];
+    };
+    let xr, yr;
+    if (shared) {
+      xr = yr = extent(pts.flatMap(p => [p.x, p.y]), true);
+    } else {
+      xr = extent(pts.map(p => p.x), sel.x.scale === `measure`);
+      yr = extent(pts.map(p => p.y), sel.y.scale === `measure`);
+    }
+    const sx = v => pad.l + ((v - xr[0]) / (xr[1] - xr[0])) * pw;
+    const sy = v => pad.t + ph - ((v - yr[0]) / (yr[1] - yr[0])) * ph;
+    const dec = r => (r[1] - r[0] >= 20 ? 0 : r[1] - r[0] >= 2 ? 1 : 2);
 
     let grid = ``;
     for (let i = 0; i <= 4; i++) {
-      const val = minV + (i / 4) * (maxV - minV);
-      grid += `<line x1="${pad.l}" y1="${sy(val)}" x2="${W - pad.r}" y2="${sy(val)}" stroke="var(--outline-variant)" stroke-width="1"/>`;
-      grid += `<text x="${pad.l - 8}" y="${sy(val) + 4}" text-anchor="end" font-family="var(--font-label)" font-size="11" fill="var(--on-surface-variant)">${fmt(val, 0)}</text>`;
-      grid += `<text x="${sx(val)}" y="${H - pad.b + 18}" text-anchor="middle" font-family="var(--font-label)" font-size="11" fill="var(--on-surface-variant)">${fmt(val, 0)}</text>`;
+      const yv = yr[0] + (i / 4) * (yr[1] - yr[0]), xv = xr[0] + (i / 4) * (xr[1] - xr[0]);
+      grid += `<line x1="${pad.l}" y1="${sy(yv)}" x2="${W - pad.r}" y2="${sy(yv)}" stroke="var(--outline-variant)" stroke-width="1"/>`;
+      grid += `<text x="${pad.l - 8}" y="${sy(yv) + 4}" text-anchor="end" font-family="var(--font-label)" font-size="11" fill="var(--on-surface-variant)">${fmt(yv, dec(yr))}</text>`;
+      grid += `<text x="${sx(xv)}" y="${H - pad.b + 18}" text-anchor="middle" font-family="var(--font-label)" font-size="11" fill="var(--on-surface-variant)">${fmt(xv, dec(xr))}</text>`;
     }
-
-    const identity = opts.showIdentity
-      ? `<line x1="${sx(minV)}" y1="${sy(minV)}" x2="${sx(maxV)}" y2="${sy(maxV)}" stroke="var(--outline)" stroke-width="1.8" stroke-dasharray="5 4"/>`
+    const zeroLine = sel.y.scale === `diff` && yr[0] < 0 && yr[1] > 0
+      ? `<line x1="${pad.l}" y1="${sy(0)}" x2="${W - pad.r}" y2="${sy(0)}" stroke="var(--outline)" stroke-width="1.2" stroke-dasharray="3 3"/>`
+      : ``;
+    const identity = shared && opts.showIdentity
+      ? `<line x1="${sx(xr[0])}" y1="${sy(xr[0])}" x2="${sx(xr[1])}" y2="${sy(xr[1])}" stroke="var(--outline)" stroke-width="1.8" stroke-dasharray="5 4"/>`
       : ``;
 
+    const fit = olsFit(pts);
     let olsEls = ``;
-    if (opts.showOLSCI) {
-      const { slope, intercept, syx, mx, sxx, N } = res.ols;
-      const t95 = tQuantile(0.975, Math.max(1, N - 2));
-      const steps = 28;
-      const upperPts = [], lowerPts = [];
+    if (opts.showOLSCI && fit) {
+      const t95 = tQuantile(0.975, Math.max(1, fit.N - 2));
+      const steps = 28, upperPts = [], lowerPts = [];
       for (let i = 0; i <= steps; i++) {
-        const xv = minV + (i / steps) * (maxV - minV);
-        const yHat = intercept + slope * xv;
-        const se = syx * Math.sqrt(1 / N + ((xv - mx) ** 2) / Math.max(1e-9, sxx));
+        const xv = xr[0] + (i / steps) * (xr[1] - xr[0]);
+        const yHat = fit.intercept + fit.slope * xv;
+        const se = fit.syx * Math.sqrt(1 / fit.N + ((xv - fit.mx) ** 2) / Math.max(1e-9, fit.sxx));
         upperPts.push(`${sx(xv)},${sy(yHat + t95 * se)}`);
         lowerPts.unshift(`${sx(xv)},${sy(yHat - t95 * se)}`);
       }
       olsEls += `<polygon points="${upperPts.concat(lowerPts).join(' ')}" fill="var(--ci-band-fill)"/>`;
-      olsEls += `<line x1="${sx(minV)}" y1="${sy(intercept + slope * minV)}" x2="${sx(maxV)}" y2="${sy(intercept + slope * maxV)}" stroke="var(--data-1)" stroke-width="2.2"/>`;
+      olsEls += `<line x1="${sx(xr[0])}" y1="${sy(fit.intercept + fit.slope * xr[0])}" x2="${sx(xr[1])}" y2="${sy(fit.intercept + fit.slope * xr[1])}" stroke="var(--data-1)" stroke-width="2.2"/>`;
     }
 
-    const dots = ds.rows.map((r, i) => {
-      const tip = `<strong>${r.id}</strong> (${r.cond})<br>X: ${fmt(r.x)} ${ds.unit}<br>Y: ${fmt(r.y)} ${ds.unit}`;
-      return `<circle cx="${sx(r.x)}" cy="${sy(r.y)}" r="4" fill="var(--data-2)" fill-opacity="0.78" stroke="var(--background)" stroke-width="1" tabindex="0" data-tip="${tip.replace(/"/g, '&quot;')}"/>`;
+    const dots = pts.map(p => {
+      const tip = `<strong>${p.id}</strong>${p.cond ? ` (${p.cond})` : ``}<br>${sel.x.axis}: ${fmt(p.x)} ${ds.unit}<br>${sel.y.axis}: ${fmt(p.y)} ${ds.unit}`;
+      return `<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="4" fill="var(--data-2)" fill-opacity="0.78" stroke="var(--background)" stroke-width="1" tabindex="0" data-tip="${tip.replace(/"/g, '&quot;')}"/>`;
     }).join(``);
 
     scSvg.innerHTML = `
-      ${grid}${olsEls}${identity}
+      <defs><clipPath id="scatter-clip"><rect x="${pad.l}" y="${pad.t}" width="${pw}" height="${ph}"/></clipPath></defs>
+      ${grid}<g clip-path="url(#scatter-clip)">${olsEls}${identity}${zeroLine}</g>
       <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H - pad.b}" stroke="var(--outline)" stroke-width="1.2"/>
       <line x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" stroke="var(--outline)" stroke-width="1.2"/>
       ${dots}
-      <text x="${pad.l + pw / 2}" y="${H - 12}" text-anchor="middle" font-family="var(--font-label)" font-weight="600" font-size="12" fill="var(--on-surface-variant)">${ds.labelX} (${ds.unit})</text>
-      <text x="16" y="${pad.t + ph / 2}" text-anchor="middle" transform="rotate(-90 16 ${pad.t + ph / 2})" font-family="var(--font-label)" font-weight="600" font-size="12" fill="var(--on-surface-variant)">${ds.labelY} (${ds.unit})</text>`;
+      <text x="${pad.l + pw / 2}" y="${H - 12}" text-anchor="middle" font-family="var(--font-label)" font-weight="600" font-size="12" fill="var(--on-surface-variant)">${sel.x.axis} (${ds.unit})</text>
+      <text x="16" y="${pad.t + ph / 2}" text-anchor="middle" transform="rotate(-90 16 ${pad.t + ph / 2})" font-family="var(--font-label)" font-weight="600" font-size="12" fill="var(--on-surface-variant)">${sel.y.axis} (${ds.unit})</text>`;
 
     bindTooltip(scSvg, document.getElementById(`scatter-tooltip`), document.getElementById(`scatter-stage`));
+    const isDefault = sel.x.key === `pair:x` && sel.y.key === `pair:y`;
+    const titleEl = document.getElementById(`scatter-chart-title`);
+    if (titleEl) titleEl.textContent = isDefault ? `Method Comparison Scatter Plot` : `Scatter: ${sel.y.axis} vs ${sel.x.axis}`;
+    scSvg.setAttribute(`aria-label`, `Scatter plot of ${sel.y.axis} against ${sel.x.axis}`);
     const rChip = document.getElementById(`scatter-r-chip`);
-    if (rChip) rChip.textContent = `y = ${fmt(res.ols.slope, 2)}x + ${fmt(res.ols.intercept, 1)} (r = ${fmt(res.ols.r, 3)})`;
+    if (rChip) rChip.textContent = fit ? `y = ${fmt(fit.slope, 2)}x ${fit.intercept < 0 ? `−` : `+`} ${fmt(Math.abs(fit.intercept), 1)} (r = ${fmt(fit.r, 3)}, n = ${fit.N})` : `Too few points`;
   }
 
   // 3. Parallel Profile / Replicate Heteroscedasticity Plot
@@ -3219,6 +3380,7 @@ function runAll() {
 // Event Handlers (hoisted declarations)
 function selectPresetDataset(key) {
   if (key === `custom_user` && !appState.customDataset) { openImportDialog(); return; }
+  scatterNote = ``;
   if (key === `custom_user` && appState.customDataset) {
     activeDataset = appState.customDataset;
   } else {
@@ -3283,6 +3445,8 @@ function resetWorkbench(btn) {
   appState.presetKey = `mvc_d2`;
   appState.ciMethod = `mover`;
   appState.iccType = `agreement`;
+  appState.scatterVars = { x: `pair:x`, y: `pair:y` };
+  scatterNote = ``;
   const iccSel = document.getElementById(`icc-type-select`);
   if (iccSel) iccSel.value = `agreement`;
   const sel = document.getElementById(`preset-select`);
@@ -4575,6 +4739,32 @@ function applyGridOption(k) {
   renderIngestWizard();
 }
 
+// Numeric columns of the imported file (wide) or rater × session values (long), offered on the scatter plot's axes.
+function importColumns(crossed, clean) {
+  const { layout, records, profiles, delim } = ingest;
+  const R = ingest.roles[layout];
+  const iSubj = R.subj && R.subj.length ? R.subj[0] : -1;
+  if (layout === `wide`) {
+    const iCond = R.cond && R.cond.length ? R.cond[0] : -1;
+    const cols = profiles.filter(p => p.numeric && p.i !== iSubj && p.n >= 3);
+    if (cols.length < 2) return null;
+    return {
+      source: `file`,
+      names: cols.map(p => clean(p.name) || `Column ${p.i + 1}`),
+      ids: records.map((r, k) => (iSubj >= 0 ? clean(r[iSubj]) : ``) || `Row ${k + 1}`),
+      conds: records.map(r => (iCond >= 0 ? clean(r[iCond]) : ``)),
+      values: cols.map(p => records.map(r => toNumber(r[p.i], delim)))
+    };
+  }
+  if (!crossed) return null;
+  const names = [], values = [];
+  crossed.raters.forEach((rn, ri) => crossed.occasions.forEach((on, oi) => {
+    names.push(`${rn} · ${on}`);
+    values.push(crossed.subjects.map(sb => sb.v[ri][oi]));
+  }));
+  return { source: `subjects`, names, ids: crossed.subjects.map(sb => sb.id), conds: [], values };
+}
+
 function confirmIngestDataset() {
   const msg = document.getElementById(`ingest-msg`);
   if (!ingest || !ingest.lastBuilt) {
@@ -4592,11 +4782,14 @@ function confirmIngestDataset() {
   appState.customDataset = {
     key: `custom_user`, design: ingest.design, title: `${source} (N = ${rows.length} pairs)`,
     crossed, comparisonId: crossed && !crossed.transposed && ingest.design === crossed.pooledDesign ? `inter-all` : null,
+    columns: importColumns(crossed, clean),
     unit, labelX: labelX || `Method X`, labelY: labelY || `Method Y`,
     defaultBound: Math.max(1, +(Math.sqrt(rows.reduce((s, r) => s + (r.x - r.y) ** 2, 0) / rows.length) * 2).toFixed(1)),
     veracity: `User-imported dataset (${rows.length} pairs, ${ingest.layout.toUpperCase()} layout)`, rows
   };
   refreshCustomOption();
+  appState.scatterVars = { x: `pair:x`, y: `pair:y` }; // a new file starts from the method comparison view
+  scatterNote = ``;
   const sel = document.getElementById(`preset-select`);
   if (sel) sel.value = `custom_user`;
   selectPresetDataset(`custom_user`);
@@ -4813,7 +5006,7 @@ function analyseOverviewRow(id) {
   appState.customDataset = {
     key: `custom_user`, design: c.design, crossed: cr, comparisonId: c.id,
     title: `${cr.title || `Your data`}: ${c.group === `inter` ? `inter-rater` : `intra-rater`}, ${c.label}`,
-    unit: activeDataset.unit, labelX: c.labelX, labelY: c.labelY,
+    columns: activeDataset.columns, unit: activeDataset.unit, labelX: c.labelX, labelY: c.labelY,
     defaultBound: appState.equivBound, veracity: activeDataset.veracity, rows: c.rows
   };
   refreshCustomOption();
@@ -4923,6 +5116,7 @@ async function saveAppStateSafe() {
         iccType: appState.iccType,
         equivBound: appState.equivBound,
         plotOpts: appState.plotOpts,
+        scatterVars: appState.scatterVars,
         customDataset: appState.presetKey === `custom_user` ? appState.customDataset : null
       });
     } catch (e) { /* Ignore storage quota issues */ }
@@ -4955,6 +5149,7 @@ async function initApp() {
         if (saved.ciMethod) appState.ciMethod = saved.ciMethod;
         if (saved.iccType) appState.iccType = saved.iccType === `consistency` ? `consistency` : `agreement`;
         if (typeof saved.equivBound === `number`) appState.equivBound = saved.equivBound;
+        if (saved.scatterVars && saved.scatterVars.x && saved.scatterVars.y) appState.scatterVars = saved.scatterVars;
         if (saved.plotOpts) {
           appState.plotOpts = saved.plotOpts;
           const mapChk = [
