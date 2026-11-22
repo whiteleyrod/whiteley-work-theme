@@ -781,6 +781,130 @@
     }
     .inline-msg[data-state="error"] { color: var(--error); }
 
+    /* Data ingestion wizard */
+    .ingest-wizard {
+      --role-subj: var(--data-4);
+      --role-cond: var(--data-3);
+      --role-rep: var(--outline);
+      --role-x: var(--data-1);
+      --role-y: var(--data-2);
+      --role-method: var(--data-1);
+      --role-value: var(--data-2);
+      --role-ignore: var(--outline-variant);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+      margin-top: var(--space-md);
+    }
+    .ingest-wizard[hidden] { display: none; }
+    .ingest-wizard, .ingest-wizard * { min-width: 0; }
+    #tab-panel-ingest { min-width: 0; max-width: 100%; }
+    .ingest-card {
+      background: var(--background);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .ingest-card h3 {
+      margin: 0;
+      font-family: var(--font-headline);
+      font-size: var(--subhead-size);
+      color: var(--on-surface);
+    }
+    .ingest-card p { margin: 0; }
+    .ingest-note { font-size: 0.875rem; color: var(--on-surface-variant); }
+    .ingest-reasons { margin: 0; padding-left: 1.2rem; font-size: 0.875rem; color: var(--on-surface-variant); }
+    .ingest-reasons li + li { margin-top: 0.2rem; }
+    .ingest-head { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; justify-content: space-between; }
+    .seg-btn .seg-tag { font-weight: 400; font-size: 0.75rem; opacity: 0.85; }
+    .role-board {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+      gap: var(--space-sm);
+    }
+    .role-zone {
+      border: 2px dashed var(--outline-variant);
+      border-top: 4px solid var(--zone-color, var(--outline-variant));
+      border-radius: var(--rounded);
+      padding: var(--space-sm);
+      min-height: 96px;
+      background: var(--surface-container-low);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      cursor: pointer;
+      transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    }
+    .role-zone--ignore { grid-column: 1 / -1; min-height: 64px; }
+    .role-zone.is-missing { border-color: var(--warning); border-top-color: var(--zone-color, var(--outline-variant)); }
+    .role-zone.is-target { border-color: var(--primary); border-top-color: var(--zone-color, var(--outline-variant)); }
+    .role-zone.is-over { border-style: solid; border-color: var(--primary); background: var(--primary-container); }
+    .role-zone-head {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-xs);
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: var(--label-size);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--on-surface);
+    }
+    .role-zone-head .req { font-weight: 600; color: var(--on-surface-variant); text-transform: none; letter-spacing: 0; }
+    .role-zone-hint { font-size: 0.75rem; line-height: 1.4; color: var(--on-surface-variant); }
+    .role-zone-why { font-size: 0.75rem; line-height: 1.4; color: var(--secondary); }
+    .role-chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); min-height: 36px; }
+    .col-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-height: 36px;
+      max-width: 100%;
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--rounded-full);
+      border: 1px solid var(--outline);
+      border-left: 6px solid var(--chip-color, var(--outline));
+      background: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: 0.8125rem;
+      cursor: grab;
+      touch-action: manipulation;
+    }
+    .col-chip:hover { background: var(--surface-container); }
+    .col-chip:active { cursor: grabbing; }
+    .col-chip.is-picked { background: var(--primary-container); border-color: var(--primary); box-shadow: var(--focus-ring); }
+    .col-chip.is-dragging { opacity: 0.45; }
+    .col-chip .col-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .col-chip .col-type { font-size: 0.6875rem; font-weight: 600; color: var(--on-surface-variant); white-space: nowrap; }
+    [data-role="subj"] { --chip-color: var(--role-subj); --zone-color: var(--role-subj); }
+    [data-role="cond"] { --chip-color: var(--role-cond); --zone-color: var(--role-cond); }
+    [data-role="rep"] { --chip-color: var(--role-rep); --zone-color: var(--role-rep); }
+    [data-role="x"], [data-role="method"] { --chip-color: var(--role-x); --zone-color: var(--role-x); }
+    [data-role="y"], [data-role="value"] { --chip-color: var(--role-y); --zone-color: var(--role-y); }
+    [data-role="ignore"] { --chip-color: var(--role-ignore); --zone-color: var(--role-ignore); }
+    .ingest-preview th { border-top: 4px solid var(--zone-color, transparent); }
+    .ingest-preview th .th-role {
+      display: block;
+      font-size: 0.625rem;
+      letter-spacing: 0.04em;
+      color: var(--on-surface-variant);
+      text-transform: none;
+      font-weight: 600;
+    }
+    .ingest-preview td.is-ignored, .ingest-preview th.is-ignored { opacity: 0.5; }
+    .level-pickers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: var(--space-sm); }
+    .ingest-status { font-size: 0.9rem; font-weight: 600; color: var(--secondary); }
+    .ingest-status[data-state="error"] { color: var(--error); }
+    .ingest-warn { margin: 0; padding-left: 1.2rem; font-size: 0.8125rem; color: var(--on-surface); }
+    .ingest-warn li::marker { color: var(--warning); }
+    .ingest-confirm { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: flex-end; }
+    .ingest-confirm .field-group { flex: 1 1 200px; }
+
     .range-band { fill: var(--band-fill); stroke: none; }
 
     @media (max-width: 900px) {
@@ -1109,56 +1233,16 @@
 
       <!-- Tab 3: CSV / TSV Ingestion -->
       <div class="tab-panel" id="tab-panel-ingest">
-        <div class="two-col">
-          <div class="field-group">
-            <label class="field-label" for="paste-csv">Paste CSV or TSV Data (or Upload File)</label>
-            <textarea id="paste-csv" class="textarea-ctrl" placeholder="subject,condition,method_x,method_y&#10;S01,Day1,142.5,138.0&#10;S01,Day2,145.0,141.2"></textarea>
-            <div style="display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center;">
-              <input type="file" id="csv-file-input" aria-label="Upload CSV or TSV file" accept=".csv,.tsv,.txt" onchange="handleCSVFileUpload(this)" style="max-width:260px;">
-              <button type="button" class="btn btn-secondary" onclick="parsePastedCSV()">Detect Columns</button>
-            </div>
-            <div class="inline-msg" id="ingest-msg"></div>
+        <div class="field-group">
+          <label class="field-label" for="paste-csv">1 · Paste CSV / TSV data, or upload or drop a file</label>
+          <textarea id="paste-csv" class="textarea-ctrl" placeholder="subject,day,hhd_N,iso_N&#10;S01,Day1,142.5,138.0&#10;S01,Day2,145.0,141.2&#10;&#10;…or LONG: subject,device,value&#10;S01,HHD,142.5&#10;S01,ISO,138.0"></textarea>
+          <div style="display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center;">
+            <input type="file" id="csv-file-input" aria-label="Upload CSV or TSV file" accept=".csv,.tsv,.txt" onchange="handleCSVFileUpload(this)" style="max-width:260px;">
+            <button type="button" class="btn btn-secondary" onclick="parsePastedCSV()">Detect &amp; Suggest Mapping</button>
           </div>
-
-          <div style="display:flex; flex-direction:column; gap:var(--space-sm);">
-            <div class="two-col">
-              <div class="field-group">
-                <label class="field-label" for="map-format">Data Layout</label>
-                <select id="map-format" class="select-ctrl" onchange="toggleLongWideMapping()">
-                  <option value="wide">WIDE (Method X &amp; Method Y columns)</option>
-                  <option value="long">LONG (Method label + Value column)</option>
-                </select>
-              </div>
-              <div class="field-group">
-                <label class="field-label" for="map-subj">Subject ID Column</label>
-                <select id="map-subj" class="select-ctrl"></select>
-              </div>
-              <div class="field-group">
-                <label class="field-label" for="map-x" id="lbl-map-x">Method X / Trial 1 Column</label>
-                <select id="map-x" class="select-ctrl"></select>
-              </div>
-              <div class="field-group">
-                <label class="field-label" for="map-y" id="lbl-map-y">Method Y / Trial 2 Column</label>
-                <select id="map-y" class="select-ctrl"></select>
-              </div>
-              <div class="field-group">
-                <label class="field-label" for="map-cond">Condition / Time Column (Optional)</label>
-                <select id="map-cond" class="select-ctrl"></select>
-              </div>
-              <div class="field-group">
-                <label class="field-label" for="map-design">Target Design</label>
-                <select id="map-design" class="select-ctrl">
-                  <option value="1">Design 1: Single-Device Repeatability</option>
-                  <option value="2" selected>Design 2: Classic Paired Comparison</option>
-                  <option value="3">Design 3: Constant True Value Replicates</option>
-                  <option value="4">Design 4: Varying True Value Repeated</option>
-                  <option value="5">Design 5: Nested Multi-Level LMM</option>
-                </select>
-              </div>
-            </div>
-            <button type="button" class="btn btn-primary" onclick="applyMappedDataset()">Load Mapped Dataset into Workbench</button>
-          </div>
+          <div class="inline-msg" id="ingest-msg" role="status" aria-live="polite"></div>
         </div>
+        <div id="ingest-wizard" class="ingest-wizard" hidden></div>
       </div>
 
       <!-- Tab 4: Active Data Table -->
@@ -1593,7 +1677,6 @@ let appState = {
 
 let activeDataset = getPresetDataset(`mvc_d2`);
 let computedResults = null;
-let parsedCSVData = null;
 
 // Core Statistical & ICC Computation Engine
 function computeAnalysis(dataset, design, ciMethod, equivBound) {
@@ -2933,134 +3016,598 @@ if (window.matchMedia) {
 }
 
 // CSV/TSV Ingestion
+// Parse the data, guess the layout (wide/long) and each column's role, then show the guesses
+// so the user can confirm them or rearrange columns by drag-and-drop (or click-to-assign).
+const INGEST_ROLES = {
+  wide: [
+    { key: `subj`, label: `Subject ID`, required: true, multi: false, hint: `One label per subject. Rows that share an ID are repeated observations of that subject.` },
+    { key: `cond`, label: `Condition / Time`, required: false, multi: false, hint: `Optional: day, session, angle or activity for each row.` },
+    { key: `x`, label: `Method X / Trial 1`, required: true, multi: true, hint: `Numeric. Drop several columns if replicates sit side by side; they pair in order with Method Y.` },
+    { key: `y`, label: `Method Y / Trial 2`, required: true, multi: true, hint: `Numeric. Needs the same number of columns as Method X.` }
+  ],
+  long: [
+    { key: `subj`, label: `Subject ID`, required: true, multi: false, hint: `One label per subject. Rows that share an ID belong to the same subject.` },
+    { key: `cond`, label: `Condition / Time`, required: false, multi: false, hint: `Optional: day, session, angle or activity for each row.` },
+    { key: `rep`, label: `Replicate / Trial`, required: false, multi: false, hint: `Optional: pairs the X and Y readings that share a trial number. Without it, readings pair in row order.` },
+    { key: `method`, label: `Method / Rater Label`, required: true, multi: false, hint: `Text column saying which method, device or rater took each reading.` },
+    { key: `value`, label: `Measurement Value`, required: true, multi: false, hint: `Numeric column holding each reading.` }
+  ]
+};
+const INGEST_RX = {
+  subj: /(^|[^a-z])(subj(ect)?s?|participants?|patients?|athletes?|players?|persons?|pid|sid|id|cases?|record)([^a-z]|$)|subject|participant|patient|athlete|player/i,
+  cond: /day|session|visit|time|occasion|condition|^cond|week|period|angle|activity|task|position|phase|stage|bout|posture|limb|side/i,
+  rep: /^(reps?|replicate|repetition|trials?|attempt|obs|observation|iteration|run|n|no|num|number|index|idx)[\s_.-]*(no|num|number|index|idx)?$|replicate|repetition|^trial|attempt/i,
+  method: /method|rater|device|instrument|tester|observer|assessor|examiner|tool|system|sensor|machine|technique|clinician|operator|equipment/i,
+  value: /value|score|result|measure|reading|^val$|outcome|response/i,
+  retest: /test|retest|trial|session|occasion|visit|day|^t\s*\d|time|^rep|pre|post/i,
+  missing: /^(na|n\/a|nan|null|none|-|\.|\?)$/i
+};
+let ingest = null;
+
+function ingestEsc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': `&amp;`, '<': `&lt;`, '>': `&gt;`, '"': `&quot;`, "'": `&#39;` }[c]));
+}
+
+function detectDelimiter(text) {
+  const first = text.split(/\r?\n/).find(l => l.trim()) || ``;
+  const counts = [`\t`, `,`, `;`, `|`].map(d => [d, first.split(d).length - 1]).sort((a, b) => b[1] - a[1]);
+  if (counts[0][1] > 0) return counts[0][0];
+  return /\S\s+\S/.test(first) ? ` ` : `,`;
+}
+
+function parseDelimited(text, delim) {
+  if (delim === ` `) text = text.split(/\r?\n/).map(l => l.trim().replace(/[ \t]+/g, ` `)).join(`\n`);
+  const out = [];
+  let row = [], cell = ``, quoted = false;
+  const endRow = () => { row.push(cell.trim()); cell = ``; if (row.some(c => c !== ``)) out.push(row); row = []; };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === `"`) { if (text[i + 1] === `"`) { cell += `"`; i++; } else quoted = false; }
+      else cell += ch;
+    } else if (ch === `"` && cell.trim() === ``) quoted = true;
+    else if (ch === delim) { row.push(cell.trim()); cell = ``; }
+    else if (ch === `\n` || ch === `\r`) { if (ch === `\r` && text[i + 1] === `\n`) i++; endRow(); }
+    else cell += ch;
+  }
+  endRow();
+  return out;
+}
+
+function toNumber(s, delim) {
+  if (s == null) return NaN;
+  let t = String(s).trim();
+  if (!t || INGEST_RX.missing.test(t)) return NaN;
+  if (delim !== `,` && /^[-+]?\d*,\d+$/.test(t)) t = t.replace(`,`, `.`);
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(t)) return NaN;
+  return parseFloat(t);
+}
+
+function profileColumns(headers, records, delim) {
+  return headers.map((name, i) => {
+    const vals = records.map(r => (r[i] ?? ``).trim()).filter(v => v && !INGEST_RX.missing.test(v));
+    const nums = vals.map(v => toNumber(v, delim)).filter(Number.isFinite);
+    const levels = [], seen = new Set();
+    for (const v of vals) if (!seen.has(v)) { seen.add(v); levels.push(v); }
+    const numeric = vals.length > 0 && nums.length / vals.length >= 0.9;
+    return {
+      i, name: name || `Column ${i + 1}`, n: vals.length, numeric,
+      integer: numeric && nums.every(Number.isInteger),
+      distinct: levels.length, levels, sample: vals.slice(0, 4)
+    };
+  });
+}
+
+// Strip a replicate marker (trailing or leading "t1", "_2", "rep3"...) to find columns measuring the same thing.
+function columnStem(name, leading) {
+  const n = String(name).toLowerCase().trim();
+  return leading
+    ? n.replace(/^(t|trial|rep|r|time|day|session|s|obs|#)?[\s_.-]*\d+[\s_.-]*/i, ``)
+    : n.replace(/[\s_.-]*(t|trial|rep|r|time|day|session|s|obs|#)?[\s_.-]*\d+$/i, ``);
+}
+
+function splitMeasureColumns(ms) {
+  if (ms.length < 2) return null;
+  if (ms.length === 2) return { x: [ms[0]], y: [ms[1]], note: `` };
+  for (const leading of [false, true]) {
+    const groups = new Map();
+    for (const m of ms) {
+      const s = columnStem(m.name, leading);
+      if (!groups.has(s)) groups.set(s, []);
+      groups.get(s).push(m);
+    }
+    const g = [...groups.values()];
+    if (g.length === 2 && g[0].length === g[1].length) {
+      return { x: g[0], y: g[1], note: `Columns were grouped by name into two methods with ${g[0].length} replicates each, paired in order.` };
+    }
+  }
+  return { x: [ms[0]], y: [ms[1]], note: `There are ${ms.length} numeric columns, and they don't split cleanly into two methods, so only the first two were used. Drag replicate columns into Method X and Method Y to include them.` };
+}
+
+function guessIngest(profiles, nRows) {
+  const reasons = [];
+  const why = { wide: {}, long: {} };
+  const used = new Set();
+  const take = pred => { const c = profiles.find(p => !used.has(p.i) && pred(p)); if (c) used.add(c.i); return c || null; };
+
+  // Subject ID
+  let subj = take(c => INGEST_RX.subj.test(c.name) && c.distinct >= 2 && !INGEST_RX.method.test(c.name));
+  let subjWhy = subj ? `Named like an ID column.` : ``;
+  if (!subj) { subj = take(c => !c.numeric && c.distinct >= 3); if (subj) subjWhy = `First text column with many different labels (${subj.distinct}).`; }
+  if (!subj) { subj = take(c => c.integer && c.distinct >= 3); if (subj) subjWhy = `Whole-number column with ${subj.distinct} different values.`; }
+  if (!subj) { subj = take(() => true); if (subj) subjWhy = `No obvious ID column, so the first column was used. Please check.`; }
+
+  // Method label candidate (marks LONG data): a column with a few repeating labels.
+  const isIndexLike = c => c.integer && c.distinct <= Math.max(6, nRows / 4) && (INGEST_RX.rep.test(c.name) || INGEST_RX.cond.test(c.name));
+  const methodCand =
+    profiles.find(c => !used.has(c.i) && INGEST_RX.method.test(c.name) && c.distinct >= 2 && c.distinct <= 8 &&
+      c.distinct < nRows / 1.5 && (!c.numeric || c.distinct <= 4)) ||
+    profiles.find(c => !used.has(c.i) && !c.numeric && c.distinct >= 2 && c.distinct <= 6 && c.distinct < nRows / 1.5 &&
+      !INGEST_RX.cond.test(c.name) && !INGEST_RX.rep.test(c.name));
+  const measures = profiles.filter(c => !used.has(c.i) && c.numeric && !isIndexLike(c) && (!methodCand || c.i !== methodCand.i));
+
+  let layout;
+  const lv = c => c.levels.slice(0, 4).map(ingestEsc).join(`, `) + (c.distinct > 4 ? `, …` : ``);
+  if (methodCand && measures.length === 1) {
+    layout = `long`;
+    reasons.push(`<b>${ingestEsc(methodCand.name)}</b> repeats ${methodCand.distinct} labels (${lv(methodCand)}) and there is a single numeric column, <b>${ingestEsc(measures[0].name)}</b>. That suggests each row is one reading, so the data look <b>LONG</b>.`);
+  } else if (measures.length >= 2) {
+    layout = `wide`;
+    reasons.push(`${measures.length} numeric columns (${measures.map(m => `<b>${ingestEsc(m.name)}</b>`).join(`, `)}) sit side by side. That suggests each row holds a pair of readings, so the data look <b>WIDE</b>.`);
+  } else if (methodCand && measures.length >= 1) {
+    layout = `long`;
+    reasons.push(`<b>${ingestEsc(methodCand.name)}</b> looks like a method label, so the data look <b>LONG</b>.`);
+  } else {
+    layout = `wide`;
+    reasons.push(`Neither a method-label column nor two numeric columns were found. Assign the columns below by hand.`);
+  }
+
+  const condPick = (exclude) => {
+    const free = c => !used.has(c.i) && !exclude.has(c.i) && c.distinct >= 2 && c.distinct < nRows;
+    return profiles.find(c => free(c) && INGEST_RX.cond.test(c.name) && (!c.numeric || isIndexLike(c) || c.distinct <= Math.max(10, nRows / 3))) || null;
+  };
+  const repPick = (exclude) => profiles.find(c => !used.has(c.i) && !exclude.has(c.i) && INGEST_RX.rep.test(c.name) && c.distinct >= 2 && c.distinct < nRows) || null;
+
+  // WIDE roles
+  const wide = { subj: subj ? [subj.i] : [], cond: [], x: [], y: [] };
+  why.wide.subj = subjWhy;
+  const split = splitMeasureColumns(measures);
+  if (split) {
+    wide.x = split.x.map(c => c.i); wide.y = split.y.map(c => c.i);
+    why.wide.x = why.wide.y = split.x.length > 1 ? `Grouped by column name.` : `Numeric measurement column.`;
+    if (split.note) reasons.push(split.note);
+  }
+  const wideTaken = new Set([...wide.x, ...wide.y]);
+  let wCond = condPick(wideTaken), wCondWhy = wCond ? `Named like a condition or time column.` : ``;
+  if (!wCond) { wCond = repPick(wideTaken); if (wCond) wCondWhy = `Trial/replicate numbers, used to label each row.`; }
+  if (!wCond) {
+    wCond = profiles.find(c => !used.has(c.i) && !wideTaken.has(c.i) && !c.numeric && c.distinct >= 2 && c.distinct < nRows) || null;
+    if (wCond) wCondWhy = `Text labels that repeat across subjects.`;
+  }
+  if (wCond) { wide.cond = [wCond.i]; why.wide.cond = wCondWhy; }
+
+  // LONG roles
+  const long = { subj: subj ? [subj.i] : [], cond: [], rep: [], method: [], value: [] };
+  why.long.subj = subjWhy;
+  if (methodCand) { long.method = [methodCand.i]; why.long.method = `${methodCand.distinct} repeating labels: ${lv(methodCand)}.`; }
+  const val = measures.find(c => INGEST_RX.value.test(c.name)) || measures[0] || null;
+  if (val) { long.value = [val.i]; why.long.value = INGEST_RX.value.test(val.name) ? `Named like a value column.` : `Numeric measurement column.`; }
+  const longTaken = new Set([...long.method, ...long.value]);
+  const lRep = repPick(longTaken);
+  if (lRep) { long.rep = [lRep.i]; longTaken.add(lRep.i); why.long.rep = `Named like a trial/replicate column.`; }
+  const lCond = condPick(longTaken);
+  if (lCond) { long.cond = [lCond.i]; why.long.cond = `Named like a condition or time column.`; }
+
+  return { layout, reasons, roles: { wide, long }, why };
+}
+
 function handleCSVFileUpload(input) {
   const file = input.files && input.files[0];
-  if (!file) return;
+  if (file) loadIngestFile(file);
+}
+
+function loadIngestFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
     const txt = document.getElementById(`paste-csv`);
     if (txt) txt.value = e.target.result;
-    parsePastedCSV();
+    parsePastedCSV(file.name);
   };
   reader.readAsText(file);
 }
 
-function parsePastedCSV() {
+function parsePastedCSV(sourceName) {
   const msg = document.getElementById(`ingest-msg`);
-  const raw = (document.getElementById(`paste-csv`)?.value || ``).trim();
-  if (!raw) {
-    if (msg) { msg.textContent = `Please paste CSV/TSV text or choose a file first.`; msg.setAttribute(`data-state`, `error`); }
-    return;
-  }
-  const lines = raw.split(/\r?\n/).filter(l => l.trim().length > 0);
-  const delim = lines[0].includes(`\t`) ? `\t` : `,`;
-  const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ``));
-  const records = lines.slice(1).map(line => line.split(delim).map(c => c.trim().replace(/^"|"$/g, ``)));
-  if (headers.length < 2 || records.length < 3) {
-    if (msg) { msg.textContent = `Need at least 2 columns and 3 data rows.`; msg.setAttribute(`data-state`, `error`); }
-    return;
-  }
-  parsedCSVData = { headers, records };
-  const fillSel = (id, defIdx) => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    sel.innerHTML = (id === `map-cond` ? `<option value="-1">(None)</option>` : ``) +
-      headers.map((h, i) => `<option value="${i}">${h}</option>`).join(``);
-    if (defIdx >= 0 && defIdx < headers.length) sel.value = String(defIdx);
+  const raw = (document.getElementById(`paste-csv`)?.value || ``).replace(/^﻿/, ``).trim();
+  const fail = text => {
+    if (msg) { msg.textContent = text; msg.setAttribute(`data-state`, `error`); }
+    ingest = null;
+    const host = document.getElementById(`ingest-wizard`);
+    if (host) host.hidden = true;
   };
-  fillSel(`map-subj`, 0);
-  fillSel(`map-x`, Math.min(1, headers.length - 1));
-  fillSel(`map-y`, Math.min(2, headers.length - 1));
-  fillSel(`map-cond`, headers.length > 3 ? 1 : -1);
-  if (msg) { msg.textContent = `Detected ${headers.length} columns and ${records.length} rows. Map columns and click Load.`; msg.removeAttribute(`data-state`); }
-}
-
-function toggleLongWideMapping() {
-  const fmtMode = document.getElementById(`map-format`)?.value;
-  const lx = document.getElementById(`lbl-map-x`), ly = document.getElementById(`lbl-map-y`);
-  if (fmtMode === `long`) {
-    if (lx) lx.textContent = `Method / Rater Label Column`;
-    if (ly) ly.textContent = `Measurement Value Column`;
-  } else {
-    if (lx) lx.textContent = `Method X / Trial 1 Column`;
-    if (ly) ly.textContent = `Method Y / Trial 2 Column`;
+  if (!raw) return fail(`Paste CSV/TSV text, or choose or drop a file, first.`);
+  const delim = detectDelimiter(raw);
+  const table = parseDelimited(raw, delim);
+  if (table.length < 4) return fail(`Need a header row and at least 3 data rows.`);
+  const width = Math.max(...table.map(r => r.length));
+  const headers = Array.from({ length: width }, (_, i) => (table[0][i] || ``).trim() || `Column ${i + 1}`);
+  const records = table.slice(1).map(r => Array.from({ length: width }, (_, i) => r[i] ?? ``));
+  if (width < 2) return fail(`Only one column was found. Check that the data are separated by commas, tabs or semicolons.`);
+  const profiles = profileColumns(headers, records, delim);
+  const guess = guessIngest(profiles, records.length);
+  const firstLevels = guess.roles.long.method.length ? profiles[guess.roles.long.method[0]].levels : [];
+  const unitMatch = headers.join(` `).match(/[(\[]\s*([^)\]]{1,12})\s*[)\]]/);
+  ingest = {
+    headers, records, delim, profiles, guess,
+    layout: guess.layout,
+    roles: JSON.parse(JSON.stringify(guess.roles)),
+    levelX: firstLevels[0] ?? null, levelY: firstLevels[1] ?? null,
+    design: null, designAuto: true,
+    unit: unitMatch ? unitMatch[1] : `units`,
+    picked: null, edited: false
+  };
+  const delimName = { '\t': `tab`, ',': `comma`, ';': `semicolon`, '|': `pipe`, ' ': `space` }[delim];
+  if (msg) {
+    msg.textContent = `Read ${records.length} rows × ${width} columns (${delimName}-separated${sourceName ? ` from ${sourceName}` : ``}). Check the suggested mapping below, then confirm.`;
+    msg.removeAttribute(`data-state`);
   }
+  renderIngestWizard();
 }
 
-function applyMappedDataset() {
-  const msg = document.getElementById(`ingest-msg`);
-  if (!parsedCSVData) parsePastedCSV();
-  if (!parsedCSVData) return;
+function resetIngestToGuess() {
+  if (!ingest) return;
+  ingest.layout = ingest.guess.layout;
+  ingest.roles = JSON.parse(JSON.stringify(ingest.guess.roles));
+  resetIngestLevels();
+  ingest.designAuto = true;
+  ingest.edited = false;
+  ingest.picked = null;
+  renderIngestWizard();
+}
 
-  const fmtMode = document.getElementById(`map-format`)?.value;
-  const iSubj = parseInt(document.getElementById(`map-subj`)?.value || `0`, 10);
-  const iX = parseInt(document.getElementById(`map-x`)?.value || `1`, 10);
-  const iY = parseInt(document.getElementById(`map-y`)?.value || `2`, 10);
-  const iCond = parseInt(document.getElementById(`map-cond`)?.value || `-1`, 10);
-  const targetDesign = parseInt(document.getElementById(`map-design`)?.value || `2`, 10);
+function resetIngestLevels() {
+  const m = ingest.roles.long.method[0];
+  const lv = m != null ? ingest.profiles[m].levels : [];
+  ingest.levelX = lv[0] ?? null;
+  ingest.levelY = lv[1] ?? null;
+}
 
-  let rows = [];
-  if (fmtMode === `wide`) {
-    for (const r of parsedCSVData.records) {
-      const xv = parseFloat(r[iX]), yv = parseFloat(r[iY]);
-      if (Number.isFinite(xv) && Number.isFinite(yv)) {
-        rows.push({
-          id: r[iSubj] || `S${rows.length + 1}`,
-          cond: iCond >= 0 ? (r[iCond] || `Obs`) : `Pair`,
-          x: xv, y: yv
-        });
+function setIngestLayout(layout) {
+  if (!ingest || ingest.layout === layout) return;
+  ingest.layout = layout;
+  ingest.picked = null;
+  ingest.edited = true;
+  renderIngestWizard();
+}
+
+function assignIngestColumn(col, role) {
+  if (!ingest || !Number.isInteger(col)) return;
+  const R = ingest.roles[ingest.layout];
+  for (const k of Object.keys(R)) R[k] = R[k].filter(i => i !== col);
+  if (role !== `ignore`) {
+    const def = INGEST_ROLES[ingest.layout].find(r => r.key === role);
+    if (!def) return;
+    if (!def.multi) R[role] = [];
+    R[role].push(col);
+  }
+  if (ingest.layout === `long`) {
+    const m = R.method[0];
+    const lv = m != null ? ingest.profiles[m].levels : [];
+    if (!lv.includes(ingest.levelX) || !lv.includes(ingest.levelY)) resetIngestLevels();
+  }
+  ingest.picked = null;
+  ingest.edited = true;
+  renderIngestWizard();
+}
+
+// Turn the current mapping into {id, cond, x, y} pairs.
+function buildIngestRows() {
+  const { records, delim, layout, headers } = ingest;
+  const R = ingest.roles[layout];
+  const one = k => (R[k] && R[k].length ? R[k][0] : -1);
+  const iSubj = one(`subj`), iCond = one(`cond`);
+  const warnings = [];
+  const missing = INGEST_ROLES[layout].filter(r => r.required && !(R[r.key] && R[r.key].length)).map(r => r.label);
+  if (missing.length) return { error: `Still needed: ${missing.join(`, `)}. Drag a column into ${missing.length > 1 ? `each of those boxes` : `that box`}.` };
+  const rows = [], obsCount = new Map();
+  let skipped = 0, labelX, labelY;
+  const push = (id, cond, x, y) => {
+    const n = (obsCount.get(id) || 0) + 1;
+    obsCount.set(id, n);
+    rows.push({ id, cond: iCond >= 0 ? cond : `Obs ${n}`, x, y });
+  };
+
+  if (layout === `wide`) {
+    const xs = R.x, ys = R.y;
+    if (xs.length !== ys.length) return { error: `Method X has ${xs.length} column(s) and Method Y has ${ys.length}. They pair in order, so the counts must match.` };
+    const nonNum = [...xs, ...ys].filter(i => !ingest.profiles[i].numeric).map(i => headers[i]);
+    if (nonNum.length) warnings.push(`${nonNum.map(ingestEsc).join(`, `)} ${nonNum.length > 1 ? `are` : `is`} mostly non-numeric; those cells are skipped.`);
+    for (const r of records) {
+      const id = (r[iSubj] || ``).trim();
+      for (let k = 0; k < xs.length; k++) {
+        const x = toNumber(r[xs[k]], delim), y = toNumber(r[ys[k]], delim);
+        if (!id || !Number.isFinite(x) || !Number.isFinite(y)) { skipped++; continue; }
+        push(id, (iCond >= 0 ? (r[iCond] || ``).trim() : ``) || `Obs`, x, y);
       }
     }
+    const stemLabel = cols => (cols.length > 1 ? (columnStem(headers[cols[0]], false) || columnStem(headers[cols[0]], true) || headers[cols[0]]) : headers[cols[0]]);
+    labelX = stemLabel(xs); labelY = stemLabel(ys);
   } else {
-    // Pivot LONG rows by (subject, condition) taking first two distinct method levels
-    const methods = Array.from(new Set(parsedCSVData.records.map(r => r[iX]))).filter(Boolean);
-    if (methods.length < 2) {
-      if (msg) { msg.textContent = `LONG format requires at least 2 distinct method labels in column ${parsedCSVData.headers[iX]}.`; msg.setAttribute(`data-state`, `error`); }
-      return;
-    }
-    const mA = methods[0], mB = methods[1];
+    const iM = one(`method`), iV = one(`value`), iRep = one(`rep`);
+    const lx = ingest.levelX, ly = ingest.levelY;
+    if (lx == null || ly == null || lx === ly) return { error: `Choose two different labels for Method X and Method Y.` };
+    if (!ingest.profiles[iV].numeric) warnings.push(`${ingestEsc(headers[iV])} is mostly non-numeric; check the Measurement Value box.`);
     const bucket = new Map();
-    for (const r of parsedCSVData.records) {
-      const key = `${r[iSubj]}||${iCond >= 0 ? r[iCond] : 'Obs'}`;
-      if (!bucket.has(key)) bucket.set(key, { id: r[iSubj], cond: iCond >= 0 ? r[iCond] : `Obs`, xList: [], yList: [] });
-      const val = parseFloat(r[iY]);
-      if (!Number.isFinite(val)) continue;
-      if (r[iX] === mA) bucket.get(key).xList.push(val);
-      else if (r[iX] === mB) bucket.get(key).yList.push(val);
+    let otherLevel = 0;
+    for (const r of records) {
+      const id = (r[iSubj] || ``).trim(), m = (r[iM] || ``).trim(), v = toNumber(r[iV], delim);
+      if (!id || !Number.isFinite(v)) { skipped++; continue; }
+      if (m !== lx && m !== ly) { otherLevel++; continue; }
+      const cond = iCond >= 0 ? ((r[iCond] || ``).trim() || `Obs`) : ``;
+      const key = [id, cond, iRep >= 0 ? (r[iRep] || ``).trim() : ``].join(`\u0001`);
+      if (!bucket.has(key)) bucket.set(key, { id, cond, x: [], y: [] });
+      bucket.get(key)[m === lx ? `x` : `y`].push(v);
     }
+    let unmatched = 0;
     for (const b of bucket.values()) {
-      const k = Math.min(b.xList.length, b.yList.length);
-      for (let idx = 0; idx < k; idx++) rows.push({ id: b.id, cond: b.cond, x: b.xList[idx], y: b.yList[idx] });
+      const k = Math.min(b.x.length, b.y.length);
+      unmatched += Math.abs(b.x.length - b.y.length);
+      for (let j = 0; j < k; j++) push(b.id, b.cond, b.x[j], b.y[j]);
     }
+    if (otherLevel) warnings.push(`${otherLevel} row(s) with other ${ingestEsc(headers[iM])} labels were left out; only ${ingestEsc(lx)} vs ${ingestEsc(ly)} is compared.`);
+    if (unmatched) warnings.push(`${unmatched} reading(s) had no partner from the other method${iRep < 0 ? ` (pairing is by row order within each subject${iCond >= 0 ? ` and condition` : ``})` : ``} and were left out.`);
+    labelX = lx; labelY = ly;
+  }
+  if (skipped) warnings.push(`${skipped} cell pair(s) were skipped because of a missing ID or a non-numeric value.`);
+  if (rows.length < 3) return { error: `Only ${rows.length} complete pair(s) were found with this mapping; at least 3 are needed.`, warnings };
+  if (iCond < 0 && [...obsCount.values()].every(n => n === 1)) rows.forEach(r => { r.cond = `Pair`; });
+  return { rows, warnings, labelX, labelY, obsCount };
+}
+
+function suggestIngestDesign(built) {
+  const { rows, obsCount, labelX, labelY } = built;
+  const avail = designAvailability({ key: `custom_preview`, rows, title: `these data` });
+  const maxObs = Math.max(...obsCount.values());
+  const R = ingest.roles[ingest.layout];
+  const condName = R.cond && R.cond.length ? ingest.headers[R.cond[0]] : null;
+  if (maxObs <= 1) {
+    const sameStem = columnStem(labelX, false) === columnStem(labelY, false) && columnStem(labelX, false) !== String(labelX).toLowerCase();
+    const retest = sameStem || (INGEST_RX.retest.test(labelX) && INGEST_RX.retest.test(labelY));
+    return retest
+      ? { design: 1, avail, why: `One pair per subject, and <b>${ingestEsc(labelX)}</b> / <b>${ingestEsc(labelY)}</b> look like two trials of the same measure, so test–retest repeatability is suggested.` }
+      : { design: 2, avail, why: `One pair per subject from two different methods, so a classic paired comparison is suggested.` };
+  }
+  if (avail.allowed.has(5)) {
+    return { design: 5, avail, why: `Each subject has several ${condName ? `<b>${ingestEsc(condName)}</b> levels` : `conditions`} with repeated pairs inside each, so the nested model is suggested.` };
+  }
+  if (condName && !INGEST_RX.rep.test(condName)) {
+    return { design: 4, avail, why: `Up to ${maxObs} pairs per subject, labelled by <b>${ingestEsc(condName)}</b>, so the true value may change between them (Design 4). If they are replicates of the same quantity, pick Design 3.` };
+  }
+  return { design: 3, avail, why: `Up to ${maxObs} pairs per subject with no changing condition, so they are treated as replicates of one true value (Design 3). If the true value changes between them, pick Design 4.` };
+}
+
+function renderIngestWizard() {
+  const host = document.getElementById(`ingest-wizard`);
+  if (!host || !ingest) return;
+  const active = document.activeElement;
+  const refocus = active && host.contains(active)
+    ? (active.dataset.zone ? `[data-zone="${active.dataset.zone}"]` : active.dataset.col ? `[data-col="${active.dataset.col}"]` : active.id ? `#${active.id}` : null)
+    : null;
+  host.hidden = false;
+  const { layout, profiles, headers, records } = ingest;
+  const R = ingest.roles[layout];
+  const roleOf = {};
+  for (const [k, arr] of Object.entries(R)) for (const i of arr) roleOf[i] = k;
+  const roleLabel = Object.fromEntries(INGEST_ROLES[layout].map(r => [r.key, r.label]));
+  const guessed = ingest.guess.layout;
+
+  const chip = c => {
+    const role = roleOf[c.i] || `ignore`;
+    const tip = `${c.name}: ${c.numeric ? (c.integer ? `whole numbers` : `numbers`) : `text`}, ${c.distinct} distinct value(s). e.g. ${c.sample.join(`, `)}`;
+    return `<button type="button" class="col-chip${ingest.picked === c.i ? ` is-picked` : ``}" draggable="true" data-col="${c.i}" data-role="${role}" aria-pressed="${ingest.picked === c.i}" title="${ingestEsc(tip)}" aria-label="${ingestEsc(`Column ${c.name}, currently ${role === `ignore` ? `not used` : roleLabel[role]}. Press to pick it up, then choose a box.`)}"><span class="col-name">${ingestEsc(c.name)}</span><span class="col-type">${c.numeric ? `123` : `abc`} · ${c.distinct}</span></button>`;
+  };
+  const zone = (key, label, hint, required, whyText) => {
+    const cols = key === `ignore` ? profiles.filter(c => !roleOf[c.i]) : (R[key] || []).map(i => profiles[i]);
+    const missing = required && !cols.length;
+    const target = ingest.picked != null && roleOf[ingest.picked] !== key && !(key === `ignore` && !roleOf[ingest.picked]);
+    return `<div class="role-zone${key === `ignore` ? ` role-zone--ignore` : ``}${missing ? ` is-missing` : ``}${target ? ` is-target` : ``}" data-zone="${key}" data-role="${key}" role="button" tabindex="0" aria-label="${ingestEsc(`${label} box${cols.length ? `, holds ${cols.map(c => c.name).join(`, `)}` : `, empty`}. ${ingest.picked != null ? `Press to drop the picked column here.` : ``}`)}">
+      <div class="role-zone-head"><span>${label}</span><span class="req">${key === `ignore` ? `` : required ? `required` : `optional`}</span></div>
+      <div class="role-chips">${cols.map(chip).join(``)}</div>
+      ${whyText && cols.length && !ingest.edited ? `<div class="role-zone-why">Suggested: ${whyText}</div>` : ``}
+      <div class="role-zone-hint">${hint}</div>
+    </div>`;
+  };
+  const whyMap = ingest.guess.why[layout] || {};
+  const board = INGEST_ROLES[layout].map(r => zone(r.key, r.label, r.hint, r.required, whyMap[r.key])).join(``) +
+    zone(`ignore`, `Not Used`, `Columns here are ignored. Drag a column here to remove it from the analysis.`, false, ``);
+
+  let levelHTML = ``;
+  if (layout === `long` && R.method.length) {
+    const lv = profiles[R.method[0]].levels;
+    const opts = sel => lv.map(l => `<option value="${ingestEsc(l)}"${l === sel ? ` selected` : ``}>${ingestEsc(l)}</option>`).join(``);
+    levelHTML = `<div class="level-pickers">
+      <div class="field-group"><label class="field-label" for="ingest-level-x">Method X = label</label><select id="ingest-level-x" class="select-ctrl" data-level="x">${opts(ingest.levelX)}</select></div>
+      <div class="field-group"><label class="field-label" for="ingest-level-y">Method Y = label</label><select id="ingest-level-y" class="select-ctrl" data-level="y">${opts(ingest.levelY)}</select></div>
+    </div>${lv.length > 2 ? `<p class="ingest-note">${ingestEsc(headers[R.method[0]])} has ${lv.length} labels. Bland–Altman compares two at a time; pick which pair to compare.</p>` : ``}`;
   }
 
-  if (rows.length < 3) {
-    if (msg) { msg.textContent = `Fewer than 3 valid numeric pairs found after mapping.`; msg.setAttribute(`data-state`, `error`); }
+  const shown = records.slice(0, 6);
+  const rawTable = `<div class="table-wrap ingest-preview"><table>
+    <thead><tr>${headers.map((h, i) => { const role = roleOf[i] || `ignore`; return `<th data-role="${role}"${role === `ignore` ? ` class="is-ignored"` : ``}>${ingestEsc(h)}<span class="th-role">${role === `ignore` ? `not used` : roleLabel[role]}</span></th>`; }).join(``)}</tr></thead>
+    <tbody>${shown.map(r => `<tr>${headers.map((_, i) => `<td class="${profiles[i].numeric ? `num` : ``}${roleOf[i] ? `` : ` is-ignored`}">${ingestEsc(r[i] ?? ``)}</td>`).join(``)}</tr>`).join(``)}</tbody>
+  </table></div><p class="ingest-note">Showing ${shown.length} of ${records.length} rows.</p>`;
+
+  const built = buildIngestRows();
+  let resultHTML;
+  if (built.error) {
+    resultHTML = `<p class="ingest-status" data-state="error">${built.error}</p>`;
+    ingest.lastBuilt = null;
+  } else {
+    const sug = suggestIngestDesign(built);
+    if (ingest.designAuto || !sug.avail.allowed.has(ingest.design)) ingest.design = sug.design;
+    ingest.lastBuilt = built;
+    const nSubj = built.obsCount.size;
+    const counts = [...built.obsCount.values()];
+    const minO = Math.min(...counts), maxO = Math.max(...counts);
+    const conds = new Set(built.rows.map(r => r.cond));
+    const names = { 1: `Single-Device Repeatability`, 2: `Classic Paired Comparison`, 3: `Constant True Value Replicates`, 4: `Varying True Value Repeated`, 5: `Nested Multi-Level LMM` };
+    const designOpts = [1, 2, 3, 4, 5].map(d => {
+      const ok = sug.avail.allowed.has(d);
+      return `<option value="${d}"${d === ingest.design ? ` selected` : ``}${ok ? `` : ` disabled`}>Design ${d}: ${names[d]}${d === sug.design ? ` (suggested)` : ``}${ok ? `` : ` (doesn't fit these data)`}</option>`;
+    }).join(``);
+    resultHTML = `
+      <p class="ingest-status">${built.rows.length} pairs from ${nSubj} subjects · ${minO === maxO ? minO : `${minO}–${maxO}`} pair(s) per subject${R.cond && R.cond.length ? ` · ${conds.size} condition level(s)` : ``} · X = <b>${ingestEsc(built.labelX)}</b>, Y = <b>${ingestEsc(built.labelY)}</b></p>
+      ${built.warnings.length ? `<ul class="ingest-warn">${built.warnings.map(w => `<li>${w}</li>`).join(``)}</ul>` : ``}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Subject</th><th>Condition / Rep</th><th class="num">X: ${ingestEsc(built.labelX)}</th><th class="num">Y: ${ingestEsc(built.labelY)}</th></tr></thead>
+        <tbody>${built.rows.slice(0, 5).map(r => `<tr><td>${ingestEsc(r.id)}</td><td>${ingestEsc(r.cond)}</td><td class="num">${r.x}</td><td class="num">${r.y}</td></tr>`).join(``)}</tbody>
+      </table></div>
+      <p class="ingest-note"><b>Suggested design:</b> ${sug.why}</p>
+      <div class="ingest-confirm">
+        <div class="field-group"><label class="field-label" for="ingest-design">Analysis design</label><select id="ingest-design" class="select-ctrl">${designOpts}</select></div>
+        <div class="field-group" style="flex:0 1 140px;"><label class="field-label" for="ingest-unit">Unit</label><input id="ingest-unit" class="input-ctrl" type="text" value="${ingestEsc(ingest.unit)}" maxlength="16"></div>
+        <button type="button" class="btn btn-primary" id="ingest-confirm-btn">Confirm &amp; Load into Workbench</button>
+      </div>`;
+  }
+
+  host.innerHTML = `
+    <div class="ingest-card">
+      <div class="ingest-head">
+        <h3>2 · Check the suggested layout</h3>
+        ${ingest.edited ? `<button type="button" class="btn btn-ghost" id="ingest-reset-btn">Reset to suggestions</button>` : ``}
+      </div>
+      <ul class="ingest-reasons">${ingest.guess.reasons.map(r => `<li>${r}</li>`).join(``)}</ul>
+      <div class="btn-seg" role="group" aria-label="Data layout">
+        <button type="button" class="seg-btn${layout === `wide` ? ` is-active` : ``}" data-layout="wide" aria-pressed="${layout === `wide`}">WIDE: one row holds X and Y${guessed === `wide` ? ` <span class="seg-tag">(suggested)</span>` : ``}</button>
+        <button type="button" class="seg-btn${layout === `long` ? ` is-active` : ``}" data-layout="long" aria-pressed="${layout === `long`}">LONG: one row per reading${guessed === `long` ? ` <span class="seg-tag">(suggested)</span>` : ``}</button>
+      </div>
+    </div>
+    <div class="ingest-card">
+      <h3>3 · Confirm what each column is</h3>
+      <p class="ingest-note">Drag column chips between the boxes, or click a chip and then click a box. Hover a chip to see its values.</p>
+      <div class="role-board">${board}</div>
+      ${levelHTML}
+      ${rawTable}
+    </div>
+    <div class="ingest-card">
+      <h3>4 · Review and load</h3>
+      ${resultHTML}
+    </div>`;
+  if (refocus) host.querySelector(refocus)?.focus();
+}
+
+function confirmIngestDataset() {
+  const msg = document.getElementById(`ingest-msg`);
+  if (!ingest || !ingest.lastBuilt) {
+    if (msg) { msg.textContent = `Finish the column mapping first.`; msg.setAttribute(`data-state`, `error`); }
     return;
   }
-
+  const { rows, labelX, labelY } = ingest.lastBuilt;
+  const unit = (ingest.unit || ``).trim() || `units`;
   appState.customDataset = {
-    key: `custom_user`, design: targetDesign, title: `Custom Imported Dataset (N = ${rows.length})`,
-    unit: `units`, labelX: parsedCSVData.headers[iX] || `Method X`, labelY: parsedCSVData.headers[iY] || `Method Y`,
+    key: `custom_user`, design: ingest.design, title: `Custom Imported Dataset (N = ${rows.length})`,
+    unit, labelX: labelX || `Method X`, labelY: labelY || `Method Y`,
     defaultBound: Math.max(1, +(Math.sqrt(rows.reduce((s, r) => s + (r.x - r.y) ** 2, 0) / rows.length) * 2).toFixed(1)),
-    veracity: `User-imported dataset (${rows.length} pairs)`, rows
+    veracity: `User-imported dataset (${rows.length} pairs, ${ingest.layout.toUpperCase()} layout)`, rows
   };
-  // If the chosen design does not fit the data's structure, fall back to the first one that does.
-  const avail = designAvailability(appState.customDataset);
-  let usedDesign = targetDesign, note = ``;
-  if (!avail.allowed.has(targetDesign)) {
-    usedDesign = [1, 2, 3, 4, 5].find(d => avail.allowed.has(d));
-    appState.customDataset.design = usedDesign;
-    note = ` Design ${targetDesign} ${avail.reasons[targetDesign].replace(/<[^>]+>/g, ``).split(`.`)[0]}, so Design ${usedDesign} was used instead.`;
-  }
   const sel = document.getElementById(`preset-select`);
   if (sel) sel.value = `custom_user`;
   selectPresetDataset(`custom_user`);
   if (msg) {
-    msg.textContent = `Loaded ${rows.length} paired observations into Design ${usedDesign}.${note}`;
-    if (note) msg.setAttribute(`data-state`, `error`); else msg.removeAttribute(`data-state`);
+    msg.textContent = `Loaded ${rows.length} pairs into Design ${ingest.design}. Results above now use your data.`;
+    msg.removeAttribute(`data-state`);
   }
 }
+// Kept for any saved links or buttons that still call the old name.
+const applyMappedDataset = confirmIngestDataset;
+
+function initIngestWizard() {
+  const host = document.getElementById(`ingest-wizard`);
+  const txt = document.getElementById(`paste-csv`);
+  if (txt) {
+    txt.addEventListener(`paste`, () => setTimeout(() => parsePastedCSV(), 0));
+    txt.addEventListener(`dragover`, e => { if (e.dataTransfer && [...e.dataTransfer.types].includes(`Files`)) e.preventDefault(); });
+    txt.addEventListener(`drop`, e => {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) { e.preventDefault(); loadIngestFile(f); }
+    });
+  }
+  if (!host) return;
+  let dragCol = null;
+  host.addEventListener(`dragstart`, e => {
+    const c = e.target.closest(`.col-chip`);
+    if (!c) return;
+    dragCol = +c.dataset.col;
+    e.dataTransfer.effectAllowed = `move`;
+    e.dataTransfer.setData(`text/plain`, String(dragCol));
+    c.classList.add(`is-dragging`);
+  });
+  host.addEventListener(`dragend`, e => {
+    e.target.closest(`.col-chip`)?.classList.remove(`is-dragging`);
+    host.querySelectorAll(`.role-zone.is-over`).forEach(z => z.classList.remove(`is-over`));
+    dragCol = null;
+  });
+  host.addEventListener(`dragover`, e => {
+    const z = e.target.closest(`.role-zone`);
+    if (!z || dragCol == null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = `move`;
+    host.querySelectorAll(`.role-zone.is-over`).forEach(o => { if (o !== z) o.classList.remove(`is-over`); });
+    z.classList.add(`is-over`);
+  });
+  host.addEventListener(`dragleave`, e => {
+    const z = e.target.closest(`.role-zone`);
+    if (z && !z.contains(e.relatedTarget)) z.classList.remove(`is-over`);
+  });
+  host.addEventListener(`drop`, e => {
+    const z = e.target.closest(`.role-zone`);
+    if (!z) return;
+    e.preventDefault();
+    const col = dragCol != null ? dragCol : parseInt(e.dataTransfer.getData(`text/plain`), 10);
+    dragCol = null;
+    assignIngestColumn(col, z.dataset.zone);
+  });
+  const activateZone = z => { if (ingest && ingest.picked != null) assignIngestColumn(ingest.picked, z.dataset.zone); };
+  host.addEventListener(`click`, e => {
+    if (!ingest) return;
+    const c = e.target.closest(`.col-chip`);
+    if (c) {
+      const col = +c.dataset.col;
+      // A picked chip clicked inside a different box drops it there; otherwise toggle the pick.
+      if (ingest.picked != null && ingest.picked !== col) { activateZone(c.closest(`.role-zone`)); return; }
+      ingest.picked = ingest.picked === col ? null : col;
+      renderIngestWizard();
+      return;
+    }
+    const z = e.target.closest(`.role-zone`);
+    if (z) { activateZone(z); return; }
+    const lb = e.target.closest(`[data-layout]`);
+    if (lb) { setIngestLayout(lb.dataset.layout); return; }
+    if (e.target.closest(`#ingest-reset-btn`)) { resetIngestToGuess(); return; }
+    if (e.target.closest(`#ingest-confirm-btn`)) confirmIngestDataset();
+  });
+  host.addEventListener(`keydown`, e => {
+    if (e.key === `Escape` && ingest && ingest.picked != null) { ingest.picked = null; renderIngestWizard(); return; }
+    const z = e.target.classList && e.target.classList.contains(`role-zone`) ? e.target : null;
+    if (z && (e.key === `Enter` || e.key === ` `)) { e.preventDefault(); activateZone(z); }
+  });
+  host.addEventListener(`change`, e => {
+    if (!ingest) return;
+    const t = e.target;
+    if (t.dataset.level) {
+      if (t.dataset.level === `x`) ingest.levelX = t.value; else ingest.levelY = t.value;
+      ingest.edited = true;
+      renderIngestWizard();
+    } else if (t.id === `ingest-design`) {
+      ingest.design = parseInt(t.value, 10);
+      ingest.designAuto = false;
+    } else if (t.id === `ingest-unit`) {
+      ingest.unit = t.value;
+    }
+  });
+  host.addEventListener(`input`, e => { if (ingest && e.target.id === `ingest-unit`) ingest.unit = e.target.value; });
+}
+document.addEventListener(`DOMContentLoaded`, initIngestWizard);
 
 function copyScript(preId, btn) {
   const txt = document.getElementById(preId)?.textContent || ``;
