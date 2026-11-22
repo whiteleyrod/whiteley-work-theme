@@ -798,7 +798,6 @@
     }
     .ingest-wizard[hidden] { display: none; }
     .ingest-wizard, .ingest-wizard * { min-width: 0; }
-    #tab-panel-ingest { min-width: 0; max-width: 100%; }
     .ingest-card {
       background: var(--background);
       border: var(--card-border);
@@ -905,6 +904,125 @@
     .ingest-confirm { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: flex-end; }
     .ingest-confirm .field-group { flex: 1 1 200px; }
 
+    /* Upload call-to-action, import dialog and page-wide file drop */
+    .upload-cta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm) var(--space-md);
+      margin-bottom: var(--space-md);
+      padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md);
+      border-radius: var(--rounded);
+      background: var(--primary-container);
+      border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+    }
+    .upload-cta-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      flex: 1 1 320px;
+      font-size: 0.875rem;
+      color: var(--on-primary-container);
+    }
+    .upload-cta-text strong { font-family: var(--font-headline); font-size: 1rem; color: var(--on-surface); }
+    .btn-icon { width: 18px; height: 18px; flex: none; }
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .import-dialog {
+      width: min(1120px, calc(100vw - 2rem));
+      max-width: none;
+      max-height: calc(100vh - 2rem);
+      max-height: calc(100dvh - 2rem);
+      padding: 0;
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      background: var(--surface-container-low);
+      color: var(--on-surface);
+      box-shadow: 0 24px 64px rgb(0 0 0 / 0.35);
+      overflow: auto;
+      overscroll-behavior: contain;
+    }
+    .import-dialog::backdrop { background: rgb(8 18 22 / 0.6); }
+    html:has(.import-dialog[open]) { overflow: hidden; }
+    .import-dialog-inner {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+      padding: 0 var(--space-lg) var(--space-lg);
+    }
+    .import-dialog-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+      margin: 0 calc(-1 * var(--space-lg));
+      padding: var(--space-md) var(--space-lg);
+      background: var(--surface-container-low);
+      border-bottom: 1px solid var(--outline-variant);
+    }
+    .import-dialog-head .section-sub { margin-top: var(--space-xs); }
+    .dialog-close { flex: none; width: 44px; padding: 0; }
+    .import-dialog .ingest-wizard { margin-top: 0; scroll-margin-top: 96px; }
+    .import-source {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+    .import-source .field-group > .btn { align-self: flex-start; }
+    .drop-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      min-height: 190px;
+      padding: var(--space-lg) var(--space-md);
+      text-align: center;
+      border: 2px dashed var(--outline);
+      border-radius: var(--rounded-lg);
+      background: var(--surface-container-low);
+      transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    }
+    .drop-zone p { margin: 0; }
+    .drop-zone-icon { width: 40px; height: 40px; color: var(--primary); }
+    .is-file-drag .drop-zone { border-style: solid; border-color: var(--primary); background: var(--primary-container); }
+    .file-drop-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-lg);
+      background: color-mix(in srgb, var(--primary) 22%, rgb(0 0 0 / 0.45));
+      pointer-events: none;
+    }
+    .is-file-drag .file-drop-overlay { display: flex; }
+    .file-drop-overlay span {
+      padding: var(--space-xl);
+      border: 3px dashed var(--primary);
+      border-radius: var(--rounded-lg);
+      background: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: var(--headline-size);
+      text-align: center;
+    }
+
     .range-band { fill: var(--band-fill); stroke: none; }
 
     @media (max-width: 900px) {
@@ -918,6 +1036,10 @@
       .page-grid { padding: var(--space-sm); gap: var(--space-md); }
       .dataset-bar { grid-template-columns: 1fr; }
       .header-actions { justify-content: flex-start; }
+      .import-dialog { width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); }
+      .import-dialog-inner { padding: 0 var(--space-md) var(--space-md); }
+      .import-dialog-head { margin: 0 calc(-1 * var(--space-md)); padding: var(--space-sm) var(--space-md); }
+      .upload-cta .btn { width: 100%; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -956,11 +1078,21 @@
     </header>
 
     <!-- Dataset & Clinical Threshold Bar -->
-    <section class="panel no-print" aria-label="Dataset and threshold controls">
+    <section class="panel no-print" id="dataset-panel" aria-label="Dataset and threshold controls">
+      <div class="upload-cta">
+        <div class="upload-cta-text">
+          <strong>Analyse your own data</strong>
+          <span>Upload a CSV / TSV file or paste cells from Excel. The layout (wide or long) and each column are detected automatically, and you confirm them before anything is analysed.</span>
+        </div>
+        <button type="button" class="btn btn-primary" id="open-import-btn" onclick="openImportDialog()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
+          Upload Your Data
+        </button>
+      </div>
       <div class="dataset-bar">
         <div class="field-group">
           <label class="field-label" for="preset-select">Active Dataset (Dynamometry MVC &amp; Literature Benchmarks)</label>
-          <select id="preset-select" class="select-ctrl" onchange="selectPresetDataset(this.value)">
+          <select id="preset-select" class="select-ctrl" onchange="onPresetChange(this)">
             <optgroup label="Calf &amp; Muscle Strength (Dynamometry MVC in Nm)">
               <option value="mvc_d1">Design 1: Calf Plantarflexion MVC Test–Retest (n = 24)</option>
               <option value="mvc_d2">Design 2: Handheld vs Isokinetic Calf MVC (n = 30 pairs)</option>
@@ -976,8 +1108,8 @@
               <option value="lit_cardiac_2007">Cardiac Output RV vs IC — B&amp;A 2007 Table 1 Misprint (Matsubayashi 2021)</option>
               <option value="lit_copd">COPD Respiratory Rate — Parker et al. 2016 / SimplyAgree Nested LMM</option>
             </optgroup>
-            <optgroup label="User Imported Data">
-              <option value="custom_user">Custom Imported Dataset</option>
+            <optgroup label="Your Data" data-custom-group>
+              <option value="custom_user">Upload your own data…</option>
             </optgroup>
           </select>
         </div>
@@ -995,7 +1127,7 @@
         </div>
         <button type="button" class="btn btn-ghost" onclick="resetWorkbench(this)">Reset Defaults</button>
       </div>
-      <div id="veracity-banner" style="margin-top: var(--space-md); display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center;"></div>
+      <div id="veracity-banner" aria-live="polite" style="margin-top: var(--space-md); display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center;"></div>
     </section>
 
     <!-- Headline Results: Agreement + ICC Engine -->
@@ -1174,7 +1306,6 @@
       <div class="tab-bar no-print" role="tablist">
         <button type="button" class="tab-btn is-active" id="tab-btn-stats" onclick="switchWorkbenchTab('stats')">Variance Components &amp; CI Audit</button>
         <button type="button" class="tab-btn" id="tab-btn-errata" onclick="switchWorkbenchTab('errata')">Literature Errata (Jones 2019 &amp; Matsubayashi 2021)</button>
-        <button type="button" class="tab-btn" id="tab-btn-ingest" onclick="switchWorkbenchTab('ingest')">CSV / TSV Data Ingestion (WIDE &amp; LONG)</button>
         <button type="button" class="tab-btn" id="tab-btn-data" onclick="switchWorkbenchTab('data')">Active Data Table</button>
         <button type="button" class="tab-btn" id="tab-btn-scripts" onclick="switchWorkbenchTab('scripts')">R &amp; Python Reproducibility Scripts</button>
       </div>
@@ -1231,23 +1362,12 @@
         </div>
       </div>
 
-      <!-- Tab 3: CSV / TSV Ingestion -->
-      <div class="tab-panel" id="tab-panel-ingest">
-        <div class="field-group">
-          <label class="field-label" for="paste-csv">1 · Paste CSV / TSV data, or upload or drop a file</label>
-          <textarea id="paste-csv" class="textarea-ctrl" placeholder="subject,day,hhd_N,iso_N&#10;S01,Day1,142.5,138.0&#10;S01,Day2,145.0,141.2&#10;&#10;…or LONG: subject,device,value&#10;S01,HHD,142.5&#10;S01,ISO,138.0"></textarea>
-          <div style="display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center;">
-            <input type="file" id="csv-file-input" aria-label="Upload CSV or TSV file" accept=".csv,.tsv,.txt" onchange="handleCSVFileUpload(this)" style="max-width:260px;">
-            <button type="button" class="btn btn-secondary" onclick="parsePastedCSV()">Detect &amp; Suggest Mapping</button>
-          </div>
-          <div class="inline-msg" id="ingest-msg" role="status" aria-live="polite"></div>
-        </div>
-        <div id="ingest-wizard" class="ingest-wizard" hidden></div>
-      </div>
-
       <!-- Tab 4: Active Data Table -->
       <div class="tab-panel" id="tab-panel-data">
-        <p class="section-sub" id="data-table-summary" style="margin-bottom: var(--space-sm);"></p>
+        <div style="display:flex; flex-wrap:wrap; gap:var(--space-sm); align-items:center; justify-content:space-between; margin-bottom: var(--space-sm);">
+          <p class="section-sub" id="data-table-summary"></p>
+          <button type="button" class="btn btn-secondary no-print" onclick="openImportDialog()"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg> Use Your Own Data</button>
+        </div>
         <div class="table-wrap" style="max-height: 360px; overflow-y: auto;">
           <table id="active-data-table">
             <thead><tr><th>#</th><th>Subject</th><th>Condition / Rep</th><th class="num">Method X</th><th class="num">Method Y</th><th class="num">Mean (X+Y)/2</th><th class="num">Diff (X−Y)</th></tr></thead>
@@ -1281,6 +1401,41 @@
       Grounded in Bland &amp; Altman (1986 <em>Lancet</em>, 1990 <em>Comput. Biol. Med.</em>, 1999 <em>SMMR</em>, 2007 <em>J. Biopharm. Stat.</em>), Zou (2013 <em>SMMR</em>), Parker et al. (2016 <em>PLOS ONE</em>), Jones (2019), Matsubayashi (2021), and Caldwell (<em>SimplyAgree</em>).
     </footer>
   </main>
+
+  <!-- Data import dialog: opened from "Upload Your Data", the dataset menu, or by dropping a file on the page -->
+  <dialog id="import-dialog" class="import-dialog no-print" aria-labelledby="import-dialog-title" aria-describedby="import-dialog-desc">
+    <div class="import-dialog-inner">
+      <div class="import-dialog-head">
+        <div>
+          <h2 id="import-dialog-title" class="section-title" tabindex="-1">Import Your Data</h2>
+          <p id="import-dialog-desc" class="section-sub">Paired measurements from a CSV / TSV file or cells copied from Excel. Wide (one row per pair) and long (one row per reading) layouts both work.</p>
+        </div>
+        <button type="button" class="btn btn-ghost dialog-close" data-close-import aria-label="Close import dialog">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="ingest-card">
+        <h3>1 · Choose your data</h3>
+        <div class="import-source">
+          <div class="drop-zone">
+            <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
+            <p><strong>Drop a file here</strong> or</p>
+            <button type="button" class="btn btn-primary" id="choose-file-btn">Choose File…</button>
+            <input type="file" id="csv-file-input" class="visually-hidden" tabindex="-1" aria-hidden="true" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain" onchange="handleCSVFileUpload(this)">
+            <p class="ingest-note">.csv, .tsv or .txt. For an Excel workbook, save it as CSV first, or copy the cells and paste them.</p>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="paste-csv">Or paste data (e.g. cells copied from Excel)</label>
+            <textarea id="paste-csv" class="textarea-ctrl" placeholder="subject,day,hhd_N,iso_N&#10;S01,Day1,142.5,138.0&#10;S01,Day2,145.0,141.2&#10;&#10;…or LONG: subject,device,value&#10;S01,HHD,142.5&#10;S01,ISO,138.0"></textarea>
+            <button type="button" class="btn btn-secondary" onclick="parsePastedCSV()">Detect &amp; Suggest Mapping</button>
+          </div>
+        </div>
+        <div class="inline-msg" id="ingest-msg" role="status" aria-live="polite"></div>
+      </div>
+      <div id="ingest-wizard" class="ingest-wizard" hidden></div>
+    </div>
+  </dialog>
+  <div class="file-drop-overlay" aria-hidden="true"><span>Drop the file to import your data</span></div>
 </div>
 
 <api-shim></api-shim>
@@ -2404,7 +2559,9 @@ function updateSummaryCards(res, dataset, design) {
 
   const veracityEl = el(`veracity-banner`);
   if (veracityEl) {
-    veracityEl.innerHTML = dataset.veracity
+    veracityEl.innerHTML = dataset.key === `custom_user`
+      ? `<span class="chip" data-status="info">Your Imported Data</span><span style="font-size:0.875rem; color:var(--on-surface-variant);">${dataset.title}: ${res.n} subjects, ${res.N} pairs</span><button type="button" class="btn btn-ghost" onclick="openImportDialog()">Edit or Replace Data</button>`
+      : dataset.veracity
       ? `<span class="chip" data-status="ok">Published Veracity Target</span><span style="font-size:0.875rem; color:var(--on-surface-variant);">${dataset.veracity}</span>`
       : `<span class="chip" data-status="info">Simulated Calf Strength MVC Cohort</span><span style="font-size:0.875rem; color:var(--on-surface-variant);">${dataset.title} (${res.n} subjects, ${res.N} observations)</span>`;
   }
@@ -2842,6 +2999,7 @@ function runAll() {
 
 // Event Handlers (hoisted declarations)
 function selectPresetDataset(key) {
+  if (key === `custom_user` && !appState.customDataset) { openImportDialog(); return; }
   if (key === `custom_user` && appState.customDataset) {
     activeDataset = appState.customDataset;
   } else {
@@ -2883,7 +3041,7 @@ function setEquivBound(val) {
 }
 
 function switchWorkbenchTab(tab) {
-  const tabs = [`stats`, `errata`, `ingest`, `data`, `scripts`];
+  const tabs = [`stats`, `errata`, `data`, `scripts`];
   for (const t of tabs) {
     document.getElementById(`tab-btn-${t}`)?.classList.toggle(`is-active`, t === tab);
     document.getElementById(`tab-panel-${t}`)?.classList.toggle(`is-active`, t === tab);
@@ -3204,15 +3362,32 @@ function guessIngest(profiles, nRows) {
 function handleCSVFileUpload(input) {
   const file = input.files && input.files[0];
   if (file) loadIngestFile(file);
+  input.value = ``; // allow choosing the same file again
 }
 
 function loadIngestFile(file) {
+  const msg = document.getElementById(`ingest-msg`);
+  const say = (text, isError) => {
+    if (!msg) return;
+    msg.textContent = text;
+    if (isError) msg.setAttribute(`data-state`, `error`); else msg.removeAttribute(`data-state`);
+  };
+  if (/\.(xlsx|xlsm|xlsb|xls|ods|numbers)$/i.test(file.name)) {
+    say(`${file.name} is a spreadsheet workbook, which can't be read directly. Save it as CSV (in Excel: File → Save As → CSV), or select the cells, copy them and paste them into the paste box.`, true);
+    return;
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    say(`${file.name} is larger than 20 MB. Remove the columns you don't need and try again.`, true);
+    return;
+  }
+  say(`Reading ${file.name}…`);
   const reader = new FileReader();
   reader.onload = e => {
     const txt = document.getElementById(`paste-csv`);
     if (txt) txt.value = e.target.result;
     parsePastedCSV(file.name);
   };
+  reader.onerror = () => say(`Could not read ${file.name}.`, true);
   reader.readAsText(file);
 }
 
@@ -3244,6 +3419,7 @@ function parsePastedCSV(sourceName) {
     levelX: firstLevels[0] ?? null, levelY: firstLevels[1] ?? null,
     design: null, designAuto: true,
     unit: unitMatch ? unitMatch[1] : `units`,
+    sourceName: sourceName || null,
     picked: null, edited: false
   };
   const delimName = { '\t': `tab`, ',': `comma`, ';': `semicolon`, '|': `pipe`, ' ': `space` }[delim];
@@ -3251,7 +3427,17 @@ function parsePastedCSV(sourceName) {
     msg.textContent = `Read ${records.length} rows × ${width} columns (${delimName}-separated${sourceName ? ` from ${sourceName}` : ``}). Check the suggested mapping below, then confirm.`;
     msg.removeAttribute(`data-state`);
   }
+  ingest.sourceLine = `${sourceName ? `From <b>${ingestEsc(sourceName)}</b>: ` : `Pasted data: `}${records.length} rows × ${width} columns, ${delimName}-separated.`;
   renderIngestWizard();
+  // On small screens step 2 starts below the fold, so bring it into view.
+  const dlg = document.getElementById(`import-dialog`), host = document.getElementById(`ingest-wizard`);
+  if (dlg && dlg.open && host && host.getBoundingClientRect().top > dlg.getBoundingClientRect().top + dlg.clientHeight * 0.6) {
+    host.scrollIntoView({ block: `start`, behavior: reducedMotion() ? `auto` : `smooth` });
+  }
+}
+
+function reducedMotion() {
+  return !!(window.matchMedia && window.matchMedia(`(prefers-reduced-motion: reduce)`).matches);
 }
 
 function resetIngestToGuess() {
@@ -3476,6 +3662,7 @@ function renderIngestWizard() {
         <h3>2 · Check the suggested layout</h3>
         ${ingest.edited ? `<button type="button" class="btn btn-ghost" id="ingest-reset-btn">Reset to suggestions</button>` : ``}
       </div>
+      ${ingest.sourceLine ? `<p class="ingest-note">${ingest.sourceLine}</p>` : ``}
       <ul class="ingest-reasons">${ingest.guess.reasons.map(r => `<li>${r}</li>`).join(``)}</ul>
       <div class="btn-seg" role="group" aria-label="Data layout">
         <button type="button" class="seg-btn${layout === `wide` ? ` is-active` : ``}" data-layout="wide" aria-pressed="${layout === `wide`}">WIDE: one row holds X and Y${guessed === `wide` ? ` <span class="seg-tag">(suggested)</span>` : ``}</button>
@@ -3502,21 +3689,28 @@ function confirmIngestDataset() {
     if (msg) { msg.textContent = `Finish the column mapping first.`; msg.setAttribute(`data-state`, `error`); }
     return;
   }
-  const { rows, labelX, labelY } = ingest.lastBuilt;
-  const unit = (ingest.unit || ``).trim() || `units`;
+  // Imported text ends up in SVG markup and in the R/Python scripts, so drop characters that would break either.
+  const clean = v => String(v ?? ``).replace(/[<>"\\]/g, ``).trim();
+  const rows = ingest.lastBuilt.rows.map(r => ({ id: clean(r.id) || `?`, cond: clean(r.cond) || `Obs`, x: r.x, y: r.y }));
+  const labelX = clean(ingest.lastBuilt.labelX), labelY = clean(ingest.lastBuilt.labelY);
+  const unit = clean(ingest.unit) || `units`;
+  const source = clean(ingest.sourceName) || `Pasted data`;
   appState.customDataset = {
-    key: `custom_user`, design: ingest.design, title: `Custom Imported Dataset (N = ${rows.length})`,
+    key: `custom_user`, design: ingest.design, title: `${source} (N = ${rows.length} pairs)`,
     unit, labelX: labelX || `Method X`, labelY: labelY || `Method Y`,
     defaultBound: Math.max(1, +(Math.sqrt(rows.reduce((s, r) => s + (r.x - r.y) ** 2, 0) / rows.length) * 2).toFixed(1)),
     veracity: `User-imported dataset (${rows.length} pairs, ${ingest.layout.toUpperCase()} layout)`, rows
   };
+  refreshCustomOption();
   const sel = document.getElementById(`preset-select`);
   if (sel) sel.value = `custom_user`;
   selectPresetDataset(`custom_user`);
   if (msg) {
-    msg.textContent = `Loaded ${rows.length} pairs into Design ${ingest.design}. Results above now use your data.`;
+    msg.textContent = `Loaded ${rows.length} pairs into Design ${ingest.design}.`;
     msg.removeAttribute(`data-state`);
   }
+  closeImportDialog();
+  document.getElementById(`dataset-panel`)?.scrollIntoView({ block: `start`, behavior: reducedMotion() ? `auto` : `smooth` });
 }
 // Kept for any saved links or buttons that still call the old name.
 const applyMappedDataset = confirmIngestDataset;
@@ -3524,14 +3718,8 @@ const applyMappedDataset = confirmIngestDataset;
 function initIngestWizard() {
   const host = document.getElementById(`ingest-wizard`);
   const txt = document.getElementById(`paste-csv`);
-  if (txt) {
-    txt.addEventListener(`paste`, () => setTimeout(() => parsePastedCSV(), 0));
-    txt.addEventListener(`dragover`, e => { if (e.dataTransfer && [...e.dataTransfer.types].includes(`Files`)) e.preventDefault(); });
-    txt.addEventListener(`drop`, e => {
-      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) { e.preventDefault(); loadIngestFile(f); }
-    });
-  }
+  if (txt) txt.addEventListener(`paste`, () => setTimeout(() => parsePastedCSV(), 0));
+  document.getElementById(`choose-file-btn`)?.addEventListener(`click`, () => document.getElementById(`csv-file-input`)?.click());
   if (!host) return;
   let dragCol = null;
   host.addEventListener(`dragstart`, e => {
@@ -3561,9 +3749,9 @@ function initIngestWizard() {
   });
   host.addEventListener(`drop`, e => {
     const z = e.target.closest(`.role-zone`);
-    if (!z) return;
+    if (!z || dragCol == null) return; // files dropped here are handled by the page-wide drop handler
     e.preventDefault();
-    const col = dragCol != null ? dragCol : parseInt(e.dataTransfer.getData(`text/plain`), 10);
+    const col = dragCol;
     dragCol = null;
     assignIngestColumn(col, z.dataset.zone);
   });
@@ -3587,7 +3775,6 @@ function initIngestWizard() {
     if (e.target.closest(`#ingest-confirm-btn`)) confirmIngestDataset();
   });
   host.addEventListener(`keydown`, e => {
-    if (e.key === `Escape` && ingest && ingest.picked != null) { ingest.picked = null; renderIngestWizard(); return; }
     const z = e.target.classList && e.target.classList.contains(`role-zone`) ? e.target : null;
     if (z && (e.key === `Enter` || e.key === ` `)) { e.preventDefault(); activateZone(z); }
   });
@@ -3608,6 +3795,79 @@ function initIngestWizard() {
   host.addEventListener(`input`, e => { if (ingest && e.target.id === `ingest-unit`) ingest.unit = e.target.value; });
 }
 document.addEventListener(`DOMContentLoaded`, initIngestWizard);
+
+// Import dialog
+function openImportDialog() {
+  const dlg = document.getElementById(`import-dialog`);
+  if (!dlg) return;
+  if (!dlg.open) {
+    if (typeof dlg.showModal === `function`) dlg.showModal();
+    else dlg.setAttribute(`open`, ``);
+  }
+  (ingest ? document.getElementById(`import-dialog-title`) : document.getElementById(`choose-file-btn`))?.focus();
+}
+
+function closeImportDialog() {
+  const dlg = document.getElementById(`import-dialog`);
+  if (!dlg || !dlg.open) return;
+  if (typeof dlg.close === `function`) dlg.close();
+  else dlg.removeAttribute(`open`);
+}
+
+// The "Your Data" entries in the dataset menu: an upload prompt until data are loaded, then the data plus a replace option.
+function refreshCustomOption() {
+  const sel = document.getElementById(`preset-select`);
+  const group = sel && sel.querySelector(`[data-custom-group]`);
+  if (!group) return;
+  const cd = appState.customDataset;
+  group.innerHTML = cd
+    ? `<option value="custom_user">Your data: ${ingestEsc(cd.title)}</option><option value="custom_new">Upload different data…</option>`
+    : `<option value="custom_user">Upload your own data…</option>`;
+  sel.value = appState.presetKey;
+}
+
+function onPresetChange(sel) {
+  const v = sel.value;
+  if (v === `custom_new` || (v === `custom_user` && !appState.customDataset)) {
+    sel.value = appState.presetKey; // keep showing the current dataset until new data are confirmed
+    openImportDialog();
+    return;
+  }
+  selectPresetDataset(v);
+}
+
+function initImportDialog() {
+  const dlg = document.getElementById(`import-dialog`);
+  if (dlg) {
+    dlg.addEventListener(`click`, e => {
+      if (e.target.closest(`[data-close-import]`)) { closeImportDialog(); return; }
+      // Clicks on the backdrop land on the dialog element itself, outside its box.
+      if (e.target !== dlg) return;
+      const r = dlg.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closeImportDialog();
+    });
+    // Esc first puts down a picked-up column chip; a second Esc closes the dialog.
+    dlg.addEventListener(`cancel`, e => {
+      if (ingest && ingest.picked != null) { e.preventDefault(); ingest.picked = null; renderIngestWizard(); }
+    });
+  }
+  // Dropping a file anywhere on the page opens the dialog with that file.
+  let depth = 0;
+  const root = document.documentElement;
+  const hasFiles = e => !!(e.dataTransfer && Array.from(e.dataTransfer.types || []).includes(`Files`));
+  const clear = () => { depth = 0; root.classList.remove(`is-file-drag`); };
+  window.addEventListener(`dragenter`, e => { if (hasFiles(e)) { depth++; root.classList.add(`is-file-drag`); } });
+  window.addEventListener(`dragleave`, e => { if (hasFiles(e) && --depth <= 0) clear(); });
+  window.addEventListener(`dragover`, e => { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = `copy`; } });
+  window.addEventListener(`drop`, e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    clear();
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) { openImportDialog(); loadIngestFile(f); }
+  });
+}
+document.addEventListener(`DOMContentLoaded`, initImportDialog);
 
 function copyScript(preId, btn) {
   const txt = document.getElementById(preId)?.textContent || ``;
@@ -3644,6 +3904,7 @@ function syncControlsToState() {
 }
 
 async function initApp() {
+  refreshCustomOption();
   syncControlsToState();
   runAll();
   if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === `function`) {
@@ -3651,6 +3912,7 @@ async function initApp() {
       const saved = await window.notebookAppApi.getAppState();
       if (saved) {
         if (saved.customDataset) appState.customDataset = saved.customDataset;
+        refreshCustomOption();
         if (saved.presetKey) appState.presetKey = saved.presetKey;
         if (saved.design) appState.design = saved.design;
         if (saved.ciMethod) appState.ciMethod = saved.ciMethod;
