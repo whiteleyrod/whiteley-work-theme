@@ -904,6 +904,33 @@
     .ingest-confirm { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: flex-end; }
     .ingest-confirm .field-group { flex: 1 1 200px; }
     .grid-chooser, .pair-preview { display: flex; flex-direction: column; gap: var(--space-xs); }
+    .btn-compact { min-height: 36px; padding: 0.25rem 0.8rem; font-size: 0.8125rem; }
+    .help-details { border: 1px solid var(--outline-variant); border-radius: var(--rounded); background: var(--surface-container-low); }
+    .help-details summary { cursor: pointer; padding: var(--space-sm) var(--space-md); font-family: var(--font-label); font-weight: 600; color: var(--primary); }
+    .help-details-body { display: flex; flex-direction: column; gap: var(--space-sm); padding: 0 var(--space-md) var(--space-md); font-size: 0.875rem; }
+    .help-details-body p { margin: 0; }
+    .help-layouts td { vertical-align: top; }
+    .help-layouts code { font-family: var(--font-code); font-size: 0.8125rem; }
+    .ov-group + .ov-group { margin-top: var(--space-lg); }
+    .ov-title { margin: 0 0 var(--space-xs); font-family: var(--font-headline); font-size: var(--subhead-size); color: var(--on-surface); }
+    .ov-explain, .ov-note { margin: 0 0 var(--space-sm); font-size: 0.875rem; color: var(--on-surface-variant); }
+    .ov-note { margin-top: var(--space-md); }
+    .ov-table tbody th {
+      background: transparent;
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      text-transform: none;
+      white-space: normal;
+    }
+    .ov-table tr.is-current td, .ov-table tr.is-current th { background: var(--primary-container); }
+    .ov-table { table-layout: fixed; min-width: 780px; }
+    .ov-table th, .ov-table td { white-space: normal; }
+    .ov-c-name { width: 20%; } .ov-c-n { width: 10%; } .ov-c-icc { width: 18%; } .ov-c-bias { width: 9%; }
+    .ov-c-loa { width: 16%; } .ov-c-sem { width: 8%; } .ov-c-mdc { width: 9%; } .ov-c-act { width: 10%; }
+    .ov-faint { color: var(--on-surface-variant); font-size: 0.8125rem; font-weight: 400; }
     .pair-list { margin: 0; padding-left: 1.5rem; font-size: 0.875rem; }
     .pair-list li { line-height: 2.2; }
     .pair-col {
@@ -1111,7 +1138,7 @@
       <div class="upload-cta">
         <div class="upload-cta-text">
           <strong>Analyse your own data</strong>
-          <span>Upload an Excel workbook (.xlsx / .xls) or a CSV / TSV file, or paste cells from Excel. The layout (wide or long) and each column are detected automatically, and you confirm them before anything is analysed.</span>
+          <span>Inter-rater, intra-rater (test–retest) or method-comparison data from an Excel workbook (.xlsx / .xls) or a CSV / TSV file, or cells pasted from Excel. The layout and each column are detected automatically, and you confirm them before anything is analysed.</span>
         </div>
         <button type="button" class="btn btn-primary" id="open-import-btn" onclick="openImportDialog()">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
@@ -1152,7 +1179,7 @@
         </div>
         <div class="field-group">
           <label class="field-label" for="icc-type-select">ICC Type (Single Measures)</label>
-          <select id="icc-type-select" class="select-ctrl" onchange="setICCType(this.value)" title="Absolute agreement counts a systematic difference (bias) between X and Y as error. Consistency ignores it and only asks whether X and Y rank subjects the same way.">
+          <select id="icc-type-select" class="select-ctrl" onchange="setICCType(this.value)" title="Absolute agreement, ICC(A,1), counts a systematic difference between raters, methods or sessions as error. It is the usual choice for inter- and intra-rater reliability (Koo &amp; Li 2016). Consistency, ICC(C,1), ignores such offsets and only asks whether subjects are ranked the same way.">
             <option value="agreement">Absolute agreement</option>
             <option value="consistency">Consistency</option>
           </select>
@@ -1205,6 +1232,17 @@
       </div>
     </aside>
 
+    <!-- Inter- and intra-rater overview for imported raters × sessions data -->
+    <section class="panel" id="overview-panel" aria-labelledby="overview-title" hidden>
+      <div class="section-head">
+        <div>
+          <h2 class="section-title" id="overview-title">Inter-rater &amp; Intra-rater Reliability</h2>
+          <p class="section-sub" id="overview-sub"></p>
+        </div>
+      </div>
+      <div id="overview-body"></div>
+    </section>
+
     <!-- Interactive Methodological Decision Tree & 5 Designs -->
     <section class="panel" aria-label="Methodological decision tree">
       <div class="section-head">
@@ -1220,18 +1258,18 @@
           <div class="q-step">
             <span class="q-title">Step A — Measurement Objective &amp; Replication</span>
             <div class="btn-seg">
-              <button type="button" class="seg-btn" id="q-single-dev">Single Device Test–Retest</button>
-              <button type="button" class="seg-btn" id="q-single-pair">Two Methods (1 Pair / Subject)</button>
-              <button type="button" class="seg-btn" id="q-multi-obs">Two Methods (Multiple Obs / Subject)</button>
+              <button type="button" class="seg-btn" id="q-single-dev">Intra-rater / Test–Retest</button>
+              <button type="button" class="seg-btn" id="q-single-pair">Inter-rater or 2 Methods (1 Pair Each)</button>
+              <button type="button" class="seg-btn" id="q-multi-obs">Inter-rater or 2 Methods (Repeated)</button>
             </div>
           </div>
 
           <div class="q-step" id="step-b-wrap">
             <span class="q-title">Step B — Underlying True Value &amp; Hierarchy</span>
             <div class="btn-seg">
-              <button type="button" class="seg-btn" id="q-constant">Constant True Value (Replicates)</button>
-              <button type="button" class="seg-btn" id="q-varying">Varying True Value (Time-Locked)</button>
-              <button type="button" class="seg-btn" id="q-nested">Nested Conditions / Days (LMM)</button>
+              <button type="button" class="seg-btn" id="q-constant">Same True Value (Repeated Trials)</button>
+              <button type="button" class="seg-btn" id="q-varying">True Value Changes (Sessions / Time-Locked)</button>
+              <button type="button" class="seg-btn" id="q-nested">Sessions × Trials (Nested)</button>
             </div>
           </div>
 
@@ -1239,27 +1277,27 @@
             <button type="button" class="design-node" id="node-d1">
               <span class="design-node-id">Design 1</span>
               <span class="design-node-name">Single-Device Repeatability</span>
-              <span class="design-node-desc">Within-subject s_w &amp; RC = 2.77·s_w</span>
+              <span class="design-node-desc">Intra-rater / test–retest: s_w, RC = 2.77·s_w</span>
             </button>
             <button type="button" class="design-node" id="node-d2">
               <span class="design-node-id">Design 2</span>
               <span class="design-node-name">Classic Paired LoA</span>
-              <span class="design-node-desc">Exact noncentral t &amp; MOVER CIs</span>
+              <span class="design-node-desc">Inter-rater or 2 methods, one pair each</span>
             </button>
             <button type="button" class="design-node" id="node-d3">
               <span class="design-node-id">Design 3</span>
               <span class="design-node-name">Replicates (Constant True)</span>
-              <span class="design-node-desc">Separate s²_xw, s²_yw &amp; m_h weights</span>
+              <span class="design-node-desc">Repeated trials, true value stable</span>
             </button>
             <button type="button" class="design-node" id="node-d4">
               <span class="design-node-id">Design 4</span>
               <span class="design-node-name">Repeated (Varying True)</span>
-              <span class="design-node-desc">Time-locked σ²_b + s²_dw &amp; errata</span>
+              <span class="design-node-desc">Repeated sessions, true value can change</span>
             </button>
             <button type="button" class="design-node" id="node-d5">
               <span class="design-node-id">Design 5</span>
               <span class="design-node-name">Nested / Hierarchical LMM</span>
-              <span class="design-node-desc">Subject + Condition + BCa Bootstrap</span>
+              <span class="design-node-desc">Sessions or conditions with trials inside</span>
             </button>
           </div>
         </div>
@@ -1452,6 +1490,22 @@
       </div>
       <div class="ingest-card">
         <h3>1 · Choose your data</h3>
+        <details class="help-details">
+          <summary>How to set up inter-rater and intra-rater reliability</summary>
+          <div class="help-details-body">
+            <p><b>Inter-rater</b>: do two raters (or methods) agree on the same subjects? <b>Intra-rater / test–retest</b>: does one rater get the same result again?</p>
+            <div class="table-wrap"><table class="help-layouts">
+              <thead><tr><th>You want</th><th>Lay the columns out as</th><th>Analysis</th></tr></thead>
+              <tbody>
+                <tr><td>Inter-rater, one session</td><td><code>Subject, Rater 1, Rater 2</code></td><td>Design 2</td></tr>
+                <tr><td>Intra-rater (test–retest)</td><td><code>Subject, Session 1, Session 2</code></td><td>Design 1</td></tr>
+                <tr><td>Both at once</td><td><code>Subject, Time 1 Rater 1, Time 1 Rater 2, Time 2 Rater 1, Time 2 Rater 2</code></td><td>Overview table with both, plus Design 4 pooled over sessions</td></tr>
+                <tr><td>Both, long format</td><td><code>Subject, Rater, Session, Value</code>: Rater is the label column and Session the condition column</td><td>Overview table with both</td></tr>
+              </tbody>
+            </table></div>
+            <p>Any words work in place of Rater, Time and Session (e.g. Measure 1 / Measure 2, Day 1 / Day 2). Absolute agreement, ICC(A,1), is usually reported for both kinds, because a systematic offset between raters or sessions is part of the error (Koo &amp; Li 2016). Read the limits of agreement alongside the ICC.</p>
+          </div>
+        </details>
         <div class="import-source">
           <div class="drop-zone">
             <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
@@ -2411,48 +2465,48 @@ function fmt(val, digits = 2) {
 // ---- Study design selector: availability, help text and tooltips ----
 const DESIGN_HELP = {
   'q-single-dev': {
-    title: `Single Device Test–Retest`,
-    what: `The same device or rater measures each subject twice under identical conditions.`,
-    selects: `Selects <b>Design 1</b>: repeatability, with within-subject SD s_w, repeatability coefficient RC = 2.77·s_w, and the ICC type chosen above (the two trials act as raters).`,
-    needs: `No Step B choice needed. Data: one pair (trial 1, trial 2) per subject.`
+    title: `Intra-rater / Test–Retest`,
+    what: `One rater or device measures each subject twice, e.g. intra-rater reliability (the same rater in two sessions) or test–retest of an instrument.`,
+    selects: `Selects <b>Design 1</b>: repeatability, with within-subject SD s_w, repeatability coefficient RC = 2.77·s_w, and the ICC type chosen above (the two sessions act as raters).`,
+    needs: `No Step B choice needed. Data: one pair per subject, with session 1 in Method X and session 2 in Method Y.`
   },
   'q-single-pair': {
-    title: `Two Methods (1 Pair / Subject)`,
-    what: `Two different methods each measure every subject once.`,
+    title: `Inter-rater or 2 Methods (1 Pair Each)`,
+    what: `Two raters, or two methods or devices, each measure every subject once, e.g. inter-rater reliability (rater 1 vs rater 2) or a new device against a reference.`,
     selects: `Selects <b>Design 2</b>: classic 95% limits of agreement with exact t / MOVER CIs, ICC(A,1) and ICC(C,1).`,
-    needs: `No Step B choice needed. Data: one X–Y pair per subject.`
+    needs: `No Step B choice needed. Data: one pair per subject, with rater or method 1 in Method X and rater or method 2 in Method Y.`
   },
   'q-multi-obs': {
-    title: `Two Methods (Multiple Obs / Subject)`,
-    what: `Two methods, each measuring every subject more than once.`,
-    selects: `Opens <b>Step B</b>, which picks Design 3, 4 or 5. Uses the first design the data supports until you choose.`,
-    needs: `Then choose in Step B how the repeated readings relate to the true value.`
+    title: `Inter-rater or 2 Methods (Repeated)`,
+    what: `Two raters or methods each measure every subject more than once, e.g. two raters who each test every subject in two sessions, or several trials per rater.`,
+    selects: `Opens <b>Step B</b>, which picks Design 3, 4 or 5. Uses the first design the data support until you choose.`,
+    needs: `Then choose in Step B how the repeated readings relate to the true value. An imported file that crosses raters with sessions (e.g. Rater 1/2 × Time 1/2) also gets an inter- and intra-rater overview.`
   },
   'q-constant': {
-    title: `Constant True Value (Replicates)`,
-    what: `Replicates taken while the subject's true value is stable, e.g. repeated trials in one session. X and Y replicates need not be paired.`,
+    title: `Same True Value (Repeated Trials)`,
+    what: `Repeated trials taken while the subject's true value is stable, e.g. each rater takes three trials in one session. X and Y trials need not be paired.`,
     selects: `Selects <b>Design 3</b>: within-method variances s²_xw and s²_yw weighted by harmonic replicate means (Bland &amp; Altman 1999); ICC with each subject as a target.`,
-    needs: `Requires Step A = <i>Two Methods (Multiple Obs / Subject)</i>.`
+    needs: `Requires Step A = <i>Inter-rater or 2 Methods (Repeated)</i>.`
   },
   'q-varying': {
-    title: `Varying True Value (Time-Locked)`,
-    what: `X and Y are read at the same moments while the true value changes, e.g. across a fatigue protocol.`,
+    title: `True Value Changes (Sessions / Time-Locked)`,
+    what: `X and Y are read at the same moments while the true value can change, e.g. two raters measuring each subject on Day 1 and again on Day 2 (inter-rater agreement using both days), or across a fatigue protocol.`,
     selects: `Selects <b>Design 4</b>: one-way ANOVA on the differences, σ²_b + σ²_dw with m₀ weighting (Zou 2013 Case 3); ICC with each time-locked pair as a target.`,
-    needs: `Requires Step A = <i>Two Methods (Multiple Obs / Subject)</i>.`
+    needs: `Requires Step A = <i>Inter-rater or 2 Methods (Repeated)</i>.`
   },
   'q-nested': {
-    title: `Nested Conditions / Days (LMM)`,
-    what: `Repeated readings grouped within conditions or days inside each subject, e.g. 2 angles × 3 trials.`,
+    title: `Sessions × Trials (Nested)`,
+    what: `Repeated trials grouped within sessions, days or conditions inside each subject, e.g. two raters, 2 days × 3 trials each.`,
     selects: `Selects <b>Design 5</b>: subject, condition and residual variance components with bootstrap CIs; ICC with each subject × condition cell as a target.`,
-    needs: `Requires Step A = <i>Two Methods (Multiple Obs / Subject)</i>, and data with at least two conditions per subject and replicates within each condition.`
+    needs: `Requires Step A = <i>Inter-rater or 2 Methods (Repeated)</i>, and data with at least two sessions or conditions per subject and trials within each.`
   }
 };
 const DESIGN_NODE_HELP = {
-  1: { key: 'q-single-dev', path: `Step A = Single Device Test–Retest` },
-  2: { key: 'q-single-pair', path: `Step A = Two Methods (1 Pair / Subject)` },
-  3: { key: 'q-constant', path: `Step A = Multiple Obs / Subject, then Step B = Constant True Value` },
-  4: { key: 'q-varying', path: `Step A = Multiple Obs / Subject, then Step B = Varying True Value` },
-  5: { key: 'q-nested', path: `Step A = Multiple Obs / Subject, then Step B = Nested Conditions / Days` }
+  1: { key: 'q-single-dev', path: `Step A = Intra-rater / Test–Retest` },
+  2: { key: 'q-single-pair', path: `Step A = Inter-rater or 2 Methods (1 Pair Each)` },
+  3: { key: 'q-constant', path: `Step A = Inter-rater or 2 Methods (Repeated), then Step B = Same True Value` },
+  4: { key: 'q-varying', path: `Step A = Inter-rater or 2 Methods (Repeated), then Step B = True Value Changes` },
+  5: { key: 'q-nested', path: `Step A = Inter-rater or 2 Methods (Repeated), then Step B = Sessions × Trials` }
 };
 
 // Which designs the active dataset's structure supports, with a reason for each one it does not.
@@ -2492,7 +2546,7 @@ function currentDesignState() {
   const avail = designAvailability(activeDataset);
   const design = appState.design;
   const firstMulti = [3, 4, 5].find(d => avail.allowed.has(d));
-  const stepBWhy = `Step B only applies to repeated-measures studies. Select <i>Two Methods (Multiple Obs / Subject)</i> in Step A first.`;
+  const stepBWhy = `Step B only applies to repeated-measures studies. Select <i>Inter-rater or 2 Methods (Repeated)</i> in Step A first.`;
   const dataWhy = d => (avail.allowed.has(d) ? null : `this design ${avail.reasons[d]}`);
   const state = {
     'q-single-dev': { design: 1, active: design === 1, why: dataWhy(1) },
@@ -2587,11 +2641,11 @@ function renderDecisionTree(design) {
 
   const chip = document.getElementById(`active-design-chip`);
   const names = {
-    1: `Design 1: Single-Device Test–Retest`,
-    2: `Design 2: Classic Paired Comparison`,
-    3: `Design 3: Constant True Value Replicates`,
-    4: `Design 4: Varying True Value Repeated`,
-    5: `Design 5: Nested Multi-Level LMM`
+    1: `Design 1: Intra-rater / Test–Retest`,
+    2: `Design 2: Inter-rater / Paired Comparison`,
+    3: `Design 3: Same True Value (Repeated Trials)`,
+    4: `Design 4: True Value Changes (Sessions)`,
+    5: `Design 5: Sessions × Trials (Nested)`
   };
   if (chip) chip.textContent = names[design];
 
@@ -2612,13 +2666,13 @@ function renderDecisionTree(design) {
       <line x1="495" y1="133" x2="175" y2="195" stroke="${design === 3 ? cAct : cMute}" stroke-width="${design === 3 ? 2.5 : 1.5}"/>
       <line x1="495" y1="133" x2="355" y2="195" stroke="${design === 4 ? cAct : cMute}" stroke-width="${design === 4 ? 2.5 : 1.5}"/>
       <line x1="495" y1="133" x2="520" y2="195" stroke="${design === 5 ? cAct : cMute}" stroke-width="${design === 5 ? 2.5 : 1.5}"/>
-      ${nodeBox(190, 4, 220, 40, `Measurement Study Question`, `Single device vs two methods?`, true)}
-      ${nodeBox(15, 85, 180, 48, `D1: Single Device`, `RC = 2.77·s_w, ICC`, design === 1, !avail.allowed.has(1))}
-      ${nodeBox(210, 85, 180, 48, `D2: 1 Pair / Subject`, `95% LoA, Exact t / MOVER`, design === 2, !avail.allowed.has(2))}
-      ${nodeBox(405, 85, 180, 48, `Multiple Obs / Subject`, `Check stability & nesting`, design >= 3, ![3, 4, 5].some(d => avail.allowed.has(d)))}
-      ${nodeBox(90, 195, 170, 50, `D3: Constant True`, `s²_d + (1−1/m_xh)s²_xw`, design === 3, !avail.allowed.has(3))}
-      ${nodeBox(270, 195, 170, 50, `D4: Varying True`, `σ²_b + s²_dw (time-locked)`, design === 4, !avail.allowed.has(4))}
-      ${nodeBox(450, 195, 140, 50, `D5: Nested LMM`, `σ²_subj + σ²_cond + σ²_ε`, design === 5, !avail.allowed.has(5))}
+      ${nodeBox(190, 4, 220, 40, `Measurement Study Question`, `One rater twice, or two raters / methods?`, true)}
+      ${nodeBox(15, 85, 180, 48, `D1: Intra-rater / Retest`, `RC = 2.77·s_w, ICC`, design === 1, !avail.allowed.has(1))}
+      ${nodeBox(210, 85, 180, 48, `D2: Inter-rater, 1 Pair`, `95% LoA, Exact t / MOVER`, design === 2, !avail.allowed.has(2))}
+      ${nodeBox(405, 85, 180, 48, `Repeated per Subject`, `True value stable or changing?`, design >= 3, ![3, 4, 5].some(d => avail.allowed.has(d)))}
+      ${nodeBox(90, 195, 170, 50, `D3: Same True Value`, `s²_d + (1−1/m_xh)s²_xw`, design === 3, !avail.allowed.has(3))}
+      ${nodeBox(270, 195, 170, 50, `D4: True Value Changes`, `σ²_b + s²_dw (time-locked)`, design === 4, !avail.allowed.has(4))}
+      ${nodeBox(450, 195, 140, 50, `D5: Nested Trials`, `σ²_subj + σ²_cond + σ²_ε`, design === 5, !avail.allowed.has(5))}
     </svg>`;
   const container = document.getElementById(`flowchart-svg-container`);
   if (container) container.innerHTML = svg;
@@ -3156,6 +3210,7 @@ function runAll() {
   computedResults = computeAnalysis(activeDataset, appState.design, appState.ciMethod, appState.equivBound);
   renderDecisionTree(appState.design);
   updateSummaryCards(computedResults, activeDataset, appState.design);
+  renderOverview();
   renderPlots();
   renderTablesAndScripts();
   saveAppStateSafe();
@@ -3358,15 +3413,15 @@ if (window.matchMedia) {
 const INGEST_ROLES = {
   wide: [
     { key: `subj`, label: `Subject ID`, required: true, multi: false, hint: `Identifies each person. Rows with the same ID belong to the same person.` },
-    { key: `cond`, label: `Condition / Time Column`, required: false, multi: false, hint: `Only for a column that says when or how each row was measured (e.g. Day 1, Day 2). Time points that are part of the column names are picked up automatically.` },
-    { key: `x`, label: `Method X (1st Method)`, required: true, multi: true, hint: `Readings from the first method, device or rater (trial 1 for test–retest). Several columns give several pairs per row, matched by position with Method Y.` },
-    { key: `y`, label: `Method Y (2nd Method)`, required: true, multi: true, hint: `Readings from the second method, device or rater (or trial 2), in the same order as Method X.` }
+    { key: `cond`, label: `Condition / Time Column`, required: false, multi: false, hint: `Only for a column that says when or how each row was measured (e.g. Day 1, Day 2). Sessions that are part of the column names are picked up automatically.` },
+    { key: `x`, label: `X: 1st Rater or Method`, required: true, multi: true, hint: `Inter-rater: rater 1's readings. Intra-rater / test–retest: session 1. Several columns give several pairs per row, matched by position with Y.` },
+    { key: `y`, label: `Y: 2nd Rater or Method`, required: true, multi: true, hint: `Inter-rater: rater 2's readings. Intra-rater / test–retest: session 2. Keep the same order as X.` }
   ],
   long: [
     { key: `subj`, label: `Subject ID`, required: true, multi: false, hint: `Identifies each person. Rows with the same ID belong to the same person.` },
-    { key: `cond`, label: `Condition / Time Column`, required: false, multi: false, hint: `Only for a column that says when or how each reading was taken (e.g. Day 1, Day 2).` },
+    { key: `cond`, label: `Session / Condition Column`, required: false, multi: false, hint: `When or how each reading was taken (e.g. Session 1, Session 2). With raters and sessions, this gives inter- and intra-rater results together.` },
     { key: `rep`, label: `Trial / Replicate Column`, required: false, multi: false, hint: `Matches each X reading with the Y reading that has the same trial number. Without it, readings pair in row order.` },
-    { key: `method`, label: `Method Label Column`, required: true, multi: false, hint: `Says which method, device or rater took each reading. Pick the two labels to compare below.` },
+    { key: `method`, label: `Rater / Method Label Column`, required: true, multi: false, hint: `Says which rater, method or device took each reading. Pick the two to compare below.` },
     { key: `value`, label: `Measurement Column`, required: true, multi: false, hint: `The numeric reading itself.` }
   ]
 };
@@ -4408,7 +4463,7 @@ function renderIngestWizard() {
         const on = same(xs, o.x) && same(ys, o.y);
         return `<button type="button" class="seg-btn${on ? ` is-active` : ``}" data-grid-option="${k}" aria-pressed="${on}">${ingestEsc(o.labelX)} vs ${ingestEsc(o.labelY)} <span class="seg-tag">${ingestEsc(o.pairText)}${k === 0 ? ` · suggested` : ``}</span></button>`;
       }).join(``)}</div>` : ``;
-      pairHTML += `<div class="grid-chooser"><p class="ingest-note">The column names cross two parts: ${g.label}.${g.options.length > 1 ? ` Which part names the two methods you want to compare?` : ``}</p>${buttons}</div>`;
+      pairHTML += `<div class="grid-chooser"><p class="ingest-note">The column names cross two parts: ${g.label}.${g.options.length > 1 ? ` Which part names the two raters or methods? The other part is treated as the sessions, and both comparisons appear in the overview after loading.` : ``}</p>${buttons}</div>`;
     }
     if (xs.length || ys.length) {
       const n = Math.max(xs.length, ys.length);
@@ -4449,7 +4504,7 @@ function renderIngestWizard() {
     const counts = [...built.obsCount.values()];
     const minO = Math.min(...counts), maxO = Math.max(...counts);
     const conds = new Set(built.rows.map(r => r.cond));
-    const names = { 1: `Single-Device Repeatability`, 2: `Classic Paired Comparison`, 3: `Constant True Value Replicates`, 4: `Varying True Value Repeated`, 5: `Nested Multi-Level LMM` };
+    const names = { 1: `Intra-rater / Test–Retest`, 2: `Inter-rater / Paired Comparison`, 3: `Same True Value (Repeated Trials)`, 4: `True Value Changes (Sessions)`, 5: `Sessions × Trials (Nested)` };
     const designOpts = [1, 2, 3, 4, 5].map(d => {
       const ok = sug.avail.allowed.has(d);
       return `<option value="${d}"${d === ingest.design ? ` selected` : ``}${ok ? `` : ` disabled`}>Design ${d}: ${names[d]}${d === sug.design ? ` (suggested)` : ``}${ok ? `` : ` (doesn't fit these data)`}</option>`;
@@ -4462,6 +4517,10 @@ function renderIngestWizard() {
         <tbody>${built.rows.slice(0, 5).map(r => `<tr><td>${ingestEsc(r.id)}</td><td>${ingestEsc(r.cond)}</td><td class="num">${r.x}</td><td class="num">${r.y}</td></tr>`).join(``)}</tbody>
       </table></div>
       <p class="ingest-note"><b>Suggested design:</b> ${sug.why}</p>
+      ${(() => {
+        const cr = buildCrossed(built.rows, built.labelX, built.labelY);
+        return cr ? `<p class="ingest-note"><b>Inter- and intra-rater overview:</b> these data cross <b>${cr.raters.map(ingestEsc).join(`</b> and <b>`)}</b> with <b>${cr.occasions.map(ingestEsc).join(`</b>, <b>`)}</b>. After loading, a table shows inter-rater agreement at each of ${cr.occasions.map(ingestEsc).join(` and `)}, and intra-rater (test–retest) results for each of ${cr.raters.map(ingestEsc).join(` and `)}.</p>` : ``;
+      })()}
       <div class="ingest-confirm">
         <div class="field-group"><label class="field-label" for="ingest-design">Analysis design</label><select id="ingest-design" class="select-ctrl">${designOpts}</select></div>
         <div class="field-group" style="flex:0 1 140px;"><label class="field-label" for="ingest-unit">Unit</label><input id="ingest-unit" class="input-ctrl" type="text" value="${ingestEsc(ingest.unit)}" maxlength="16"></div>
@@ -4484,7 +4543,12 @@ function renderIngestWizard() {
     </div>
     <div class="ingest-card">
       <h3>3 · Confirm what each column is</h3>
-      <p class="ingest-note">Drag each column chip into the box that describes it, or click a chip and then a box. To compare two methods, the first method's readings go in Method X and the second method's in Method Y. Hover a chip to see its values.</p>
+      <p class="ingest-note">Drag each column chip into the box that describes it, or click a chip and then a box. Hover a chip to see its values.</p>
+      <ul class="ingest-reasons">
+        <li><b>Inter-rater:</b> rater 1's readings go in X and rater 2's in Y.</li>
+        <li><b>Intra-rater / test–retest:</b> session 1 goes in X and session 2 in Y.</li>
+        <li><b>Both</b> (e.g. Rater 1/2 at Time 1/2): keep the suggested layout. After loading, an overview shows inter-rater results at each session and intra-rater results for each rater.</li>
+      </ul>
       ${pairHTML}
       <div class="role-board">${board}</div>
       ${levelHTML}
@@ -4523,8 +4587,11 @@ function confirmIngestDataset() {
   const labelX = clean(ingest.lastBuilt.labelX), labelY = clean(ingest.lastBuilt.labelY);
   const unit = clean(ingest.unit) || `units`;
   const source = clean(ingest.sourceName) || `Pasted data`;
+  const crossed = buildCrossed(rows, labelX || `Method X`, labelY || `Method Y`);
+  if (crossed) crossed.title = source;
   appState.customDataset = {
     key: `custom_user`, design: ingest.design, title: `${source} (N = ${rows.length} pairs)`,
+    crossed, comparisonId: crossed && !crossed.transposed && ingest.design === crossed.pooledDesign ? `inter-all` : null,
     unit, labelX: labelX || `Method X`, labelY: labelY || `Method Y`,
     defaultBound: Math.max(1, +(Math.sqrt(rows.reduce((s, r) => s + (r.x - r.y) ** 2, 0) / rows.length) * 2).toFixed(1)),
     veracity: `User-imported dataset (${rows.length} pairs, ${ingest.layout.toUpperCase()} layout)`, rows
@@ -4625,6 +4692,143 @@ function initIngestWizard() {
   host.addEventListener(`input`, e => { if (ingest && e.target.id === `ingest-unit`) ingest.unit = e.target.value; });
 }
 document.addEventListener(`DOMContentLoaded`, initIngestWizard);
+
+// ---- Inter- and intra-rater overview ----
+// Imported data that cross two raters (or methods) with sessions (or trials) give every comparison from one file:
+// the raters against each other at each session (inter-rater) and each rater against themself across sessions
+// (intra-rater / test–retest).
+const overviewCache = new WeakMap();
+
+function timeLikeNames(names) {
+  return names.every(n => INGEST_RX.cond.test(n) || INGEST_RX.rep.test(n) || /(^|[^a-z])t\s?\d/i.test(n) || /^(obs|pair)\s?\d+$/i.test(n));
+}
+
+// rows {id, cond, x, y} -> { raters: [X, Y], occasions: [...], subjects: [{ id, v[rater][occasion] }] }, or null.
+function buildCrossed(rows, labelX, labelY) {
+  const levels = [], bySubj = new Map();
+  for (const r of rows) {
+    if (!levels.includes(r.cond)) levels.push(r.cond);
+    if (!bySubj.has(r.id)) bySubj.set(r.id, new Map());
+    const cells = bySubj.get(r.id);
+    if (cells.has(r.cond)) return null; // several pairs per session: not a simple raters × sessions layout
+    cells.set(r.cond, r);
+  }
+  if (levels.length < 2 || levels.length > 6) return null;
+  let raters = [String(labelX), String(labelY)], occasions = levels.map(String), transposed = false;
+  let subjects = Array.from(bySubj, ([id, cells]) => ({
+    id, v: [0, 1].map(m => levels.map(l => (cells.has(l) ? (m ? cells.get(l).y : cells.get(l).x) : NaN)))
+  }));
+  // If X and Y are sessions (e.g. Time 1 vs Time 2) and the pairs are raters, swap so raters come first.
+  if (occasions.length === 2 && timeLikeNames(raters) && !timeLikeNames(occasions)) {
+    subjects = subjects.map(sb => ({ id: sb.id, v: [[sb.v[0][0], sb.v[1][0]], [sb.v[0][1], sb.v[1][1]]] }));
+    [raters, occasions] = [occasions, raters];
+    transposed = true;
+  }
+  const trials = occasions.every(o => INGEST_RX.rep.test(o) || /^(obs|pair)\s?\d+$/i.test(o));
+  return { raters, occasions, subjects, transposed, pooledDesign: trials ? 3 : 4 };
+}
+
+function overviewComparisons(cr) {
+  if (overviewCache.has(cr)) return overviewCache.get(cr);
+  const { raters, occasions, subjects } = cr;
+  const pairs = (fx, fy, cond) => subjects.map(sb => ({ id: sb.id, cond, x: fx(sb), y: fy(sb) })).filter(r => Number.isFinite(r.x) && Number.isFinite(r.y));
+  const list = [];
+  occasions.forEach((o, k) => list.push({ id: `inter-${k}`, group: `inter`, label: `At ${o}`, design: 2, labelX: raters[0], labelY: raters[1], rows: pairs(sb => sb.v[0][k], sb => sb.v[1][k], `Pair`) }));
+  const pooled = [];
+  occasions.forEach((o, k) => pooled.push(...pairs(sb => sb.v[0][k], sb => sb.v[1][k], o)));
+  list.push({ id: `inter-all`, group: `inter`, label: occasions.length === 2 ? `Both pooled` : `All ${occasions.length} pooled`, design: cr.pooledDesign, labelX: raters[0], labelY: raters[1], rows: pooled });
+  raters.forEach((rn, r) => {
+    for (let a = 0; a < occasions.length; a++) {
+      for (let b = a + 1; b < occasions.length; b++) {
+        if (occasions.length > 3 && b !== a + 1) continue; // with many sessions, compare consecutive ones
+        list.push({
+          id: `intra-${r}-${a}-${b}`, group: `intra`, design: 1,
+          label: occasions.length > 2 ? `${rn}: ${occasions[a]} vs ${occasions[b]}` : rn,
+          labelX: `${rn}, ${occasions[a]}`, labelY: `${rn}, ${occasions[b]}`,
+          rows: pairs(sb => sb.v[r][a], sb => sb.v[r][b], `Retest`)
+        });
+      }
+    }
+  });
+  for (const c of list) {
+    if (c.rows.length < 3) { c.stats = null; continue; }
+    const res = computeAnalysis({ key: `overview`, rows: c.rows, title: c.label, unit: ``, labelX: c.labelX, labelY: c.labelY }, c.design, `delta`, 0);
+    c.stats = {
+      n: c.rows.length, subjects: new Set(c.rows.map(r => r.id)).size, icc: res.icc,
+      bias: res.bias, loa: [res.loaL, res.loaU], sem: res.sdTot / Math.SQRT2, mdc: 1.96 * res.sdTot
+    };
+  }
+  overviewCache.set(cr, list);
+  return list;
+}
+
+function renderOverview() {
+  const panel = document.getElementById(`overview-panel`);
+  if (!panel) return;
+  const cr = activeDataset && activeDataset.crossed;
+  if (!cr) { panel.hidden = true; return; }
+  panel.hidden = false;
+  const list = overviewComparisons(cr);
+  const type = appState.iccType === `consistency` ? `consistency` : `agreement`;
+  const unit = ingestEsc(activeDataset.unit);
+  const [r0, r1] = cr.raters.map(ingestEsc);
+  const occ = cr.occasions.map(ingestEsc);
+  const row = c => {
+    const st = c.stats, current = activeDataset.comparisonId === c.id;
+    const cells = st
+      ? `<td class="num">${st.n}${st.subjects !== st.n ? `<br><span class="ov-faint">${st.subjects} subjects</span>` : ``}</td>
+        <td class="num"><b>${fmt(st.icc[type].val, 3)}</b> <span class="ov-faint">[${fmt(st.icc[type].ci[0], 2)}, ${fmt(st.icc[type].ci[1], 2)}]</span></td>
+        <td class="num">${fmt(st.bias)}</td>
+        <td class="num">[${fmt(st.loa[0])}, ${fmt(st.loa[1])}]</td>
+        <td class="num">${fmt(st.sem)}</td>
+        <td class="num">${fmt(st.mdc)}</td>`
+      : `<td colspan="6">Too few complete pairs.</td>`;
+    const action = current ? `<span class="chip" data-status="info">Showing</span>`
+      : st ? `<button type="button" class="btn btn-ghost btn-compact" data-overview="${c.id}" aria-label="Analyse ${ingestEsc(c.label)} in the full workbench">Analyse</button>` : ``;
+    return `<tr${current ? ` class="is-current"` : ``}><th scope="row">${ingestEsc(c.label)}</th>${cells}<td>${action}</td></tr>`;
+  };
+  const table = (group, title, explain) => `
+    <div class="ov-group">
+      <h3 class="ov-title">${title}</h3>
+      <p class="ov-explain">${explain}</p>
+      <div class="table-wrap"><table class="ov-table">
+        <colgroup><col class="ov-c-name"><col class="ov-c-n"><col class="ov-c-icc"><col class="ov-c-bias"><col class="ov-c-loa"><col class="ov-c-sem"><col class="ov-c-mdc"><col class="ov-c-act"></colgroup>
+        <thead><tr><th>Comparison</th><th class="num">Pairs</th><th class="num">${type === `agreement` ? `ICC(A,1)` : `ICC(C,1)`} [95% CI]</th><th class="num">Bias (${unit})</th><th class="num">95% LoA (${unit})</th><th class="num">SEM (${unit})</th><th class="num">MDC95 (${unit})</th><th><span class="visually-hidden">Action</span></th></tr></thead>
+        <tbody>${list.filter(c => c.group === group).map(row).join(``)}</tbody>
+      </table></div>
+    </div>`;
+  document.getElementById(`overview-sub`).innerHTML = `Your data cross <b>${r0}</b> and <b>${r1}</b> with <b>${occ.join(`</b>, <b>`)}</b>, so both kinds of reliability come from the same file. Choose <i>Analyse</i> to open any comparison in the cards, plots and tables of the workbench.`;
+  document.getElementById(`overview-body`).innerHTML =
+    table(`inter`, `Inter-rater / between-method: ${r0} vs ${r1}`,
+      `Do the two raters (or methods) give the same result on the same subject at the same session? Bias is ${r0} − ${r1}.`) +
+    table(`intra`, `Intra-rater / test–retest: ${occ.length > 2 ? `between sessions` : `${occ[0]} vs ${occ[1]}`}`,
+      `Does each rater get the same result when measuring the same subject again? Bias is the earlier minus the later session.`) +
+    `<p class="ov-note">ICC: ${type === `agreement` ? `absolute agreement, which counts a systematic offset as error` : `consistency, which ignores systematic offsets`} (change it with ICC Type above). Single-session rows use exact F-based CIs; the pooled row resamples subjects. Inter-rater rows give classic limits of agreement (bias ± 1.96 SD). Intra-rater rows give test–retest limits around zero (± 1.96·√2·SEM, as in Design 1), with any systematic change shown as bias. SEM is the typical error of a single measurement; MDC95 = 1.96 × √2 × SEM, the smallest change in one person that exceeds measurement error. The pooled row uses every session and keeps each subject's pairs together (Design ${cr.pooledDesign}).</p>`;
+}
+
+function analyseOverviewRow(id) {
+  const cr = activeDataset && activeDataset.crossed;
+  const c = cr && overviewComparisons(cr).find(x => x.id === id);
+  if (!c || !c.stats) return;
+  appState.customDataset = {
+    key: `custom_user`, design: c.design, crossed: cr, comparisonId: c.id,
+    title: `${cr.title || `Your data`}: ${c.group === `inter` ? `inter-rater` : `intra-rater`}, ${c.label}`,
+    unit: activeDataset.unit, labelX: c.labelX, labelY: c.labelY,
+    defaultBound: appState.equivBound, veracity: activeDataset.veracity, rows: c.rows
+  };
+  refreshCustomOption();
+  const sel = document.getElementById(`preset-select`);
+  if (sel) sel.value = `custom_user`;
+  selectPresetDataset(`custom_user`);
+  document.getElementById(`kpi-grid`)?.scrollIntoView({ block: `start`, behavior: reducedMotion() ? `auto` : `smooth` });
+}
+
+document.addEventListener(`DOMContentLoaded`, () => {
+  document.getElementById(`overview-panel`)?.addEventListener(`click`, e => {
+    const b = e.target.closest(`[data-overview]`);
+    if (b) analyseOverviewRow(b.dataset.overview);
+  });
+});
 
 // Import dialog
 function openImportDialog() {
