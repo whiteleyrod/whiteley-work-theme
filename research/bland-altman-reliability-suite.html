@@ -903,6 +903,33 @@
     .ingest-warn li::marker { color: var(--warning); }
     .ingest-confirm { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: flex-end; }
     .ingest-confirm .field-group { flex: 1 1 200px; }
+    .grid-chooser, .pair-preview { display: flex; flex-direction: column; gap: var(--space-xs); }
+    .pair-list { margin: 0; padding-left: 1.5rem; font-size: 0.875rem; }
+    .pair-list li { line-height: 2.2; }
+    .pair-col {
+      display: inline-block;
+      line-height: 1.5;
+      padding: 0.1rem 0.6rem;
+      border: 1px solid var(--outline-variant);
+      border-left: 5px solid var(--chip-color, var(--outline));
+      border-radius: var(--rounded-full);
+      background: var(--background);
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: 0.8125rem;
+    }
+    .pair-arrow { margin: 0 0.4rem; color: var(--on-surface-variant); }
+    .pair-label {
+      display: inline-block;
+      margin-left: 0.6rem;
+      line-height: 1.5;
+      padding: 0.05rem 0.55rem;
+      border-radius: var(--rounded-full);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
 
     /* Upload call-to-action, import dialog and page-wide file drop */
     .upload-cta {
@@ -3330,17 +3357,17 @@ if (window.matchMedia) {
 // so the user can confirm them or rearrange columns by drag-and-drop (or click-to-assign).
 const INGEST_ROLES = {
   wide: [
-    { key: `subj`, label: `Subject ID`, required: true, multi: false, hint: `One label per subject. Rows that share an ID are repeated observations of that subject.` },
-    { key: `cond`, label: `Condition / Time`, required: false, multi: false, hint: `Optional: day, session, angle or activity for each row.` },
-    { key: `x`, label: `Method X / Trial 1`, required: true, multi: true, hint: `Numeric. Drop several columns if replicates sit side by side; they pair in order with Method Y.` },
-    { key: `y`, label: `Method Y / Trial 2`, required: true, multi: true, hint: `Numeric. Needs the same number of columns as Method X.` }
+    { key: `subj`, label: `Subject ID`, required: true, multi: false, hint: `Identifies each person. Rows with the same ID belong to the same person.` },
+    { key: `cond`, label: `Condition / Time Column`, required: false, multi: false, hint: `Only for a column that says when or how each row was measured (e.g. Day 1, Day 2). Time points that are part of the column names are picked up automatically.` },
+    { key: `x`, label: `Method X (1st Method)`, required: true, multi: true, hint: `Readings from the first method, device or rater (trial 1 for test–retest). Several columns give several pairs per row, matched by position with Method Y.` },
+    { key: `y`, label: `Method Y (2nd Method)`, required: true, multi: true, hint: `Readings from the second method, device or rater (or trial 2), in the same order as Method X.` }
   ],
   long: [
-    { key: `subj`, label: `Subject ID`, required: true, multi: false, hint: `One label per subject. Rows that share an ID belong to the same subject.` },
-    { key: `cond`, label: `Condition / Time`, required: false, multi: false, hint: `Optional: day, session, angle or activity for each row.` },
-    { key: `rep`, label: `Replicate / Trial`, required: false, multi: false, hint: `Optional: pairs the X and Y readings that share a trial number. Without it, readings pair in row order.` },
-    { key: `method`, label: `Method / Rater Label`, required: true, multi: false, hint: `Text column saying which method, device or rater took each reading.` },
-    { key: `value`, label: `Measurement Value`, required: true, multi: false, hint: `Numeric column holding each reading.` }
+    { key: `subj`, label: `Subject ID`, required: true, multi: false, hint: `Identifies each person. Rows with the same ID belong to the same person.` },
+    { key: `cond`, label: `Condition / Time Column`, required: false, multi: false, hint: `Only for a column that says when or how each reading was taken (e.g. Day 1, Day 2).` },
+    { key: `rep`, label: `Trial / Replicate Column`, required: false, multi: false, hint: `Matches each X reading with the Y reading that has the same trial number. Without it, readings pair in row order.` },
+    { key: `method`, label: `Method Label Column`, required: true, multi: false, hint: `Says which method, device or rater took each reading. Pick the two labels to compare below.` },
+    { key: `value`, label: `Measurement Column`, required: true, multi: false, hint: `The numeric reading itself.` }
   ]
 };
 const INGEST_RX = {
@@ -3423,6 +3450,81 @@ function columnStem(name, leading) {
     : n.replace(/[\s_.-]*(t|trial|rep|r|time|day|session|s|obs|#)?[\s_.-]*\d+$/i, ``);
 }
 
+// Words and numbers in a column name with their positions: "Time 1 Measure 2" -> Time, 1, Measure, 2.
+function nameTokens(name) {
+  const out = [], re = /\p{L}+|\d+/gu;
+  let m;
+  while ((m = re.exec(String(name)))) out.push({ text: m[0], lower: m[0].toLowerCase(), start: m.index, end: m.index + m[0].length, num: /^\d+$/.test(m[0]) });
+  return out;
+}
+
+// What several column names share once their varying parts are removed:
+// ["Time 1 Measure 1", "Time 2 Measure 1"] -> "Measure 1"; ["Time 1 Measure 1", "Time 1 Measure 2"] -> "Time 1".
+function commonNamePart(names) {
+  if (names.length < 2) return names.length ? String(names[0]).trim() : ``;
+  const toks = names.map(nameTokens), base = toks[0];
+  if (!base.length || toks.some(t => t.length !== base.length)) return ``;
+  const diff = new Set();
+  base.forEach((t, p) => { if (toks.some(o => o[p].lower !== t.lower)) diff.add(p); });
+  if (!diff.size) return ``;
+  const build = drop => {
+    let out = ``, prev = -1;
+    base.forEach((t, p) => {
+      if (drop.has(p)) return;
+      if (prev >= 0) out += prev === p - 1 ? String(names[0]).slice(base[prev].end, t.start) : ` `;
+      out += t.text;
+      prev = p;
+    });
+    return out.replace(/\s+/g, ` `).trim();
+  };
+  // Also drop the word naming a varying number ("Time" in "Time 1"), unless that leaves nothing.
+  const wider = new Set(diff);
+  for (const p of diff) if (base[p].num && p > 0 && !base[p - 1].num && !diff.has(p - 1)) wider.add(p - 1);
+  return build(wider) || build(diff);
+}
+
+// Column names that cross two parts, e.g. Time (1, 2) x Measure (1, 2). Returns the ways to read one part as
+// the two methods (X, Y), paired within the other part, best guess first.
+function detectNameGrid(cols) {
+  if (cols.length < 4) return null;
+  const toks = cols.map(c => nameTokens(c.name));
+  const len = toks[0].length;
+  if (!len || toks.some(t => t.length !== len)) return null;
+  const varying = [];
+  for (let p = 0; p < len; p++) if (new Set(toks.map(t => t[p].lower)).size > 1) varying.push(p);
+  if (varying.length !== 2) return null;
+  const cell = new Map();
+  toks.forEach((t, k) => cell.set(`${t[varying[0]].lower}|${t[varying[1]].lower}`, cols[k].i));
+  const slots = varying.map(p => {
+    const keys = [...new Set(toks.map(t => t[p].lower))];
+    if (keys.every(key => /^\d+$/.test(key))) keys.sort((a, b) => a - b);
+    const prev = toks[0][p - 1];
+    const factor = toks[0][p].num && prev && !prev.num && !varying.includes(p - 1) ? prev.text : ``;
+    return { keys, factor, levels: keys.map(key => toks.find(t => t[p].lower === key)[p].text) };
+  });
+  if (slots[0].keys.length * slots[1].keys.length !== cols.length || cell.size !== cols.length) return null;
+  const conditionLike = sl => !!sl.factor && (INGEST_RX.cond.test(sl.factor) || INGEST_RX.rep.test(sl.factor) || /^(t|d|s|r|v|w|rep|test)$/i.test(sl.factor));
+  const methodLike = sl => (sl.factor && INGEST_RX.method.test(sl.factor)) || (!sl.factor && sl.levels.some(l => !/^\d+$/.test(l)));
+  const named = (sl, k) => (sl.factor ? `${sl.factor}${sl.factor.length > 2 ? ` ` : ``}${sl.levels[k]}` : sl.levels[k]);
+  const options = [];
+  slots.forEach((m, mi) => {
+    if (m.keys.length !== 2) return;
+    const o = slots[1 - mi];
+    const key = (mk, ok) => (mi === 0 ? `${mk}|${ok}` : `${ok}|${mk}`);
+    options.push({
+      labelX: named(m, 0), labelY: named(m, 1),
+      pairText: o.factor ? `paired within each ${o.factor}` : o.levels.every(l => /^\d+$/.test(l)) ? `paired by number (${o.levels.join(`, `)})` : `paired by ${o.levels.join(` / `)}`,
+      x: o.keys.map(ok => cell.get(key(m.keys[0], ok))),
+      y: o.keys.map(ok => cell.get(key(m.keys[1], ok))),
+      score: (methodLike(m) ? 2 : 0) - (conditionLike(m) ? 3 : 0) + mi * 0.1 // ties go to the later part of the name
+    });
+  });
+  if (!options.length) return null;
+  options.sort((a, b) => b.score - a.score);
+  const describe = sl => (sl.factor ? `<b>${ingestEsc(sl.factor)}</b> (${sl.levels.map(ingestEsc).join(`, `)})` : `<b>${sl.levels.map(ingestEsc).join(` / `)}</b>`);
+  return { options, label: slots.map(describe).join(` × `) };
+}
+
 function splitMeasureColumns(ms) {
   if (ms.length < 2) return null;
   if (ms.length === 2) return { x: [ms[0]], y: [ms[1]], note: `` };
@@ -3488,11 +3590,20 @@ function guessIngest(profiles, nRows) {
   // WIDE roles
   const wide = { subj: subj ? [subj.i] : [], cond: [], x: [], y: [] };
   why.wide.subj = subjWhy;
-  const split = splitMeasureColumns(measures);
-  if (split) {
-    wide.x = split.x.map(c => c.i); wide.y = split.y.map(c => c.i);
-    why.wide.x = why.wide.y = split.x.length > 1 ? `Grouped by column name.` : `Numeric measurement column.`;
-    if (split.note) reasons.push(split.note);
+  const grid = detectNameGrid(measures);
+  if (grid) {
+    const best = grid.options[0];
+    wide.x = best.x.slice();
+    wide.y = best.y.slice();
+    why.wide.x = why.wide.y = `From the pattern in the column names.`;
+    reasons.push(`The column names cross two parts: ${grid.label}. <b>${ingestEsc(best.labelX)}</b> and <b>${ingestEsc(best.labelY)}</b> are taken as the two methods to compare, ${ingestEsc(best.pairText)}.${grid.options.length > 1 ? ` Step 3 lets you compare the other way instead.` : ``}`);
+  } else {
+    const split = splitMeasureColumns(measures);
+    if (split) {
+      wide.x = split.x.map(c => c.i); wide.y = split.y.map(c => c.i);
+      why.wide.x = why.wide.y = split.x.length > 1 ? `Grouped by column name.` : `Numeric measurement column.`;
+      if (split.note) reasons.push(split.note);
+    }
   }
   const wideTaken = new Set([...wide.x, ...wide.y]);
   let wCond = condPick(wideTaken), wCondWhy = wCond ? `Named like a condition or time column.` : ``;
@@ -3515,7 +3626,7 @@ function guessIngest(profiles, nRows) {
   const lCond = condPick(longTaken);
   if (lCond) { long.cond = [lCond.i]; why.long.cond = `Named like a condition or time column.`; }
 
-  return { layout, reasons, roles: { wide, long }, why };
+  return { layout, reasons, roles: { wide, long }, why, grid };
 }
 
 // ---- Reading data files: CSV / TSV text and Excel workbooks (.xlsx, .xls) ----
@@ -4076,7 +4187,7 @@ function parsePastedCSV() {
   const firstLevels = guess.roles.long.method.length ? profiles[guess.roles.long.method[0]].levels : [];
   const unitMatch = headers.join(` `).match(/[(\[]\s*([^)\]]{1,12})\s*[)\]]/);
   ingest = {
-    headers, records, delim, profiles, guess,
+    headers, records, delim, profiles, guess, grid: guess.grid,
     layout: guess.layout,
     roles: JSON.parse(JSON.stringify(guess.roles)),
     levelX: firstLevels[0] ?? null, levelY: firstLevels[1] ?? null,
@@ -4162,11 +4273,11 @@ function buildIngestRows() {
   const missing = INGEST_ROLES[layout].filter(r => r.required && !(R[r.key] && R[r.key].length)).map(r => r.label);
   if (missing.length) return { error: `Still needed: ${missing.join(`, `)}. Drag a column into ${missing.length > 1 ? `each of those boxes` : `that box`}.` };
   const rows = [], obsCount = new Map();
-  let skipped = 0, labelX, labelY;
-  const push = (id, cond, x, y) => {
+  let skipped = 0, labelX, labelY, pairLabels = null;
+  const push = (id, cond, x, y, label) => {
     const n = (obsCount.get(id) || 0) + 1;
     obsCount.set(id, n);
-    rows.push({ id, cond: iCond >= 0 ? cond : `Obs ${n}`, x, y });
+    rows.push({ id, cond: iCond >= 0 ? cond : (label || `Obs ${n}`), x, y });
   };
 
   if (layout === `wide`) {
@@ -4174,16 +4285,24 @@ function buildIngestRows() {
     if (xs.length !== ys.length) return { error: `Method X has ${xs.length} column(s) and Method Y has ${ys.length}. They pair in order, so the counts must match.` };
     const nonNum = [...xs, ...ys].filter(i => !ingest.profiles[i].numeric).map(i => headers[i]);
     if (nonNum.length) warnings.push(`${nonNum.map(ingestEsc).join(`, `)} ${nonNum.length > 1 ? `are` : `is`} mostly non-numeric; those cells are skipped.`);
+    // Several pairs per row: label each from what its two column names share ("Time 1"), when every subject
+    // has one row and the labels come out distinct.
+    if (iCond < 0 && xs.length > 1) {
+      const perSubj = new Map();
+      for (const r of records) { const id = (r[iSubj] || ``).trim(); if (id) perSubj.set(id, (perSubj.get(id) || 0) + 1); }
+      const labels = xs.map((xc, k) => { const l = commonNamePart([headers[xc], headers[ys[k]]]); return !l || /^\d+$/.test(l) ? `Pair ${k + 1}` : l; });
+      if ([...perSubj.values()].every(n => n === 1) && new Set(labels).size === labels.length) pairLabels = labels;
+    }
     for (const r of records) {
       const id = (r[iSubj] || ``).trim();
       for (let k = 0; k < xs.length; k++) {
         const x = toNumber(r[xs[k]], delim), y = toNumber(r[ys[k]], delim);
         if (!id || !Number.isFinite(x) || !Number.isFinite(y)) { skipped++; continue; }
-        push(id, (iCond >= 0 ? (r[iCond] || ``).trim() : ``) || `Obs`, x, y);
+        push(id, (iCond >= 0 ? (r[iCond] || ``).trim() : ``) || `Obs`, x, y, pairLabels && pairLabels[k]);
       }
     }
-    const stemLabel = cols => (cols.length > 1 ? (columnStem(headers[cols[0]], false) || columnStem(headers[cols[0]], true) || headers[cols[0]]) : headers[cols[0]]);
-    labelX = stemLabel(xs); labelY = stemLabel(ys);
+    labelX = (xs.length > 1 && commonNamePart(xs.map(i => headers[i]))) || headers[xs[0]];
+    labelY = (ys.length > 1 && commonNamePart(ys.map(i => headers[i]))) || headers[ys[0]];
   } else {
     const iM = one(`method`), iV = one(`value`), iRep = one(`rep`);
     const lx = ingest.levelX, ly = ingest.levelY;
@@ -4213,7 +4332,7 @@ function buildIngestRows() {
   if (skipped) warnings.push(`${skipped} cell pair(s) were skipped because of a missing ID or a non-numeric value.`);
   if (rows.length < 3) return { error: `Only ${rows.length} complete pair(s) were found with this mapping; at least 3 are needed.`, warnings };
   if (iCond < 0 && [...obsCount.values()].every(n => n === 1)) rows.forEach(r => { r.cond = `Pair`; });
-  return { rows, warnings, labelX, labelY, obsCount };
+  return { rows, warnings, labelX, labelY, obsCount, pairLabels };
 }
 
 function suggestIngestDesign(built) {
@@ -4236,6 +4355,10 @@ function suggestIngestDesign(built) {
   }
   if (condName && !INGEST_RX.rep.test(condName)) {
     return { design: 4, avail, why: `Up to ${maxObs} pairs per subject, labelled by <b>${ingestEsc(condName)}</b>, so the true value may change between them (Design 4). If they are replicates of the same quantity, pick Design 3.` };
+  }
+  const pairWords = built.pairLabels ? built.pairLabels.join(`, `) : ``;
+  if (pairWords && !INGEST_RX.rep.test(pairWords) && (INGEST_RX.cond.test(pairWords) || /(^|[^a-z])t\s?\d/i.test(pairWords))) {
+    return { design: 4, avail, why: `Each subject has pairs at <b>${ingestEsc(pairWords)}</b>, so the true value may change between them (Design 4). If they are repeats of the same unchanged quantity, pick Design 3.` };
   }
   return { design: 3, avail, why: `Up to ${maxObs} pairs per subject with no changing condition, so they are treated as replicates of one true value (Design 3). If the true value changes between them, pick Design 4.` };
 }
@@ -4275,6 +4398,29 @@ function renderIngestWizard() {
   const board = INGEST_ROLES[layout].map(r => zone(r.key, r.label, r.hint, r.required, whyMap[r.key])).join(``) +
     zone(`ignore`, `Not Used`, `Columns here are ignored. Drag a column here to remove it from the analysis.`, false, ``);
 
+  const built = buildIngestRows();
+  let pairHTML = ``;
+  if (layout === `wide`) {
+    const xs = R.x || [], ys = R.y || [], g = ingest.grid;
+    const same = (a, b) => a.length === b.length && a.every((v, k) => v === b[k]);
+    if (g) {
+      const buttons = g.options.length > 1 ? `<div class="btn-seg" role="group" aria-label="Methods to compare">${g.options.map((o, k) => {
+        const on = same(xs, o.x) && same(ys, o.y);
+        return `<button type="button" class="seg-btn${on ? ` is-active` : ``}" data-grid-option="${k}" aria-pressed="${on}">${ingestEsc(o.labelX)} vs ${ingestEsc(o.labelY)} <span class="seg-tag">${ingestEsc(o.pairText)}${k === 0 ? ` · suggested` : ``}</span></button>`;
+      }).join(``)}</div>` : ``;
+      pairHTML += `<div class="grid-chooser"><p class="ingest-note">The column names cross two parts: ${g.label}.${g.options.length > 1 ? ` Which part names the two methods you want to compare?` : ``}</p>${buttons}</div>`;
+    }
+    if (xs.length || ys.length) {
+      const n = Math.max(xs.length, ys.length);
+      const side = (role, i) => `<span class="pair-col" data-role="${role}">${i != null ? ingestEsc(headers[i]) : `<em>no column yet</em>`}</span>`;
+      const items = Array.from({ length: n }, (_, k) => {
+        const lab = built.pairLabels ? built.pairLabels[k] : null;
+        return `<li>${side(`x`, xs[k])}<span class="pair-arrow" aria-hidden="true">↔</span><span class="visually-hidden"> compared with </span>${side(`y`, ys[k])}${lab ? `<span class="pair-label">${ingestEsc(lab)}</span>` : ``}</li>`;
+      });
+      pairHTML += `<div class="pair-preview"><p class="ingest-note"><b>Pairs compared</b> (Method X ↔ Method Y)${n > 1 ? `: each row of the file gives ${n} pairs` : ``}.</p><ol class="pair-list">${items.join(``)}</ol></div>`;
+    }
+  }
+
   let levelHTML = ``;
   if (layout === `long` && R.method.length) {
     const lv = profiles[R.method[0]].levels;
@@ -4291,7 +4437,6 @@ function renderIngestWizard() {
     <tbody>${shown.map(r => `<tr>${headers.map((_, i) => `<td class="${profiles[i].numeric ? `num` : ``}${roleOf[i] ? `` : ` is-ignored`}">${ingestEsc(r[i] ?? ``)}</td>`).join(``)}</tr>`).join(``)}</tbody>
   </table></div><p class="ingest-note">Showing ${shown.length} of ${records.length} rows.</p>`;
 
-  const built = buildIngestRows();
   let resultHTML;
   if (built.error) {
     resultHTML = `<p class="ingest-status" data-state="error">${built.error}</p>`;
@@ -4339,7 +4484,8 @@ function renderIngestWizard() {
     </div>
     <div class="ingest-card">
       <h3>3 · Confirm what each column is</h3>
-      <p class="ingest-note">Drag column chips between the boxes, or click a chip and then click a box. Hover a chip to see its values.</p>
+      <p class="ingest-note">Drag each column chip into the box that describes it, or click a chip and then a box. To compare two methods, the first method's readings go in Method X and the second method's in Method Y. Hover a chip to see its values.</p>
+      ${pairHTML}
       <div class="role-board">${board}</div>
       ${levelHTML}
       ${rawTable}
@@ -4349,6 +4495,20 @@ function renderIngestWizard() {
       ${resultHTML}
     </div>`;
   if (refocus) host.querySelector(refocus)?.focus();
+}
+
+// Use one reading of a name grid: one part gives Method X and Method Y, the other pairs them.
+function applyGridOption(k) {
+  const o = ingest && ingest.grid && ingest.grid.options[k];
+  if (!o) return;
+  const R = ingest.roles.wide;
+  for (const key of Object.keys(R)) R[key] = R[key].filter(i => !o.x.includes(i) && !o.y.includes(i));
+  R.x = o.x.slice();
+  R.y = o.y.slice();
+  ingest.layout = `wide`;
+  ingest.picked = null;
+  ingest.edited = true;
+  renderIngestWizard();
 }
 
 function confirmIngestDataset() {
@@ -4439,6 +4599,8 @@ function initIngestWizard() {
     if (z) { activateZone(z); return; }
     const lb = e.target.closest(`[data-layout]`);
     if (lb) { setIngestLayout(lb.dataset.layout); return; }
+    const go = e.target.closest(`[data-grid-option]`);
+    if (go) { applyGridOption(+go.dataset.gridOption); return; }
     if (e.target.closest(`#ingest-reset-btn`)) { resetIngestToGuess(); return; }
     if (e.target.closest(`#ingest-confirm-btn`)) confirmIngestDataset();
   });
