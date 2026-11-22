@@ -575,7 +575,7 @@
     /* Dataset Bar */
     .dataset-bar {
       display: grid;
-      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.8fr) auto;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.7fr) auto;
       gap: var(--space-md);
       align-items: end;
     }
@@ -997,6 +997,8 @@
       transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
     }
     .drop-zone p { margin: 0; }
+    .sheet-picker { display: flex; flex-direction: column; gap: var(--space-xs); max-width: 520px; }
+    .sheet-picker[hidden] { display: none; }
     .drop-zone-icon { width: 40px; height: 40px; color: var(--primary); }
     .is-file-drag .drop-zone { border-style: solid; border-color: var(--primary); background: var(--primary-container); }
     .file-drop-overlay {
@@ -1082,7 +1084,7 @@
       <div class="upload-cta">
         <div class="upload-cta-text">
           <strong>Analyse your own data</strong>
-          <span>Upload a CSV / TSV file or paste cells from Excel. The layout (wide or long) and each column are detected automatically, and you confirm them before anything is analysed.</span>
+          <span>Upload an Excel workbook (.xlsx / .xls) or a CSV / TSV file, or paste cells from Excel. The layout (wide or long) and each column are detected automatically, and you confirm them before anything is analysed.</span>
         </div>
         <button type="button" class="btn btn-primary" id="open-import-btn" onclick="openImportDialog()">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
@@ -1119,6 +1121,13 @@
             <option value="mover">MOVER / Exact / BCa Bootstrap (Recommended)</option>
             <option value="delta">Classic Asymptotic Delta / Wald</option>
             <option value="exact_t">Exact Noncentral t (Design 2)</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="icc-type-select">ICC Type (Single Measures)</label>
+          <select id="icc-type-select" class="select-ctrl" onchange="setICCType(this.value)" title="Absolute agreement counts a systematic difference (bias) between X and Y as error. Consistency ignores it and only asks whether X and Y rank subjects the same way.">
+            <option value="agreement">Absolute agreement</option>
+            <option value="consistency">Consistency</option>
           </select>
         </div>
         <div class="field-group">
@@ -1408,7 +1417,7 @@
       <div class="import-dialog-head">
         <div>
           <h2 id="import-dialog-title" class="section-title" tabindex="-1">Import Your Data</h2>
-          <p id="import-dialog-desc" class="section-sub">Paired measurements from a CSV / TSV file or cells copied from Excel. Wide (one row per pair) and long (one row per reading) layouts both work.</p>
+          <p id="import-dialog-desc" class="section-sub">Paired measurements from an Excel workbook (.xlsx / .xls), a CSV / TSV file, or cells copied from Excel. Wide (one row per pair) and long (one row per reading) layouts both work.</p>
         </div>
         <button type="button" class="btn btn-ghost dialog-close" data-close-import aria-label="Close import dialog">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -1421,8 +1430,8 @@
             <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>
             <p><strong>Drop a file here</strong> or</p>
             <button type="button" class="btn btn-primary" id="choose-file-btn">Choose File…</button>
-            <input type="file" id="csv-file-input" class="visually-hidden" tabindex="-1" aria-hidden="true" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain" onchange="handleCSVFileUpload(this)">
-            <p class="ingest-note">.csv, .tsv or .txt. For an Excel workbook, save it as CSV first, or copy the cells and paste them.</p>
+            <input type="file" id="csv-file-input" class="visually-hidden" tabindex="-1" aria-hidden="true" accept=".xlsx,.xlsm,.xls,.csv,.tsv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/tab-separated-values,text/plain" onchange="handleCSVFileUpload(this)">
+            <p class="ingest-note">Excel .xlsx or .xls, or .csv, .tsv or .txt. You can pick the sheet after a workbook loads.</p>
           </div>
           <div class="field-group">
             <label class="field-label" for="paste-csv">Or paste data (e.g. cells copied from Excel)</label>
@@ -1430,6 +1439,7 @@
             <button type="button" class="btn btn-secondary" onclick="parsePastedCSV()">Detect &amp; Suggest Mapping</button>
           </div>
         </div>
+        <div id="sheet-picker" class="sheet-picker" hidden></div>
         <div class="inline-msg" id="ingest-msg" role="status" aria-live="polite"></div>
       </div>
       <div id="ingest-wizard" class="ingest-wizard" hidden></div>
@@ -1814,6 +1824,7 @@ let appState = {
   presetKey: `mvc_d2`,
   design: 2,
   ciMethod: `mover`,
+  iccType: `agreement`,
   equivBound: 18,
   customDataset: null,
   plotOpts: {
@@ -1833,8 +1844,194 @@ let appState = {
 let activeDataset = getPresetDataset(`mvc_d2`);
 let computedResults = null;
 
+// ---- ICC engine ----
+// Methods X and Y act as two raters scoring the same "targets". Which unit counts as a target depends on the design:
+// Designs 1–2: each subject (one pair); Design 3: each subject, with its replicates nested inside;
+// Design 4: each time-locked pair (the true value moves between pairs); Design 5: each subject × condition cell,
+// with replicates nested inside. All ICCs are single-measure: ICC(A,1) absolute agreement and ICC(C,1) consistency.
+const ICC_NAMES = { agreement: `ICC(A,1) Absolute Agreement`, consistency: `ICC(C,1) Consistency` };
+const iccCache = new WeakMap();
+
+function iccTargets(rows, design) {
+  const bySubj = new Map();
+  for (const r of rows) {
+    if (!bySubj.has(r.id)) bySubj.set(r.id, []);
+    bySubj.get(r.id).push(r);
+  }
+  const targets = [];
+  for (const [id, list] of bySubj) {
+    if (design <= 2) targets.push({ cluster: id, xs: [list[0].x], ys: [list[0].y] });
+    else if (design === 3) targets.push({ cluster: id, xs: list.map(r => r.x), ys: list.map(r => r.y) });
+    else if (design === 4) for (const r of list) targets.push({ cluster: id, xs: [r.x], ys: [r.y] });
+    else {
+      const cells = new Map();
+      for (const r of list) {
+        if (!cells.has(r.cond)) cells.set(r.cond, { cluster: id, xs: [], ys: [] });
+        cells.get(r.cond).xs.push(r.x);
+        cells.get(r.cond).ys.push(r.y);
+      }
+      for (const c of cells.values()) targets.push(c);
+    }
+  }
+  return targets;
+}
+
+// Two-way (targets × 2 methods) ANOVA on the target means. Without replicates this gives the McGraw & Wong (1996)
+// ICC(A,1) and ICC(C,1). With replicates, an unweighted-means split separates the target × method interaction
+// from replicate error, and the ICCs are ratios of the (non-negative) variance components.
+function iccFromTargets(targets) {
+  const t = targets.length, k = 2;
+  if (t < 3) return null;
+  const xb = new Float64Array(t), yb = new Float64Array(t);
+  let sumX = 0, sumY = 0, SS_W = 0, dfW = 0, invM = 0;
+  for (let i = 0; i < t; i++) {
+    const T = targets[i], m = T.xs.length;
+    let sx = 0, sy = 0;
+    for (let j = 0; j < m; j++) { sx += T.xs[j]; sy += T.ys[j]; }
+    xb[i] = sx / m;
+    yb[i] = sy / m;
+    for (let j = 0; j < m; j++) SS_W += (T.xs[j] - xb[i]) ** 2 + (T.ys[j] - yb[i]) ** 2;
+    dfW += 2 * (m - 1);
+    invM += 1 / m;
+    sumX += xb[i];
+    sumY += yb[i];
+  }
+  const cx = sumX / t, cy = sumY / t, grand = (cx + cy) / 2;
+  let SS_R = 0, SS_E = 0;
+  for (let i = 0; i < t; i++) {
+    const ri = (xb[i] + yb[i]) / 2;
+    SS_R += k * (ri - grand) ** 2;
+    SS_E += (xb[i] - ri - cx + grand) ** 2 + (yb[i] - ri - cy + grand) ** 2;
+  }
+  const SS_C = t * ((cx - grand) ** 2 + (cy - grand) ** 2);
+  const MS_R = SS_R / (t - 1), MS_C = SS_C / (k - 1), MS_E = SS_E / ((t - 1) * (k - 1));
+  const out = { t, MS_R, MS_C, MS_E };
+  if (dfW > 0) {
+    const mh = t / invM, MS_W = SS_W / dfW;
+    const s2_t = Math.max(0, (MS_R - MS_E) / k);
+    const s2_m = Math.max(0, (MS_C - MS_E) / t);
+    const s2_int = Math.max(0, MS_E - MS_W / mh);
+    const s2_e = MS_W;
+    out.components = { s2_t, s2_m, s2_int, s2_e, mh, dfW };
+    out.consistency = s2_t / Math.max(1e-12, s2_t + s2_int + s2_e);
+    out.agreement = s2_t / Math.max(1e-12, s2_t + s2_m + s2_int + s2_e);
+  } else {
+    out.components = { s2_t: Math.max(0, (MS_R - MS_E) / k), s2_m: Math.max(0, (MS_C - MS_E) / t), s2_int: null, s2_e: MS_E };
+    out.consistency = (MS_R - MS_E) / (MS_R + (k - 1) * MS_E);
+    out.agreement = (MS_R - MS_E) / (MS_R + (k - 1) * MS_E + (k / t) * (MS_C - MS_E));
+  }
+  return out;
+}
+
+// Exact F-based 95% CIs for independent targets with one pair each (McGraw & Wong 1996; Shrout & Fleiss 1979).
+function iccExactCIs(est, targets) {
+  const k = 2, nn = est.t, { MS_R, MS_C, MS_E } = est;
+  const fq = (d1, d2) => fQuantile(0.975, d1, d2);
+  const Fc = MS_R / Math.max(1e-12, MS_E);
+  const Flc = Fc / fq(nn - 1, (nn - 1) * (k - 1)), Fuc = Fc * fq((nn - 1) * (k - 1), nn - 1);
+  const ciC = [(Flc - 1) / (Flc + k - 1), (Fuc - 1) / (Fuc + k - 1)];
+  // ICC(A,1) with Satterthwaite degrees of freedom
+  const iccA = est.agreement;
+  const a = (k * iccA) / (nn * (1 - iccA));
+  const b = 1 + (k * iccA * (nn - 1)) / (nn * (1 - iccA));
+  const v = Math.max(1, (a * MS_C + b * MS_E) ** 2 / Math.max(1e-12, (a * MS_C) ** 2 / (k - 1) + (b * MS_E) ** 2 / ((nn - 1) * (k - 1))));
+  const FL = fq(nn - 1, v), FU = fq(v, nn - 1);
+  const ciA = [
+    (nn * (MS_R - FL * MS_E)) / (FL * (k * MS_C + (k * nn - k - nn) * MS_E) + nn * MS_R),
+    (nn * (FU * MS_R - MS_E)) / (k * MS_C + (k * nn - k - nn) * MS_E + nn * FU * MS_R)
+  ];
+  // ICC(1,1): one-way random model (raters not identified), listed for reference
+  let SS_W1 = 0;
+  for (const T of targets) SS_W1 += (T.xs[0] - T.ys[0]) ** 2 / 2;
+  const MS_W1 = SS_W1 / (nn * (k - 1));
+  const F1 = MS_R / Math.max(1e-12, MS_W1);
+  const Fl1 = F1 / fq(nn - 1, nn * (k - 1)), Fu1 = F1 * fq(nn * (k - 1), nn - 1);
+  const clip = ci => [Math.max(-1, ci[0]), Math.min(1, ci[1])];
+  return {
+    ciA: clip(ciA), ciC: clip(ciC),
+    icc1: (MS_R - MS_W1) / (MS_R + (k - 1) * MS_W1),
+    ci1: clip([(Fl1 - 1) / (Fl1 + k - 1), (Fu1 - 1) / (Fu1 + k - 1)])
+  };
+}
+
+// Percentile CI from resampling whole subjects, so correlated targets within a subject stay together.
+function iccClusterBootstrap(targets, B, seed) {
+  const bySubj = new Map();
+  for (const T of targets) {
+    if (!bySubj.has(T.cluster)) bySubj.set(T.cluster, []);
+    bySubj.get(T.cluster).push(T);
+  }
+  const groups = Array.from(bySubj.values()), g = groups.length;
+  const rng = mulberry32(seed);
+  const agr = [], con = [];
+  for (let b = 0; b < B; b++) {
+    const sample = [];
+    for (let i = 0; i < g; i++) for (const T of groups[Math.floor(rng() * g)]) sample.push(T);
+    const r = iccFromTargets(sample);
+    if (r && Number.isFinite(r.agreement) && Number.isFinite(r.consistency)) {
+      agr.push(r.agreement);
+      con.push(r.consistency);
+    }
+  }
+  const q = (arr, p) => {
+    if (!arr.length) return NaN;
+    const h = (arr.length - 1) * p, lo = Math.floor(h), hi = Math.min(arr.length - 1, lo + 1);
+    return arr[lo] + (arr[hi] - arr[lo]) * (h - lo);
+  };
+  agr.sort((u, w) => u - w);
+  con.sort((u, w) => u - w);
+  return { agreement: [q(agr, 0.025), q(agr, 0.975)], consistency: [q(con, 0.025), q(con, 0.975)], B: agr.length };
+}
+
+// Both ICC types for a dataset and design (cached per dataset, so changing other settings doesn't re-run the bootstrap).
+function computeICC(rows, design) {
+  let memo = iccCache.get(rows);
+  if (!memo) { memo = {}; iccCache.set(rows, memo); }
+  if (memo[design]) return memo[design];
+  const targets = iccTargets(rows, design);
+  const est = iccFromTargets(targets);
+  const clusters = new Set(targets.map(T => T.cluster)).size;
+  const res = {
+    design, est, nTargets: targets.length, clusters, oneway: null, ciMethod: ``,
+    agreement: { val: NaN, ci: [NaN, NaN] }, consistency: { val: NaN, ci: [NaN, NaN] }
+  };
+  if (est) {
+    res.agreement.val = est.agreement;
+    res.consistency.val = est.consistency;
+    if (design <= 2) {
+      const ci = iccExactCIs(est, targets);
+      res.agreement.ci = ci.ciA;
+      res.consistency.ci = ci.ciC;
+      res.oneway = { val: ci.icc1, ci: ci.ci1 };
+      res.ciMethod = `exact F-based`;
+    } else {
+      const boot = iccClusterBootstrap(targets, targets.length > 3000 ? 400 : 1000, 20240611);
+      res.agreement.ci = boot.agreement;
+      res.consistency.ci = boot.consistency;
+      res.ciMethod = `${boot.B} subject resamples`;
+    }
+  }
+  const mh = est && est.components ? est.components.mh : NaN;
+  res.targetNote = design <= 2 ? `${res.nTargets} subjects, one pair each`
+    : design === 3 ? `${res.nTargets} subjects, ${fmt(mh, 1)} replicates per method (harmonic mean)`
+    : design === 4 ? `${res.nTargets} time-locked pairs from ${clusters} subjects`
+    : `${res.nTargets} subject × condition cells from ${clusters} subjects`;
+  memo[design] = res;
+  return res;
+}
+
+function iccSummary(icc, type) {
+  const want = type === `consistency` ? `consistency` : `agreement`;
+  const other = want === `agreement` ? `consistency` : `agreement`;
+  return {
+    type: want, name: ICC_NAMES[want], val: icc[want].val, ci: icc[want].ci,
+    secondaryName: ICC_NAMES[other], secondaryVal: icc[other].val, secondaryCI: icc[other].ci,
+    ciMethod: icc.ciMethod, targetNote: icc.targetNote
+  };
+}
+
 // Core Statistical & ICC Computation Engine
-function computeAnalysis(dataset, design, ciMethod, equivBound) {
+function computeAnalysis(dataset, design, ciMethod, equivBound, iccType = appState.iccType) {
   const rows = dataset.rows;
   const N = rows.length;
   const xs = rows.map(r => r.x);
@@ -1868,59 +2065,6 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
   let deltaCI_L = [0, 0], deltaCI_U = [0, 0];
   let altCI_L = [0, 0], altCI_U = [0, 0];
   let altLabel = `MOVER`;
-  let iccPrimary = { name: `ICC(A,1)`, val: 0, ci: [0, 0], secondaryName: `ICC(C,1)`, secondaryVal: 0, secondaryCI: [0, 0] };
-
-  // Helper for two-way ANOVA on n x 2 matrix (for Design 1 & 2 ICC)
-  function computeTwoWayICC(pairs) {
-    const k = 2, nn = pairs.length;
-    if (nn < 2) return { iccA: 0, ciA: [0, 0], iccC: 0, ciC: [0, 0], icc1: 0, ci1: [0, 0] };
-    const grand = pairs.reduce((s, p) => s + p[0] + p[1], 0) / (2 * nn);
-    const rowMeans = pairs.map(p => (p[0] + p[1]) / 2);
-    const colMeans = [mean(pairs.map(p => p[0])), mean(pairs.map(p => p[1]))];
-    const SS_total = pairs.reduce((s, p) => s + (p[0] - grand) ** 2 + (p[1] - grand) ** 2, 0);
-    const SS_rows = k * rowMeans.reduce((s, m) => s + (m - grand) ** 2, 0);
-    const SS_cols = nn * ((colMeans[0] - grand) ** 2 + (colMeans[1] - grand) ** 2);
-    const SS_err = Math.max(1e-12, SS_total - SS_rows - SS_cols);
-    const SS_within1 = pairs.reduce((s, p, idx) => s + (p[0] - rowMeans[idx]) ** 2 + (p[1] - rowMeans[idx]) ** 2, 0);
-
-    const MS_R = SS_rows / (nn - 1);
-    const MS_C = SS_cols / (k - 1);
-    const MS_E = SS_err / ((nn - 1) * (k - 1));
-    const MS_W = SS_within1 / (nn * (k - 1));
-
-    // ICC(1,1): one-way random
-    const icc1 = (MS_R - MS_W) / (MS_R + (k - 1) * MS_W);
-    const F1 = MS_R / Math.max(1e-12, MS_W);
-    const Fl1 = F1 / fQuantile(0.975, nn - 1, nn * (k - 1));
-    const Fu1 = F1 * fQuantile(0.975, nn * (k - 1), nn - 1);
-    const ci1 = [(Fl1 - 1) / (Fl1 + k - 1), (Fu1 - 1) / (Fu1 + k - 1)];
-
-    // ICC(C,1): consistency
-    const iccC = (MS_R - MS_E) / (MS_R + (k - 1) * MS_E);
-    const Fc = MS_R / Math.max(1e-12, MS_E);
-    const Flc = Fc / fQuantile(0.975, nn - 1, (nn - 1) * (k - 1));
-    const Fuc = Fc * fQuantile(0.975, (nn - 1) * (k - 1), nn - 1);
-    const ciC = [(Flc - 1) / (Flc + k - 1), (Fuc - 1) / (Fuc + k - 1)];
-
-    // ICC(A,1): McGraw & Wong (1996) absolute agreement with Satterthwaite df
-    const iccA = (MS_R - MS_E) / (MS_R + (k - 1) * MS_E + (k / nn) * (MS_C - MS_E));
-    const a = (k * iccA) / (nn * (1 - iccA));
-    const b = 1 + (k * iccA * (nn - 1)) / (nn * (1 - iccA));
-    const vNum = (a * MS_C + b * MS_E) ** 2;
-    const vDen = ((a * MS_C) ** 2) / (k - 1) + ((b * MS_E) ** 2) / ((nn - 1) * (k - 1));
-    const v = Math.max(1, vNum / Math.max(1e-12, vDen));
-    const FstarL = fQuantile(0.975, nn - 1, v);
-    const FstarU = fQuantile(0.975, v, nn - 1);
-    const loA = (nn * (MS_R - FstarL * MS_E)) / (FstarL * (k * MS_C + (k * nn - k - nn) * MS_E) + nn * MS_R);
-    const hiA = (nn * (FstarU * MS_R - MS_E)) / (k * MS_C + (k * nn - k - nn) * MS_E + nn * FstarU * MS_R);
-
-    return {
-      icc1, ci1: [Math.max(-1, ci1[0]), Math.min(1, ci1[1])],
-      iccC, ciC: [Math.max(-1, ciC[0]), Math.min(1, ciC[1])],
-      iccA, ciA: [Math.max(-1, loA), Math.min(1, hiA)],
-      MS_R, MS_W, MS_E, MS_C
-    };
-  }
 
   if (design === 1) {
     // Design 1: Single-device repeatability (zero-mean assumption vs empirical SD)
@@ -1944,11 +2088,6 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
     altCI_L = deltaCI_L;
     altCI_U = deltaCI_U;
     altLabel = `Exact χ²`;
-    const iccRes = computeTwoWayICC(pairs);
-    iccPrimary = {
-      name: `ICC(1,1) One-Way`, val: iccRes.icc1, ci: iccRes.ci1,
-      secondaryName: `ICC(C,1) / ICC(A,1)`, secondaryVal: iccRes.iccA, secondaryCI: iccRes.ciA
-    };
   } else if (design === 2) {
     // Design 2: Classic Paired Comparison
     const pairs = subjects.map(s => [s.list[0].x, s.list[0].y]);
@@ -2002,11 +2141,6 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
       ];
       altLabel = `MOVER (Donner & Zou)`;
     }
-    const iccRes = computeTwoWayICC(pairs);
-    iccPrimary = {
-      name: `ICC(A,1) Agreement`, val: iccRes.iccA, ci: iccRes.ciA,
-      secondaryName: `ICC(C,1) Consistency`, secondaryVal: iccRes.iccC, secondaryCI: iccRes.ciC
-    };
   } else if (design === 3) {
     // Design 3: Replicates with Constant True Value (Bland & Altman 1999 Eq 5.13, Zou 2013 Eq 2)
     let SS_xw = 0, SS_yw = 0, dfX = 0, dfY = 0;
@@ -2067,22 +2201,6 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
     ];
     altLabel = `MOVER (Zou 2013 Eq. 2)`;
 
-    // Variance-component ICC across subjects on pooled method measures
-    const allM = subjects.map(s => mean(s.list.map(r => (r.x + r.y) / 2)));
-    const varBetween = variance(allM, 1);
-    const varErr = 0.5 * (s2_xw + s2_yw);
-    const iccVal = Math.max(0, varBetween / (varBetween + varErr));
-    const F_icc = (varBetween * mxh + varErr) / Math.max(1e-9, varErr);
-    const Fl = F_icc / fQuantile(0.975, n - 1, dfX);
-    const Fu = F_icc * fQuantile(0.975, dfX, n - 1);
-    iccPrimary = {
-      name: `Variance-Component ICC`, val: iccVal,
-      ci: [
-        Math.max(0, Math.min(1, (Fl - 1) / (Fl - 1 + mxh))),
-        Math.max(0, Math.min(1, (Fu - 1) / (Fu - 1 + mxh)))
-      ],
-      secondaryName: `Repeatability (X / Y)`, secondaryVal: 2.77 * Math.sqrt(s2_xw), secondaryCI: [2.77 * Math.sqrt(s2_xw), 2.77 * Math.sqrt(s2_yw)]
-    };
   } else if (design === 4) {
     // Design 4: Repeated measures, true value varying (Bland & Altman 1999 §5.2/2007; Zou 2013 Case 3)
     // One-way random-effects ANOVA on the differences, unbalanced m_i.
@@ -2140,18 +2258,6 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
     ];
     altLabel = `MOVER (Zou 2013 Case 3)`;
 
-    // Share of difference variance that is between subjects, with F-based CI
-    const F = MSb / Math.max(1e-12, MSw);
-    const Fl = F / fQuantile(0.975, dfB, dfW);
-    const Fu = F * fQuantile(0.975, dfW, dfB);
-    const icc = s2_b / Math.max(1e-12, s2_tot);
-    const sdw = Math.sqrt(s2_dw);
-    iccPrimary = {
-      name: `Between-Subject Share σ²_b / σ²_tot`, val: icc,
-      ci: [Math.max(0, (Fl - 1) / (Fl - 1 + m0)), Math.min(1, Math.max(0, (Fu - 1) / (Fu - 1 + m0)))],
-      secondaryName: `Within-Subject SD of Differences`, secondaryVal: sdw,
-      secondaryCI: [Math.sqrt(lW), Math.sqrt(uW)]
-    };
   } else if (design === 5) {
     // Design 5: Nested subject > condition/day > replicate (method of moments on the differences).
     // Unbalanced cells use average conditions per subject (kCond) and harmonic replicates per cell (mRep).
@@ -2200,7 +2306,7 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
 
     // Parametric / Cluster Bootstrap (B = 400 deterministic draws) for BCa-style asymmetric CIs
     const bRng = mulberry32(4242);
-    const bootL = [], bootU = [], bootICC = [];
+    const bootL = [], bootU = [];
     const B = 400;
     for (let b = 0; b < B; b++) {
       const bDiffs = [];
@@ -2221,22 +2327,18 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
       const bsd = Math.sqrt(variance(bDiffs, 1));
       bootL.push(bm - 1.96 * bsd);
       bootU.push(bm + 1.96 * bsd);
-      bootICC.push(s2_b / Math.max(1e-9, bsd * bsd));
     }
     bootL.sort((a, b) => a - b);
     bootU.sort((a, b) => a - b);
-    bootICC.sort((a, b) => a - b);
     altCI_L = [bootL[Math.floor(0.025 * B)], bootL[Math.floor(0.975 * B)]];
     altCI_U = [bootU[Math.floor(0.025 * B)], bootU[Math.floor(0.975 * B)]];
     altLabel = `Parametric Bootstrap (B=400)`;
 
-    const iccVal = s2_b / Math.max(1e-9, s2_tot);
-    iccPrimary = {
-      name: `LMM ICC (σ²_subj / σ²_tot)`, val: iccVal,
-      ci: [Math.max(0, bootICC[Math.floor(0.025 * B)]), Math.min(1, bootICC[Math.floor(0.975 * B)])],
-      secondaryName: `Cond + Residual Var`, secondaryVal: s2_cond + s2_dw, secondaryCI: [s2_cond, s2_dw]
-    };
   }
+
+  // ICC between the two methods (targets depend on the design; see computeICC)
+  const icc = computeICC(rows, design);
+  const iccPrimary = iccSummary(icc, iccType);
 
   // OLS Regression & Pearson r
   const mx = mean(xs), my = mean(ys);
@@ -2268,7 +2370,7 @@ function computeAnalysis(dataset, design, ciMethod, equivBound) {
     deltaCI_L, deltaCI_U, altCI_L, altCI_U, altLabel,
     activeCI_L: ciMethod === `delta` ? deltaCI_L : altCI_L,
     activeCI_U: ciMethod === `delta` ? deltaCI_U : altCI_U,
-    iccPrimary,
+    iccPrimary, icc,
     ols: { slope, intercept, r: rPearson, syx, mx, sxx, N },
     withinBound, pctWithin, sdMeans, rangeRatio
   };
@@ -2284,7 +2386,7 @@ const DESIGN_HELP = {
   'q-single-dev': {
     title: `Single Device Test–Retest`,
     what: `The same device or rater measures each subject twice under identical conditions.`,
-    selects: `Selects <b>Design 1</b>: repeatability, with within-subject SD s_w, repeatability coefficient RC = 2.77·s_w and ICC(1,1).`,
+    selects: `Selects <b>Design 1</b>: repeatability, with within-subject SD s_w, repeatability coefficient RC = 2.77·s_w, and the ICC type chosen above (the two trials act as raters).`,
     needs: `No Step B choice needed. Data: one pair (trial 1, trial 2) per subject.`
   },
   'q-single-pair': {
@@ -2302,19 +2404,19 @@ const DESIGN_HELP = {
   'q-constant': {
     title: `Constant True Value (Replicates)`,
     what: `Replicates taken while the subject's true value is stable, e.g. repeated trials in one session. X and Y replicates need not be paired.`,
-    selects: `Selects <b>Design 3</b>: within-method variances s²_xw and s²_yw weighted by harmonic replicate means (Bland &amp; Altman 1999).`,
+    selects: `Selects <b>Design 3</b>: within-method variances s²_xw and s²_yw weighted by harmonic replicate means (Bland &amp; Altman 1999); ICC with each subject as a target.`,
     needs: `Requires Step A = <i>Two Methods (Multiple Obs / Subject)</i>.`
   },
   'q-varying': {
     title: `Varying True Value (Time-Locked)`,
     what: `X and Y are read at the same moments while the true value changes, e.g. across a fatigue protocol.`,
-    selects: `Selects <b>Design 4</b>: one-way ANOVA on the differences, σ²_b + σ²_dw with m₀ weighting (Zou 2013 Case 3).`,
+    selects: `Selects <b>Design 4</b>: one-way ANOVA on the differences, σ²_b + σ²_dw with m₀ weighting (Zou 2013 Case 3); ICC with each time-locked pair as a target.`,
     needs: `Requires Step A = <i>Two Methods (Multiple Obs / Subject)</i>.`
   },
   'q-nested': {
     title: `Nested Conditions / Days (LMM)`,
     what: `Repeated readings grouped within conditions or days inside each subject, e.g. 2 angles × 3 trials.`,
-    selects: `Selects <b>Design 5</b>: subject, condition and residual variance components with bootstrap CIs.`,
+    selects: `Selects <b>Design 5</b>: subject, condition and residual variance components with bootstrap CIs; ICC with each subject × condition cell as a target.`,
     needs: `Requires Step A = <i>Two Methods (Multiple Obs / Subject)</i>, and data with at least two conditions per subject and replicates within each condition.`
   }
 };
@@ -2484,7 +2586,7 @@ function renderDecisionTree(design) {
       <line x1="495" y1="133" x2="355" y2="195" stroke="${design === 4 ? cAct : cMute}" stroke-width="${design === 4 ? 2.5 : 1.5}"/>
       <line x1="495" y1="133" x2="520" y2="195" stroke="${design === 5 ? cAct : cMute}" stroke-width="${design === 5 ? 2.5 : 1.5}"/>
       ${nodeBox(190, 4, 220, 40, `Measurement Study Question`, `Single device vs two methods?`, true)}
-      ${nodeBox(15, 85, 180, 48, `D1: Single Device`, `RC = 2.77·s_w, ICC(1,1)`, design === 1, !avail.allowed.has(1))}
+      ${nodeBox(15, 85, 180, 48, `D1: Single Device`, `RC = 2.77·s_w, ICC`, design === 1, !avail.allowed.has(1))}
       ${nodeBox(210, 85, 180, 48, `D2: 1 Pair / Subject`, `95% LoA, Exact t / MOVER`, design === 2, !avail.allowed.has(2))}
       ${nodeBox(405, 85, 180, 48, `Multiple Obs / Subject`, `Check stability & nesting`, design >= 3, ![3, 4, 5].some(d => avail.allowed.has(d)))}
       ${nodeBox(90, 195, 170, 50, `D3: Constant True`, `s²_d + (1−1/m_xh)s²_xw`, design === 3, !avail.allowed.has(3))}
@@ -2497,19 +2599,19 @@ function renderDecisionTree(design) {
   const formulas = {
     1: `<strong>Design 1 Equations (Bland &amp; Altman 1986, 1996):</strong>
         <code class="formula-mono">s_w = √(∑dᵢ² / 2n)   |   RC_BSI = 2·s_d   |   RC_95% = 2.77·s_w</code>
-        Exact χ² confidence bounds for s_w and RC, paired with ICC(1,1) and ICC(A,1).`,
+        Exact χ² confidence bounds for s_w and RC. ICC(A,1) or ICC(C,1) treats the two trials as raters (F-based CIs); ICC(1,1) is listed in the CI audit.`,
     2: `<strong>Design 2 Equations (Bland &amp; Altman 1986; Donner &amp; Zou 2012):</strong>
         <code class="formula-mono">LoA = d̄ ± 1.96·s_d   |   MOVER CI combines t-interval(d̄) &amp; χ²-interval(s_d²)</code>
         Reports ICC(A,1) absolute agreement and ICC(C,1) consistency with F-distribution 95% CIs.`,
     3: `<strong>Design 3 Equations (Bland &amp; Altman 1999 Eq 5.13; Zou 2013 Eq 2):</strong>
         <code class="formula-mono">s²_tot = s²_d̄ + (1 − 1/m_xh)·s²_xw + (1 − 1/m_yh)·s²_yw</code>
-        One-way ANOVA within-method variances s²_xw, s²_yw weighted by harmonic replicate means.`,
+        One-way ANOVA within-method variances s²_xw, s²_yw weighted by harmonic replicate means.<br>ICC: each subject is a target; σ²_target, σ²_method, σ²_target×method and σ²_e come from an unweighted-means two-way ANOVA, with a CI from resampling subjects.`,
     4: `<strong>Design 4 Equations (Bland &amp; Altman 2007; Zou 2013 Eq 1):</strong>
         <code class="formula-mono">s²_tot = s²_d̄ + (1 − 1/m_h)·s²_dw   |   σ̂²_b = (MS_b − MS_w) / m₀</code>
-        Time-locked differences d_ij = X_ij − Y_ij; incorporates Jones (2019) &amp; Matsubayashi (2021) errata checks.`,
+        Time-locked differences d_ij = X_ij − Y_ij; incorporates Jones (2019) &amp; Matsubayashi (2021) errata checks.<br>ICC: each time-locked pair is a target (two-way ANOVA, McGraw &amp; Wong 1996), with a CI from resampling subjects.`,
     5: `<strong>Design 5 Equations (Parker et al. 2016; Caldwell SimplyAgree::loa_lme):</strong>
         <code class="formula-mono">d_ijk = μ + u_i + v_j(i) + ε_ijk   |   σ²_tot = σ²_subj + σ²_cond + σ²_ε</code>
-        Hierarchical variance partitioning with parametric/BCa bootstrap 95% CIs.`
+        Hierarchical variance partitioning with parametric/BCa bootstrap 95% CIs.<br>ICC: each subject × condition cell is a target with replicates nested inside, with a CI from resampling subjects.`
   };
   const fbox = document.getElementById(`design-formula-box`);
   if (fbox) fbox.innerHTML = formulas[design];
@@ -2547,9 +2649,10 @@ function updateSummaryCards(res, dataset, design) {
     cardLoa.setAttribute(`data-status`, inside ? `ok` : `warn`);
   }
 
-  el(`lbl-icc`).textContent = res.iccPrimary.name;
-  el(`val-icc`).textContent = fmt(res.iccPrimary.val, 3);
-  el(`meta-icc`).textContent = `95% CI: [${fmt(res.iccPrimary.ci[0], 3)}, ${fmt(res.iccPrimary.ci[1], 3)}]`;
+  const ip = res.iccPrimary;
+  el(`lbl-icc`).textContent = ip.name;
+  el(`val-icc`).textContent = fmt(ip.val, 3);
+  el(`meta-icc`).textContent = `95% CI: [${fmt(ip.ci[0], 3)}, ${fmt(ip.ci[1], 3)}] (${ip.ciMethod}). ${ip.type === `agreement` ? `Counts the X − Y bias as error` : `Ignores the X − Y bias`}; ${ip.secondaryName.replace(/ .*/, ``)} = ${fmt(ip.secondaryVal, 3)}.`;
 
   const rangeChip = el(`icc-range-chip`);
   if (rangeChip) rangeChip.textContent = `Between/Error SD Ratio: ${fmt(res.rangeRatio, 2)}×`;
@@ -2850,14 +2953,24 @@ function renderTablesAndScripts() {
       rows.push([`Within-Method Variance X (s²_xw)`, `${fmt(res.s2_xw, 3)}`, `One-way ANOVA residual MS for X`]);
       rows.push([`Within-Method Variance Y (s²_yw)`, `${fmt(res.s2_yw, 3)}`, `One-way ANOVA residual MS for Y`]);
       rows.push([`Subject-Mean Diff Variance (s²_d̄)`, `${fmt(res.s2_dbar, 3)}`, `Harmonic replicates m_h = ${fmt(res.m_h, 2)}`]);
+      rows.push([`Repeatability Coefficient X / Y (2.77·s_w)`, `${fmt(2.77 * Math.sqrt(res.s2_xw), 2)} / ${fmt(2.77 * Math.sqrt(res.s2_yw), 2)} ${ds.unit}`, `Within-method replicate agreement`]);
     } else if (d === 4) {
-      rows.push([`Between-Subject ANOVA (MS_b)`, `${fmt(res.MSb, 6)}`, `df = ${res.n - 1}`]);
+      rows.push([`Differences: Between-Subject MS (MS_b)`, `${fmt(res.MSb, 6)}`, `df = ${res.n - 1}`]);
       rows.push([`Within-Subject Difference Var (s²_dw = MS_w)`, `${fmt(res.s2_dw, 6)}`, `df = ${res.dfW}`]);
-      rows.push([`Between-Subject Component (σ̂²_b)`, `${fmt(res.s2_b, 6)}`, `m₀ = ${fmt(res.m0, 4)}, ∑mᵢ² = ${res.sumMi2}`]);
+      rows.push([`Differences: Between-Subject Variance (σ̂²_b)`, `${fmt(res.s2_b, 6)}`, `m₀ = ${fmt(res.m0, 4)}, ∑mᵢ² = ${res.sumMi2}`]);
     } else if (d === 5) {
-      rows.push([`Subject Variance Component (σ̂²_subj)`, `${fmt(res.s2_b, 4)}`, `Random intercept across subjects`]);
-      rows.push([`Condition / Day Component (σ̂²_cond)`, `${fmt(res.s2_cond, 4)}`, `Nested condition within subject`]);
-      rows.push([`Residual Error Variance (σ̂²_ε)`, `${fmt(res.s2_dw, 4)}`, `Replicate-level measurement error`]);
+      rows.push([`Differences: Subject Variance (σ̂²_subj)`, `${fmt(res.s2_b, 4)}`, `Random intercept across subjects`]);
+      rows.push([`Differences: Condition / Day Variance (σ̂²_cond)`, `${fmt(res.s2_cond, 4)}`, `Nested condition within subject`]);
+      rows.push([`Differences: Residual Variance (σ̂²_ε)`, `${fmt(res.s2_dw, 4)}`, `Replicate-level measurement error`]);
+    }
+    // ICC variance components (on the measurement scale, not the differences)
+    const ic = res.icc, comp = ic.est && ic.est.components;
+    rows.push([`ICC Targets`, `${ic.nTargets}`, ic.targetNote]);
+    if (comp) {
+      rows.push([`ICC: True-Value Variance (σ̂²_target)`, fmt(comp.s2_t, 4), `Spread of true values across targets`]);
+      rows.push([`ICC: Method Bias Variance (σ̂²_method)`, fmt(comp.s2_m, 4), `Systematic X − Y difference; only absolute agreement counts it`]);
+      if (comp.s2_int != null) rows.push([`ICC: Target × Method Interaction (σ̂²_int)`, fmt(comp.s2_int, 4), `X and Y disagreeing differently for different targets`]);
+      rows.push([comp.s2_int != null ? `ICC: Replicate Error (σ̂²_e)` : `ICC: Residual Error (σ̂²_e)`, fmt(comp.s2_e, 4), comp.s2_int != null ? `Variance between replicates of one method` : `Includes target × method interaction`]);
     }
     varBody.innerHTML = rows.map(([p, v, n]) => `<tr><td>${p}</td><td class="num"><strong>${v}</strong></td><td>${n}</td></tr>`).join(``);
   }
@@ -2870,10 +2983,11 @@ function renderTablesAndScripts() {
       [`Lower LoA — ${res.altLabel}`, fmt(res.altCI_L[0]), fmt(res.altCI_L[1]), fmt(res.altCI_L[1] - res.altCI_L[0])],
       [`Upper LoA — Classic Delta`, fmt(res.deltaCI_U[0]), fmt(res.deltaCI_U[1]), fmt(res.deltaCI_U[1] - res.deltaCI_U[0])],
       [`Upper LoA — ${res.altLabel}`, fmt(res.altCI_U[0]), fmt(res.altCI_U[1]), fmt(res.altCI_U[1] - res.altCI_U[0])],
-      [res.iccPrimary.name, fmt(res.iccPrimary.ci[0], 3), fmt(res.iccPrimary.ci[1], 3), `Point: ${fmt(res.iccPrimary.val, 3)}`]
+      [`${res.iccPrimary.name} (selected; ${res.iccPrimary.ciMethod})`, fmt(res.iccPrimary.ci[0], 3), fmt(res.iccPrimary.ci[1], 3), `Point: ${fmt(res.iccPrimary.val, 3)}`],
+      [res.iccPrimary.secondaryName, fmt(res.iccPrimary.secondaryCI[0], 3), fmt(res.iccPrimary.secondaryCI[1], 3), `Point: ${fmt(res.iccPrimary.secondaryVal, 3)}`]
     ];
-    if (d <= 2) {
-      ciRows.push([res.iccPrimary.secondaryName, fmt(res.iccPrimary.secondaryCI[0], 3), fmt(res.iccPrimary.secondaryCI[1], 3), `Point: ${fmt(res.iccPrimary.secondaryVal, 3)}`]);
+    if (res.icc.oneway) {
+      ciRows.push([`ICC(1,1) One-Way Random (reference)`, fmt(res.icc.oneway.ci[0], 3), fmt(res.icc.oneway.ci[1], 3), `Point: ${fmt(res.icc.oneway.val, 3)}`]);
     }
     ciBody.innerHTML = ciRows.map(([m, l, u, w]) => `<tr><td>${m}</td><td class="num">${l}</td><td class="num">${u}</td><td class="num">${w}</td></tr>`).join(``);
   }
@@ -2927,13 +3041,26 @@ print(res_agree)`
 : `res_lmm <- loa_lme(diff = "diff", avg = "avg", condition = "condition", id = "subject", data = df, type = "perc", replicates = 1999)
 print(res_lmm)`}
 
-# 2. Design-Appropriate ICC (with Bland & Altman 1990 caveat)
-${design <= 2 ? `icc_agr <- irr::icc(df[, c("method_x", "method_y")], model = "${design === 1 ? 'oneway' : 'twoway'}", type = "agreement", unit = "single")
-print(icc_agr)` : `library(lme4)
-mod_icc <- lmer(diff ~ 1 + (1 | subject)${design === 5 ? ' + (1 | subject:condition)' : ''}, data = df)
-vc <- as.data.frame(VarCorr(mod_icc))
-icc_vc <- vc$vcov[1] / sum(vc$vcov)
-cat("Variance-component ICC:", round(icc_vc, 4), "\\n")`}
+# 2. ICC (single measures) — the workbench reports ${appState.iccType === `consistency` ? `ICC(C,1) consistency` : `ICC(A,1) absolute agreement`}
+${design <= 2 || design === 4 ? `# Each ${design === 4 ? `time-locked pair` : `subject`} is a target and the two methods are the raters.
+icc_res <- irr::icc(df[, c("method_x", "method_y")], model = "twoway",
+                    type = "${appState.iccType === `consistency` ? `consistency` : `agreement`}", unit = "single")
+print(icc_res)${design === 4 ? `
+# Pairs from the same subject are correlated, so the workbench takes its CI from resampling subjects;
+# irr's F-based interval treats every pair as independent and will be narrower.` : ``}` : `# Each ${design === 3 ? `subject` : `subject x condition cell`} is a target with replicates nested inside.
+library(lme4)
+df$target <- ${design === 3 ? `factor(df$subject)` : `interaction(df$subject, df$condition, drop = TRUE)`}
+long <- data.frame(target = rep(df$target, 2),
+                   method = factor(rep(c("X", "Y"), each = nrow(df))),
+                   score  = c(df$method_x, df$method_y))
+fit <- lmer(score ~ method + (1 | target) + (1 | target:method), data = long)
+vc <- as.data.frame(VarCorr(fit))
+s2_t  <- vc$vcov[vc$grp == "target"]
+s2_tm <- vc$vcov[vc$grp == "target:method"]
+s2_e  <- sigma(fit)^2
+s2_m  <- unname(fixef(fit)["methodY"])^2 / 2
+cat("ICC(A,1) absolute agreement:", round(s2_t / (s2_t + s2_m + s2_tm + s2_e), 3), "\\n")
+cat("ICC(C,1) consistency:       ", round(s2_t / (s2_t + s2_tm + s2_e), 3), "\\n")`}
 
 # 3. Bland-Altman Plot (ggplot2)
 ggplot(df, aes(x = avg, y = diff)) +
@@ -2957,11 +3084,21 @@ df = pd.read_csv("active_dataset.csv")
 df["diff"] = df["method_x"] - df["method_y"]
 df["avg"]  = (df["method_x"] + df["method_y"]) / 2
 
-# 1. Intraclass Correlation Coefficient
-df_long = df.melt(id_vars=["subject", "condition"], value_vars=["method_x", "method_y"],
-                  var_name="method", value_name="score")
-icc_tbl = pg.intraclass_corr(data=df_long, targets="subject", raters="method", ratings="score")
-print(icc_tbl[["Type", "ICC", "CI95%"]])
+# 1. ICC (single measures) — the workbench reports ${appState.iccType === `consistency` ? `ICC(C,1) consistency` : `ICC(A,1) absolute agreement`}
+${design <= 2 || design === 4 ? `# Each ${design === 4 ? `time-locked pair` : `subject`} is a target; pingouin's ICC2 = ICC(A,1), ICC3 = ICC(C,1).
+df["target"] = ${design === 4 ? `range(len(df))` : `df["subject"]`}
+df_long = df.melt(id_vars=["target"], value_vars=["method_x", "method_y"], var_name="method", value_name="score")
+icc_tbl = pg.intraclass_corr(data=df_long, targets="target", raters="method", ratings="score")
+print(icc_tbl.set_index("Type").loc[["ICC2", "ICC3"], ["Description", "ICC", "CI95%"]])${design === 4 ? `
+# Pairs from the same subject are correlated; the workbench's CI comes from resampling subjects.` : ``}` : `# Each ${design === 3 ? `subject` : `subject x condition cell`} is a target with replicates nested inside.
+df["target"] = ${design === 3 ? `df["subject"].astype(str)` : `df["subject"].astype(str) + ":" + df["condition"].astype(str)`}
+df_long = df.melt(id_vars=["target"], value_vars=["method_x", "method_y"], var_name="method", value_name="score")
+vc_fit = smf.mixedlm("score ~ method", df_long, groups="target", re_formula="1",
+                     vc_formula={"target_method": "0 + C(method)"}).fit(reml=True)
+s2_t, s2_tm, s2_e = float(vc_fit.cov_re.iloc[0, 0]), float(vc_fit.vcomp[0]), float(vc_fit.scale)
+s2_m = float(vc_fit.fe_params.iloc[1]) ** 2 / 2
+print(f"ICC(A,1) absolute agreement: {s2_t / (s2_t + s2_m + s2_tm + s2_e):.3f}")
+print(f"ICC(C,1) consistency:        {s2_t / (s2_t + s2_tm + s2_e):.3f}")`}
 
 # 2. Variance Components & Limits of Agreement (Design ${design})
 ${design >= 4 ? `lmm = smf.mixedlm("diff ~ 1", df, groups=df["subject"]).fit()
@@ -3032,6 +3169,11 @@ function setCIMethod(val) {
   runAll();
 }
 
+function setICCType(val) {
+  appState.iccType = val === `consistency` ? `consistency` : `agreement`;
+  runAll();
+}
+
 function setEquivBound(val) {
   const num = parseFloat(val);
   if (Number.isFinite(num) && num >= 0) {
@@ -3058,6 +3200,9 @@ function resetWorkbench(btn) {
   if (btn) { btn.dataset.armed = `false`; btn.textContent = `Reset Defaults`; }
   appState.presetKey = `mvc_d2`;
   appState.ciMethod = `mover`;
+  appState.iccType = `agreement`;
+  const iccSel = document.getElementById(`icc-type-select`);
+  if (iccSel) iccSel.value = `agreement`;
   const sel = document.getElementById(`preset-select`);
   if (sel) sel.value = `mvc_d2`;
   const ciSel = document.getElementById(`ci-method-select`);
@@ -3086,6 +3231,10 @@ function downloadActiveDatasetCSV() {
   triggerDownload(header + body, `text/csv`, `${activeDataset.key}_data.csv`);
 }
 
+function csvNum(v) {
+  return Number.isFinite(v) ? v.toFixed(4) : ``;
+}
+
 function exportResultsCSV() {
   if (!computedResults) computedResults = computeAnalysis(activeDataset, appState.design, appState.ciMethod, appState.equivBound);
   const r = computedResults;
@@ -3099,7 +3248,10 @@ function exportResultsCSV() {
     `sd_total,${r.sdTot.toFixed(4)},,,${activeDataset.unit}`,
     `loa_lower,${r.loaL.toFixed(4)},${r.activeCI_L[0].toFixed(4)},${r.activeCI_L[1].toFixed(4)},${activeDataset.unit}`,
     `loa_upper,${r.loaU.toFixed(4)},${r.activeCI_U[0].toFixed(4)},${r.activeCI_U[1].toFixed(4)},${activeDataset.unit}`,
-    `icc_primary_${r.iccPrimary.name.replace(/,/g, '')},${r.iccPrimary.val.toFixed(4)},${r.iccPrimary.ci[0].toFixed(4)},${r.iccPrimary.ci[1].toFixed(4)},ratio`
+    `icc_agreement_A1,${csvNum(r.icc.agreement.val)},${csvNum(r.icc.agreement.ci[0])},${csvNum(r.icc.agreement.ci[1])},ratio`,
+    `icc_consistency_C1,${csvNum(r.icc.consistency.val)},${csvNum(r.icc.consistency.ci[0])},${csvNum(r.icc.consistency.ci[1])},ratio`,
+    `icc_selected,${r.iccPrimary.type},,,`,
+    `icc_targets,${r.icc.nTargets},,,"${r.icc.targetNote}"`
   ];
   triggerDownload(lines.join(`\n`), `text/csv`, `${activeDataset.key}_agreement_results.csv`);
 }
@@ -3193,7 +3345,7 @@ const INGEST_ROLES = {
 };
 const INGEST_RX = {
   subj: /(^|[^a-z])(subj(ect)?s?|participants?|patients?|athletes?|players?|persons?|pid|sid|id|cases?|record)([^a-z]|$)|subject|participant|patient|athlete|player/i,
-  cond: /day|session|visit|time|occasion|condition|^cond|week|period|angle|activity|task|position|phase|stage|bout|posture|limb|side/i,
+  cond: /day|(^|[^a-z])dates?([^a-z]|$)|session|visit|time|occasion|condition|^cond|week|period|angle|activity|task|position|phase|stage|bout|posture|limb|side/i,
   rep: /^(reps?|replicate|repetition|trials?|attempt|obs|observation|iteration|run|n|no|num|number|index|idx)[\s_.-]*(no|num|number|index|idx)?$|replicate|repetition|^trial|attempt/i,
   method: /method|rater|device|instrument|tester|observer|assessor|examiner|tool|system|sensor|machine|technique|clinician|operator|equipment/i,
   value: /value|score|result|measure|reading|^val$|outcome|response/i,
@@ -3207,10 +3359,17 @@ function ingestEsc(s) {
 }
 
 function detectDelimiter(text) {
-  const first = text.split(/\r?\n/).find(l => l.trim()) || ``;
-  const counts = [`\t`, `,`, `;`, `|`].map(d => [d, first.split(d).length - 1]).sort((a, b) => b[1] - a[1]);
-  if (counts[0][1] > 0) return counts[0][0];
-  return /\S\s+\S/.test(first) ? ` ` : `,`;
+  const lines = text.split(/\r?\n/).filter(l => l.trim()).slice(0, 12);
+  let best = null, bestScore = 0;
+  for (const d of [`\t`, `,`, `;`, `|`]) {
+    const counts = lines.map(l => l.split(d).length - 1);
+    if (!counts[0]) continue;
+    const steady = counts.filter(c => c === counts[0]).length / counts.length;
+    const score = steady * 100 + Math.min(counts[0], 50) * 0.1 + (d === `\t` ? 0.5 : 0);
+    if (score > bestScore) { best = d; bestScore = score; }
+  }
+  if (best) return best;
+  return /\S\s+\S/.test(lines[0] || ``) ? ` ` : `,`;
 }
 
 function parseDelimited(text, delim) {
@@ -3359,50 +3518,554 @@ function guessIngest(profiles, nRows) {
   return { layout, reasons, roles: { wide, long }, why };
 }
 
+// ---- Reading data files: CSV / TSV text and Excel workbooks (.xlsx, .xls) ----
+// Workbooks are read natively, with no library: .xlsx is a ZIP of XML parts (unpacked with DecompressionStream),
+// .xls is a BIFF8 record stream inside an OLE2 compound file. Every sheet becomes rows of text cells.
+const XL_DATE_IDS = new Set([14, 15, 16, 17, 22, 27, 28, 29, 30, 31, 36, 50, 51, 54, 57, 58]);
+const XL_CLOCK_IDS = new Set([18, 19, 20, 21, 32, 33, 34, 35, 52, 53, 55, 56]);
+const XL_DURATION_IDS = new Set([45, 46, 47]);
+const TEXT_BOM = String.fromCharCode(0xfeff);
+let ingestSource = null; // file whose text is in the paste box: { name, text, delim, sheet, sheetCount, skipped, book }
+let ingestBook = null;   // multi-sheet workbook: { name, sheets: [{ name, table, skipped }], index }
+
+function normalizePaste(text) {
+  let t = String(text || ``).replace(/\r\n?/g, `\n`); // the paste box itself turns CRLF into LF
+  if (t.startsWith(TEXT_BOM)) t = t.slice(1);
+  return t.trim();
+}
+
+// Number formats decide whether a cell holds a calendar date, a clock time or an elapsed duration.
+function classifyNumFmt(code) {
+  let c = String(code || ``).replace(/"[^"]*"/g, ``).replace(/\\./g, ``).replace(/[_*]./g, ``);
+  const elapsed = /\[(h+|m+|s+)\]/i.test(c);
+  c = c.replace(/\[[^\]]*\]/g, ``).split(`;`)[0].replace(/general/gi, ``);
+  if (/[dy]/i.test(c)) return `date`;
+  if (elapsed || /s\.0/i.test(c) || (/m+:s/i.test(c) && !/h/i.test(c))) return `duration`;
+  if (/h/i.test(c)) return `clock`;
+  return null;
+}
+
+function numFmtKind(id, custom) {
+  if (custom.has(id)) return classifyNumFmt(custom.get(id));
+  if (XL_DATE_IDS.has(id)) return `date`;
+  if (XL_CLOCK_IDS.has(id)) return `clock`;
+  if (XL_DURATION_IDS.has(id)) return `duration`;
+  return null;
+}
+
+// Excel stores dates and times as day counts: dates and clock times become text, durations become seconds.
+function excelNumberText(v, kind, date1904) {
+  if (!kind) return String(+v.toPrecision(15));
+  if (kind === `duration`) return String(+(v * 86400).toFixed(3));
+  const d = new Date(Math.round((v + (date1904 ? 1462 : 0) - 25569) * 86400000));
+  if (Number.isNaN(d.getTime())) return String(v);
+  const iso = d.toISOString();
+  if (kind === `clock`) return iso.slice(11, 19).replace(/:00$/, ``);
+  return Math.abs(v % 1) > 1e-9 ? `${iso.slice(0, 10)} ${iso.slice(11, 16)}` : iso.slice(0, 10);
+}
+
+// ---- .xlsx ----
+function openZip(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error(`it is not a valid .xlsx package`);
+  const entries = new Map(), utf8 = new TextDecoder();
+  let p = dv.getUint32(eocd + 16, true);
+  for (let k = dv.getUint16(eocd + 10, true); k > 0 && p + 46 <= u8.length && dv.getUint32(p, true) === 0x02014b50; k--) {
+    const nameLen = dv.getUint16(p + 28, true), extraLen = dv.getUint16(p + 30, true), commentLen = dv.getUint16(p + 32, true);
+    entries.set(utf8.decode(u8.subarray(p + 46, p + 46 + nameLen)).toLowerCase(), {
+      method: dv.getUint16(p + 10, true), size: dv.getUint32(p + 20, true), offset: dv.getUint32(p + 42, true)
+    });
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return { u8, dv, entries };
+}
+
+async function zipText(zip, path) {
+  const e = path ? zip.entries.get(path.toLowerCase()) : null;
+  if (!e) return null;
+  const { u8, dv } = zip;
+  if (e.offset + 30 > u8.length || dv.getUint32(e.offset, true) !== 0x04034b50) throw new Error(`the .xlsx package is damaged`);
+  const start = e.offset + 30 + dv.getUint16(e.offset + 26, true) + dv.getUint16(e.offset + 28, true);
+  let bytes = u8.subarray(start, start + e.size);
+  if (e.method === 8) {
+    let inflate;
+    try { inflate = new DecompressionStream(`deflate-raw`); }
+    catch (err) { throw new Error(`this browser can't unpack .xlsx files; update it, or save the sheet as CSV`); }
+    bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(inflate)).arrayBuffer());
+  } else if (e.method !== 0) {
+    throw new Error(`the .xlsx package uses an unsupported compression method`);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+function xmlParse(text) {
+  const doc = new DOMParser().parseFromString(text, `application/xml`);
+  if (doc.getElementsByTagName(`parsererror`).length) throw new Error(`part of the workbook could not be read`);
+  return doc;
+}
+const xmlAll = (node, name) => Array.from(node.getElementsByTagNameNS(`*`, name));
+const xmlKids = (node, name) => Array.from(node.children).filter(n => n.localName === name);
+// Joins rich-text runs, skipping phonetic (furigana) runs.
+function xmlText(node) {
+  return xmlAll(node, `t`).filter(t => !t.parentNode || t.parentNode.localName !== `rPh`).map(t => t.textContent).join(``);
+}
+
+async function readXlsx(buf) {
+  const zip = openZip(buf);
+  const part = async path => { const t = await zipText(zip, path); return t == null ? null : xmlParse(t); };
+  const resolve = (dir, target) => {
+    if (!target || /^[a-z][a-z0-9+.-]*:/i.test(target)) return null;
+    const out = [];
+    for (const seg of (target.startsWith(`/`) ? target.slice(1) : dir + target).split(`/`)) {
+      if (seg === `..`) out.pop(); else if (seg && seg !== `.`) out.push(seg);
+    }
+    return out.join(`/`);
+  };
+  const relsOf = async path => {
+    const dir = path.replace(/[^/]*$/, ``);
+    const doc = await part(`${dir}_rels/${path.slice(dir.length)}.rels`);
+    return doc ? xmlAll(doc, `Relationship`).map(r => ({ id: r.getAttribute(`Id`), type: r.getAttribute(`Type`) || ``, target: resolve(dir, r.getAttribute(`Target`)) })) : [];
+  };
+  const docRel = (await relsOf(``)).find(r => /\/officeDocument$/.test(r.type));
+  const wbPath = (docRel && docRel.target) || `xl/workbook.xml`;
+  const wb = await part(wbPath);
+  if (!wb) throw new Error(`no workbook was found inside it`);
+  const rels = await relsOf(wbPath);
+  const relTarget = re => (rels.find(r => re.test(r.type)) || {}).target;
+  const pr = xmlAll(wb, `workbookPr`)[0];
+  const date1904 = !!pr && /^(1|true)$/i.test(pr.getAttribute(`date1904`) || ``);
+  const sst = await part(relTarget(/\/sharedStrings$/));
+  const shared = sst ? xmlAll(sst, `si`).map(xmlText) : [];
+  const xfKinds = [];
+  const styles = await part(relTarget(/\/styles$/));
+  if (styles) {
+    const custom = new Map(xmlAll(styles, `numFmt`).map(n => [+n.getAttribute(`numFmtId`), n.getAttribute(`formatCode`)]));
+    const cellXfs = xmlAll(styles, `cellXfs`)[0];
+    if (cellXfs) for (const xf of xmlKids(cellXfs, `xf`)) xfKinds.push(numFmtKind(+(xf.getAttribute(`numFmtId`) || 0), custom));
+  }
+  const ctx = { shared, xfKinds, date1904 };
+  const sheets = [];
+  for (const sh of xmlAll(wb, `sheet`)) {
+    const idAttr = Array.from(sh.attributes).find(a => a.localName === `id` && a.namespaceURI);
+    const rel = idAttr && rels.find(r => r.id === idAttr.value);
+    if (!rel || !/\/worksheet$/.test(rel.type)) continue; // chart sheets etc. hold no cells
+    const doc = await part(rel.target);
+    if (doc) sheets.push({ name: sh.getAttribute(`name`) || `Sheet ${sheets.length + 1}`, rows: xlsxRows(doc, ctx) });
+  }
+  return { sheets };
+}
+
+function xlsxColIndex(ref) {
+  let n = 0;
+  for (const ch of ref.toUpperCase()) {
+    const k = ch.charCodeAt(0) - 64;
+    if (k < 1 || k > 26) break;
+    n = n * 26 + k;
+  }
+  return n - 1;
+}
+
+function xlsxRows(doc, ctx) {
+  const rows = [];
+  let r = -1;
+  for (const row of xmlAll(doc, `row`)) {
+    const rAttr = row.getAttribute(`r`);
+    r = rAttr ? parseInt(rAttr, 10) - 1 : r + 1;
+    const cells = [];
+    let c = -1;
+    for (const cell of xmlKids(row, `c`)) {
+      const ref = cell.getAttribute(`r`);
+      c = ref ? xlsxColIndex(ref) : c + 1;
+      const v = xlsxCellText(cell, ctx);
+      if (v !== ``) cells[c] = v;
+    }
+    if (cells.length) rows[r] = cells;
+  }
+  return rows;
+}
+
+function xlsxCellText(cell, ctx) {
+  const type = cell.getAttribute(`t`) || `n`;
+  if (type === `inlineStr`) { const is = xmlKids(cell, `is`)[0]; return is ? xmlText(is) : ``; }
+  const vEl = xmlKids(cell, `v`)[0];
+  if (!vEl) return ``;
+  const v = vEl.textContent;
+  if (type === `s`) return ctx.shared[+v] ?? ``;
+  if (type === `b`) return v === `1` ? `TRUE` : `FALSE`;
+  if (type === `e`) return ``;
+  if (type === `str`) return v;
+  if (type === `d`) return v.replace(/T00:00(:00(\.0+)?)?Z?$/, ``);
+  const num = Number(v);
+  return Number.isFinite(num) && v.trim() !== `` ? excelNumberText(num, ctx.xfKinds[+(cell.getAttribute(`s`) || 0)], ctx.date1904) : v;
+}
+
+// ---- .xls (BIFF8 inside an OLE2 compound file) ----
+function cfbStream(buf, names) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  const secSize = 1 << dv.getUint16(0x1e, true), miniSize = 1 << dv.getUint16(0x20, true);
+  const nFat = dv.getUint32(0x2c, true), dirStart = dv.getInt32(0x30, true);
+  const miniCutoff = dv.getUint32(0x38, true), miniFatStart = dv.getInt32(0x3c, true);
+  const at = sec => (sec + 1) * secSize;
+  const fatSecs = [];
+  for (let i = 0; i < 109 && fatSecs.length < nFat; i++) {
+    const v = dv.getInt32(0x4c + i * 4, true);
+    if (v >= 0) fatSecs.push(v);
+  }
+  const perDifat = secSize / 4 - 1;
+  for (let d = dv.getInt32(0x44, true), guard = 0; d >= 0 && fatSecs.length < nFat && guard < 100000; guard++) {
+    if (at(d) + secSize > u8.length) break;
+    for (let i = 0; i < perDifat && fatSecs.length < nFat; i++) {
+      const v = dv.getInt32(at(d) + i * 4, true);
+      if (v >= 0) fatSecs.push(v);
+    }
+    d = dv.getInt32(at(d) + perDifat * 4, true);
+  }
+  const per = secSize / 4, fat = new Int32Array(fatSecs.length * per).fill(-2);
+  fatSecs.forEach((sec, i) => {
+    const o = at(sec);
+    for (let j = 0; j < per && o + j * 4 + 4 <= u8.length; j++) fat[i * per + j] = dv.getInt32(o + j * 4, true);
+  });
+  const chain = (start, table) => {
+    const out = [], seen = new Set();
+    for (let sec = start; sec >= 0 && sec < table.length && !seen.has(sec); sec = table[sec]) { seen.add(sec); out.push(sec); }
+    return out;
+  };
+  const read = (start, size) => {
+    const secs = chain(start, fat), out = new Uint8Array(secs.length * secSize);
+    secs.forEach((sec, i) => out.set(u8.subarray(at(sec), Math.min(u8.length, at(sec) + secSize)), i * secSize));
+    return size == null ? out : out.subarray(0, size);
+  };
+  const dir = read(dirStart);
+  const ddv = new DataView(dir.buffer, dir.byteOffset, dir.byteLength);
+  const streams = new Map();
+  let root = null;
+  for (let o = 0; o + 128 <= dir.length; o += 128) {
+    const type = dir[o + 0x42];
+    if (!type) continue;
+    const nameLen = Math.max(0, Math.min(64, ddv.getUint16(o + 0x40, true)) / 2 - 1);
+    let name = ``;
+    for (let i = 0; i < nameLen; i++) name += String.fromCharCode(ddv.getUint16(o + i * 2, true));
+    const entry = { type, start: ddv.getInt32(o + 0x74, true), size: ddv.getUint32(o + 0x78, true) };
+    if (type === 5) root = entry;
+    else if (type === 2) streams.set(name.toLowerCase(), entry);
+  }
+  const hit = names.map(n => streams.get(n.toLowerCase())).find(Boolean);
+  if (!hit) return null;
+  if (hit.size < miniCutoff && root) {
+    // Small streams live in the mini stream (held by the root entry), addressed through the mini FAT.
+    const mini = read(root.start, root.size);
+    const mfBytes = read(miniFatStart);
+    const mdv = new DataView(mfBytes.buffer, mfBytes.byteOffset, mfBytes.byteLength);
+    const miniFat = new Int32Array(mfBytes.length >> 2);
+    for (let i = 0; i < miniFat.length; i++) miniFat[i] = mdv.getInt32(i * 4, true);
+    const secs = chain(hit.start, miniFat), out = new Uint8Array(secs.length * miniSize);
+    secs.forEach((sec, i) => out.set(mini.subarray(sec * miniSize, (sec + 1) * miniSize), i * miniSize));
+    return out.subarray(0, hit.size);
+  }
+  return read(hit.start, hit.size);
+}
+
+// Reads across a record and its CONTINUE records; a string split between records restates its encoding byte.
+function biffReader(s, segments) {
+  let seg = 0, pos = segments[0][0];
+  const end = () => segments[seg][1];
+  const next = () => { if (seg >= segments.length - 1) return false; seg++; pos = segments[seg][0]; return true; };
+  const r = {
+    u8() { if (pos >= end()) next(); return s[pos++] || 0; },
+    u16() { return r.u8() | (r.u8() << 8); },
+    u32() { return (r.u16() | (r.u16() << 16)) >>> 0; },
+    skip(n) {
+      while (n > 0) {
+        if (pos >= end() && !next()) return;
+        const k = Math.min(n, end() - pos);
+        pos += k;
+        n -= k;
+      }
+    },
+    chars(cch, high) {
+      let out = ``;
+      while (cch > 0) {
+        if (pos >= end()) { if (!next()) break; high = s[pos++] & 1; }
+        const avail = high ? (end() - pos) >> 1 : end() - pos;
+        const n = Math.min(cch, avail);
+        if (n <= 0) { pos = end(); continue; }
+        if (high) for (let i = 0; i < n; i++, pos += 2) out += String.fromCharCode(s[pos] | (s[pos + 1] << 8));
+        else for (let i = 0; i < n; i++) out += String.fromCharCode(s[pos++]);
+        cch -= n;
+      }
+      return out;
+    },
+    str(lenBytes) {
+      const cch = lenBytes === 1 ? r.u8() : r.u16();
+      const flags = r.u8();
+      const runs = flags & 0x08 ? r.u16() : 0;
+      const ext = flags & 0x04 ? r.u32() : 0;
+      const text = r.chars(cch, flags & 1);
+      r.skip(runs * 4 + ext);
+      return text;
+    },
+    done() { return pos >= end() && seg >= segments.length - 1; }
+  };
+  return r;
+}
+
+function xlsRk(rk) {
+  let v;
+  if (rk & 2) v = rk >> 2;
+  else {
+    const b = new DataView(new ArrayBuffer(8));
+    b.setInt32(4, rk & ~3, true);
+    v = b.getFloat64(0, true);
+  }
+  return rk & 1 ? v / 100 : v;
+}
+
+function readXls(buf) {
+  const s = cfbStream(buf, [`Workbook`, `Book`]);
+  if (!s || s.length < 8) throw new Error(`no workbook was found inside it`);
+  const dv = new DataView(s.buffer, s.byteOffset, s.byteLength);
+  if (dv.getUint16(0, true) !== 0x0809 || dv.getUint16(4, true) !== 0x0600) {
+    throw new Error(`it uses a pre-1997 Excel format; open it in Excel and save it as .xlsx or .csv`);
+  }
+  const strAt = (a, b, lenBytes) => biffReader(s, [[a, b]]).str(lenBytes);
+  const metas = [], xfFmt = [], formats = new Map(), sst = [];
+  let date1904 = false, p = 0;
+  while (p + 4 <= s.length) {
+    const type = dv.getUint16(p, true), len = dv.getUint16(p + 2, true), d = p + 4;
+    p = d + len;
+    if (type === 0x002f) throw new Error(`it is password-protected; remove the password in Excel, or save it as CSV`);
+    if (type === 0x0022) date1904 = dv.getUint16(d, true) === 1;
+    else if (type === 0x00e0) xfFmt.push(dv.getUint16(d + 2, true));
+    else if (type === 0x041e) formats.set(dv.getUint16(d, true), strAt(d + 2, d + len, 2));
+    else if (type === 0x0085) metas.push({ pos: dv.getUint32(d, true), kind: s[d + 5], name: strAt(d + 6, d + len, 1) });
+    else if (type === 0x00fc) {
+      const segs = [[d, d + len]];
+      while (p + 4 <= s.length && dv.getUint16(p, true) === 0x003c) {
+        const l = dv.getUint16(p + 2, true);
+        segs.push([p + 4, p + 4 + l]);
+        p += 4 + l;
+      }
+      const r = biffReader(s, segs);
+      r.u32();
+      for (let k = r.u32(); k > 0 && !r.done(); k--) sst.push(r.str(2));
+    } else if (type === 0x000a) break;
+  }
+  const xfKinds = xfFmt.map(id => numFmtKind(id, formats));
+  const sheets = [];
+  for (const m of metas) {
+    if (m.kind !== 0 || m.pos + 4 > s.length || dv.getUint16(m.pos, true) !== 0x0809) continue;
+    const rows = [];
+    const put = (row, col, v) => { if (v !== `` && v != null) (rows[row] || (rows[row] = []))[col] = v; };
+    const num = (v, xf) => excelNumberText(v, xfKinds[xf], date1904);
+    let q = m.pos, depth = 0, pending = null;
+    while (q + 4 <= s.length) {
+      const type = dv.getUint16(q, true), len = dv.getUint16(q + 2, true), d = q + 4;
+      q = d + len;
+      if (type === 0x0809) { depth++; continue; }          // BOF (embedded charts nest their own)
+      if (type === 0x000a) { if (--depth <= 0) break; continue; }
+      if (depth !== 1) continue;
+      if (type === 0x0207) {                                // STRING: text result of the formula before it
+        if (pending) put(pending.row, pending.col, strAt(d, d + len, 2));
+        pending = null;
+        continue;
+      }
+      if (len < 6 || d + len > s.length) continue;
+      const row = dv.getUint16(d, true), col = dv.getUint16(d + 2, true), xf = dv.getUint16(d + 4, true);
+      if (type === 0x0203) put(row, col, num(dv.getFloat64(d + 6, true), xf));                 // NUMBER
+      else if (type === 0x027e) put(row, col, num(xlsRk(dv.getInt32(d + 6, true)), xf));      // RK
+      else if (type === 0x00bd) {                                                               // MULRK
+        for (let o = d + 4, c = col; o + 6 <= d + len - 2; o += 6, c++) put(row, c, num(xlsRk(dv.getInt32(o + 2, true)), dv.getUint16(o, true)));
+      } else if (type === 0x00fd) put(row, col, sst[dv.getUint32(d + 6, true)] ?? ``);          // LABELSST
+      else if (type === 0x0204 || type === 0x00d6) put(row, col, strAt(d + 6, d + len, 2));     // LABEL, RSTRING
+      else if (type === 0x0205) { if (!s[d + 7]) put(row, col, s[d + 6] ? `TRUE` : `FALSE`); }  // BOOLERR (errors stay blank)
+      else if (type === 0x0006) {                                                               // FORMULA: cached result
+        if (dv.getUint16(d + 12, true) !== 0xffff) put(row, col, num(dv.getFloat64(d + 6, true), xf));
+        else if (s[d + 6] === 0) pending = { row, col };
+        else if (s[d + 6] === 1) put(row, col, s[d + 8] ? `TRUE` : `FALSE`);
+      }
+    }
+    sheets.push({ name: m.name || `Sheet ${sheets.length + 1}`, rows });
+  }
+  return { sheets };
+}
+
+// ---- Text, and spreadsheets saved as HTML or XML ----
+function decodeTextBytes(u8) {
+  if (u8[0] === 0xff && u8[1] === 0xfe) return new TextDecoder(`utf-16le`).decode(u8);
+  if (u8[0] === 0xfe && u8[1] === 0xff) return new TextDecoder(`utf-16be`).decode(u8);
+  try { return new TextDecoder(`utf-8`, { fatal: true }).decode(u8); }
+  catch (err) { return new TextDecoder(`windows-1252`).decode(u8); } // Excel's "CSV" uses the ANSI code page
+}
+
+function readHtmlTables(text) {
+  const doc = new DOMParser().parseFromString(text, `text/html`);
+  return {
+    sheets: Array.from(doc.querySelectorAll(`table`)).map((t, i) => ({
+      name: `Table ${i + 1}`,
+      rows: Array.from(t.rows, tr => Array.from(tr.cells, td => td.textContent.replace(/\s+/g, ` `).trim()))
+    }))
+  };
+}
+
+function readSpreadsheetML(text) {
+  const SS = `urn:schemas-microsoft-com:office:spreadsheet`;
+  const doc = xmlParse(text);
+  const sheets = [];
+  for (const ws of xmlAll(doc, `Worksheet`)) {
+    const rows = [];
+    let r = -1;
+    for (const row of xmlAll(ws, `Row`)) {
+      r = row.getAttributeNS(SS, `Index`) ? +row.getAttributeNS(SS, `Index`) - 1 : r + 1;
+      const cells = [];
+      let c = -1;
+      for (const cell of xmlKids(row, `Cell`)) {
+        c = cell.getAttributeNS(SS, `Index`) ? +cell.getAttributeNS(SS, `Index`) - 1 : c + 1;
+        const data = xmlKids(cell, `Data`)[0];
+        if (data) cells[c] = data.getAttributeNS(SS, `Type`) === `DateTime` ? data.textContent.replace(/T00:00:00(\.0+)?$/, ``) : data.textContent;
+        c += +(cell.getAttributeNS(SS, `MergeAcross`) || 0);
+      }
+      rows[r] = cells;
+    }
+    sheets.push({ name: ws.getAttributeNS(SS, `Name`) || `Sheet ${sheets.length + 1}`, rows });
+  }
+  return { sheets };
+}
+
+// Detect the format from the file's bytes, since many programs save HTML or plain text under an .xls name.
+async function readDataFile(file) {
+  const buf = await file.arrayBuffer();
+  const u8 = new Uint8Array(buf);
+  const sig = bytes => bytes.every((v, i) => u8[i] === v);
+  if (sig([0x50, 0x4b, 0x03, 0x04])) return readXlsx(buf);
+  if (sig([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) return readXls(buf);
+  const text = decodeTextBytes(u8);
+  if (/urn:schemas-microsoft-com:office:spreadsheet/i.test(text.slice(0, 4000))) return readSpreadsheetML(text);
+  if (/^\s*</.test(text) && /<table[\s>]/i.test(text)) return readHtmlTables(text);
+  return { text };
+}
+
+// Tidy a sheet: drop empty rows and columns, and any title rows above the header row.
+function finishSheetTable(sparse) {
+  let rows = [];
+  for (const r of sparse) {
+    if (!r) continue;
+    const dense = Array.from(r, v => (v == null ? `` : String(v).trim()));
+    if (dense.some(v => v !== ``)) rows.push(dense);
+  }
+  if (!rows.length) return { table: [], skipped: 0 };
+  const width = rows.reduce((w, r) => Math.max(w, r.length), 0);
+  const keep = [];
+  for (let j = 0; j < width; j++) if (rows.some(r => (r[j] ?? ``) !== ``)) keep.push(j);
+  rows = rows.map(r => keep.map(j => r[j] ?? ``));
+  const filled = rows.map(r => r.reduce((n, v) => n + (v !== `` ? 1 : 0), 0));
+  const typical = filled.slice(0, 60).reduce((a, b) => Math.max(a, b), 0);
+  const need = Math.max(Math.min(2, typical), Math.ceil(typical * 0.6));
+  let head = 0;
+  while (head < Math.min(10, rows.length - 1) && filled[head] < need) head++;
+  return { table: rows.slice(head), skipped: head };
+}
+
+function tableToTSV(table) {
+  return table.map(r => r.map(v => (/[\t\r\n"]/.test(v) ? `"${v.replace(/"/g, `""`)}"` : v)).join(`\t`)).join(`\n`);
+}
+
 function handleCSVFileUpload(input) {
   const file = input.files && input.files[0];
   if (file) loadIngestFile(file);
   input.value = ``; // allow choosing the same file again
 }
 
-function loadIngestFile(file) {
+async function loadIngestFile(file) {
   const msg = document.getElementById(`ingest-msg`);
   const say = (text, isError) => {
     if (!msg) return;
     msg.textContent = text;
     if (isError) msg.setAttribute(`data-state`, `error`); else msg.removeAttribute(`data-state`);
   };
-  if (/\.(xlsx|xlsm|xlsb|xls|ods|numbers)$/i.test(file.name)) {
-    say(`${file.name} is a spreadsheet workbook, which can't be read directly. Save it as CSV (in Excel: File → Save As → CSV), or select the cells, copy them and paste them into the paste box.`, true);
+  if (/\.(xlsb|ods|numbers)$/i.test(file.name)) {
+    say(`${file.name} can't be read here. Save it as .xlsx, .xls or .csv, or copy the cells and paste them.`, true);
     return;
   }
-  if (file.size > 20 * 1024 * 1024) {
-    say(`${file.name} is larger than 20 MB. Remove the columns you don't need and try again.`, true);
+  if (file.size > 30 * 1024 * 1024) {
+    say(`${file.name} is larger than 30 MB. Remove the sheets or columns you don't need and try again.`, true);
     return;
   }
   say(`Reading ${file.name}…`);
-  const reader = new FileReader();
-  reader.onload = e => {
-    const txt = document.getElementById(`paste-csv`);
-    if (txt) txt.value = e.target.result;
-    parsePastedCSV(file.name);
-  };
-  reader.onerror = () => say(`Could not read ${file.name}.`, true);
-  reader.readAsText(file);
+  let data;
+  try {
+    data = await readDataFile(file);
+  } catch (err) {
+    say(`Couldn't read ${file.name}: ${err && err.message ? err.message : err}.`, true);
+    return;
+  }
+  if (data.text != null) {
+    setIngestSource({ name: file.name, text: data.text });
+    return;
+  }
+  const sheets = data.sheets.map(sh => ({ name: sh.name, ...finishSheetTable(sh.rows) })).filter(sh => sh.table.length);
+  if (!sheets.length) {
+    say(`${file.name} doesn't contain any data.`, true);
+    return;
+  }
+  const usable = sheets.findIndex(sh => sh.table.length >= 4 && sh.table[0].length >= 2);
+  ingestBook = { name: file.name, sheets, index: 0 };
+  loadBookSheet(usable < 0 ? 0 : usable);
 }
 
-function parsePastedCSV(sourceName) {
+function setIngestSource(src) {
+  const txt = document.getElementById(`paste-csv`);
+  if (txt) txt.value = src.text;
+  ingestSource = { ...src, text: normalizePaste(src.text) };
+  parsePastedCSV();
+}
+
+function loadBookSheet(i) {
+  const sh = ingestBook && ingestBook.sheets[i];
+  if (!sh) return;
+  ingestBook.index = i;
+  setIngestSource({ name: ingestBook.name, text: tableToTSV(sh.table), delim: `\t`, sheet: sh.name, sheetCount: ingestBook.sheets.length, skipped: sh.skipped, book: true });
+}
+
+function renderSheetPicker() {
+  const box = document.getElementById(`sheet-picker`);
+  if (!box) return;
+  const book = ingestSource && ingestSource.book ? ingestBook : null;
+  if (!book || book.sheets.length < 2) {
+    box.hidden = true;
+    box.innerHTML = ``;
+    return;
+  }
+  const hadFocus = document.activeElement && document.activeElement.id === `sheet-select`;
+  box.hidden = false;
+  box.innerHTML = `<label class="field-label" for="sheet-select">Sheet in ${ingestEsc(book.name)}</label>
+    <select id="sheet-select" class="select-ctrl" onchange="loadBookSheet(+this.value)">${book.sheets.map((sh, i) =>
+      `<option value="${i}"${i === book.index ? ` selected` : ``}>${ingestEsc(sh.name)}: ${Math.max(0, sh.table.length - 1)} rows × ${sh.table[0].length} columns</option>`).join(``)}</select>`;
+  if (hadFocus) document.getElementById(`sheet-select`)?.focus();
+}
+
+function parsePastedCSV() {
   const msg = document.getElementById(`ingest-msg`);
-  const raw = (document.getElementById(`paste-csv`)?.value || ``).replace(/^﻿/, ``).trim();
+  const raw = normalizePaste(document.getElementById(`paste-csv`)?.value);
+  // Text that came from a file stays linked to that file (and sheet) until the paste box is edited.
+  const src = ingestSource && ingestSource.text === raw ? ingestSource : null;
+  if (!src) ingestSource = null;
+  renderSheetPicker();
   const fail = text => {
     if (msg) { msg.textContent = text; msg.setAttribute(`data-state`, `error`); }
     ingest = null;
     const host = document.getElementById(`ingest-wizard`);
     if (host) host.hidden = true;
   };
-  if (!raw) return fail(`Paste CSV/TSV text, or choose or drop a file, first.`);
-  const delim = detectDelimiter(raw);
-  const table = parseDelimited(raw, delim);
+  if (!raw) return fail(`Paste data, or choose or drop a file, first.`);
+  const delim = (src && src.delim) || detectDelimiter(raw);
+  // Text exports often carry a title line above the header; workbook sheets were already tidied the same way.
+  const tidy = finishSheetTable(parseDelimited(raw, delim));
+  const table = tidy.table;
+  const skipped = (src && src.skipped) || tidy.skipped;
   if (table.length < 4) return fail(`Need a header row and at least 3 data rows.`);
   const width = Math.max(...table.map(r => r.length));
   const headers = Array.from({ length: width }, (_, i) => (table[0][i] || ``).trim() || `Column ${i + 1}`);
@@ -3419,15 +4082,18 @@ function parsePastedCSV(sourceName) {
     levelX: firstLevels[0] ?? null, levelY: firstLevels[1] ?? null,
     design: null, designAuto: true,
     unit: unitMatch ? unitMatch[1] : `units`,
-    sourceName: sourceName || null,
+    sourceName: src ? (src.sheet && src.sheetCount > 1 ? `${src.name} – ${src.sheet}` : src.name) : null,
     picked: null, edited: false
   };
   const delimName = { '\t': `tab`, ',': `comma`, ';': `semicolon`, '|': `pipe`, ' ': `space` }[delim];
+  const sheetPart = src && src.sheet && src.sheetCount > 1 ? src.sheet : null;
+  const how = src && src.book ? `` : ` (${delimName}-separated)`;
+  const skippedNote = skipped ? ` Skipped ${skipped} title row${skipped > 1 ? `s` : ``} above the header.` : ``;
   if (msg) {
-    msg.textContent = `Read ${records.length} rows × ${width} columns (${delimName}-separated${sourceName ? ` from ${sourceName}` : ``}). Check the suggested mapping below, then confirm.`;
+    msg.textContent = `Read ${records.length} rows × ${width} columns${how}${src ? ` from ${src.name}${sheetPart ? `, sheet “${sheetPart}”` : ``}` : ``}.${skippedNote} Check the suggested mapping below, then confirm.`;
     msg.removeAttribute(`data-state`);
   }
-  ingest.sourceLine = `${sourceName ? `From <b>${ingestEsc(sourceName)}</b>: ` : `Pasted data: `}${records.length} rows × ${width} columns, ${delimName}-separated.`;
+  ingest.sourceLine = `${src ? `From <b>${ingestEsc(src.name)}</b>${sheetPart ? ` (sheet “${ingestEsc(sheetPart)}”)` : ``}: ` : `Pasted data: `}${records.length} rows × ${width} columns${src && src.book ? `` : `, ${delimName}-separated`}.${skippedNote}`;
   renderIngestWizard();
   // On small screens step 2 starts below the fold, so bring it into view.
   const dlg = document.getElementById(`import-dialog`), host = document.getElementById(`ingest-wizard`);
@@ -3558,7 +4224,9 @@ function suggestIngestDesign(built) {
   const condName = R.cond && R.cond.length ? ingest.headers[R.cond[0]] : null;
   if (maxObs <= 1) {
     const sameStem = columnStem(labelX, false) === columnStem(labelY, false) && columnStem(labelX, false) !== String(labelX).toLowerCase();
-    const retest = sameStem || (INGEST_RX.retest.test(labelX) && INGEST_RX.retest.test(labelY));
+    // Columns named for raters, devices or methods compare two methods even when only a number tells them apart.
+    const twoMethods = INGEST_RX.method.test(labelX) || INGEST_RX.method.test(labelY);
+    const retest = !twoMethods && (sameStem || (INGEST_RX.retest.test(labelX) && INGEST_RX.retest.test(labelY)));
     return retest
       ? { design: 1, avail, why: `One pair per subject, and <b>${ingestEsc(labelX)}</b> / <b>${ingestEsc(labelY)}</b> look like two trials of the same measure, so test–retest repeatability is suggested.` }
       : { design: 2, avail, why: `One pair per subject from two different methods, so a classic paired comparison is suggested.` };
@@ -3886,6 +4554,7 @@ async function saveAppStateSafe() {
         presetKey: appState.presetKey,
         design: appState.design,
         ciMethod: appState.ciMethod,
+        iccType: appState.iccType,
         equivBound: appState.equivBound,
         plotOpts: appState.plotOpts,
         customDataset: appState.presetKey === `custom_user` ? appState.customDataset : null
@@ -3899,6 +4568,8 @@ function syncControlsToState() {
   if (sel) sel.value = appState.presetKey;
   const ciSel = document.getElementById(`ci-method-select`);
   if (ciSel) ciSel.value = appState.ciMethod;
+  const iccSel = document.getElementById(`icc-type-select`);
+  if (iccSel) iccSel.value = appState.iccType;
   const bEl = document.getElementById(`equiv-bound-input`);
   if (bEl) bEl.value = appState.equivBound;
 }
@@ -3916,6 +4587,7 @@ async function initApp() {
         if (saved.presetKey) appState.presetKey = saved.presetKey;
         if (saved.design) appState.design = saved.design;
         if (saved.ciMethod) appState.ciMethod = saved.ciMethod;
+        if (saved.iccType) appState.iccType = saved.iccType === `consistency` ? `consistency` : `agreement`;
         if (typeof saved.equivBound === `number`) appState.equivBound = saved.equivBound;
         if (saved.plotOpts) {
           appState.plotOpts = saved.plotOpts;
@@ -3934,6 +4606,8 @@ async function initApp() {
         if (sel) sel.value = appState.presetKey;
         const ciSel = document.getElementById(`ci-method-select`);
         if (ciSel) ciSel.value = appState.ciMethod;
+        const iccSel = document.getElementById(`icc-type-select`);
+        if (iccSel) iccSel.value = appState.iccType;
         const bEl = document.getElementById(`equiv-bound-input`);
         if (bEl) bEl.value = appState.equivBound;
         activeDataset = (appState.presetKey === `custom_user` && appState.customDataset)
